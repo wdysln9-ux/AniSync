@@ -205,8 +205,8 @@ internal fun CloudStreamWatchContent(
                                         val update = withContext(Dispatchers.IO) {
                                             CloudStreamRuntime.pollLinks(source, data)
                                         }
-                                        streams = (update["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()?.orEmpty().orEmpty()
-                                        subtitles = (update["subtitles"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()?.orEmpty()
+                                        streams = ((update["sources"] as? List<*>) ?: emptyList<Any>()).filterIsInstance<Map<String, Any?>>()
+                                        subtitles = ((update["subtitles"] as? List<*>) ?: emptyList<Any>()).filterIsInstance<Map<String, Any?>>()
                                         if (selectedStream == null) selectedStream = streams.firstOrNull()
                                         done = update["done"] == true
                                     }
