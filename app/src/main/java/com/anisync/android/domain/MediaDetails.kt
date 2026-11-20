@@ -53,7 +53,7 @@ data class Trailer(
 
 data class MediaDetails(
     val id: Int,
-    /** MyAnimeList id used by AniZip episode metadata. Not persisted in the local cache. */
+    /** MyAnimeList id used to retrieve AniZip episode metadata. */
     val idMal: Int? = null,
     val titleRomaji: String?,
     val titleEnglish: String?,
