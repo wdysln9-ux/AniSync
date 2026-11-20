@@ -129,7 +129,7 @@ class CloudStreamRepositoryManager(context: Context) {
                 }
             }
         }.distinctBy { "${it.internalName}|${it.version}|${it.repoUrl}" }
-        CloudStreamRepository(name, repoUrl, plugins)
+        return CloudStreamRepository(name, repoUrl, plugins)
     }
 
     private fun JSONArray.toStringList(): List<String> =
