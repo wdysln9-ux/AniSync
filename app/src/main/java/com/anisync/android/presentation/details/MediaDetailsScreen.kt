@@ -1014,10 +1014,10 @@ fun DetailsPageContent(
     val availableTabs = remember(displayCharacters, displayStaff, details.type) {
         buildList {
             add(DetailsTab.OVERVIEW)
+            if (details.type == com.anisync.android.type.MediaType.ANIME) add(DetailsTab.WATCH)
             if (displayCharacters.isNotEmpty() || displayStaff.isNotEmpty()) add(DetailsTab.CAST)
             add(DetailsTab.STATS)
             add(DetailsTab.SOCIAL)
-            if (details.type == com.anisync.android.type.MediaType.ANIME) add(DetailsTab.WATCH)
         }
     }
 
