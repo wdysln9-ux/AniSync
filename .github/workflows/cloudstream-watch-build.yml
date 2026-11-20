@@ -1,4 +1,4 @@
-name: AniSync Stable ARM64 Release
+name: AniSync Stable ARM64 Debug
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Build AniSync Stable Release (ARM64)
+    name: Build AniSync Stable Debug (ARM64)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,37 +20,13 @@ jobs:
           distribution: zulu
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Prepare and validate signing key
-        env:
-          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [ -z "$SIGNING_KEY" ]; then
-            echo "::error::GitHub Secret SIGNING_KEY is empty. Set it to the Base64-encoded contents of a valid Android JKS/PKCS12 keystore."
-            exit 1
-          fi
-          printf '%s' "$SIGNING_KEY" | tr -d '\r\n[:space:]' | base64 --decode > ./app/release.keystore
-          if [ ! -s ./app/release.keystore ]; then
-            echo "::error::SIGNING_KEY decoded to an empty file. Recreate the secret from the keystore file using Base64."
-            exit 1
-          fi
-          if ! keytool -list -keystore ./app/release.keystore -storepass "$KEYSTORE_PASSWORD" >/dev/null 2>&1; then
-            echo "::error::SIGNING_KEY is not a readable keystore, or KEYSTORE_PASSWORD is incorrect. Replace the GitHub secrets with a valid Base64-encoded JKS/PKCS12 keystore and its password."
-            exit 1
-          fi
-      - name: Build Stable Release
-        env:
-          KEYSTORE_FILE: release.keystore
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      - name: Build Stable Debug
         run: |
           chmod +x gradlew
-          ./gradlew assembleStableRelease
+          ./gradlew assembleStableDebug
       - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
         with:
-          name: anisync-stable-release-arm64
-          path: app/build/outputs/apk/stable/release/*-arm64-v8a-release.apk
+          name: anisync-stable-debug-arm64
+          path: app/build/outputs/apk/stable/debug/*-arm64-v8a-debug.apk
           if-no-files-found: error
