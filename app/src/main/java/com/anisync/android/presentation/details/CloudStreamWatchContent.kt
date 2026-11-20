@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,6 +34,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CloudStreamWatchContent(
     mediaTitle: String,
@@ -77,7 +79,7 @@ internal fun CloudStreamWatchContent(
             val loadedProviders = withContext(Dispatchers.IO) {
                 CloudStreamRuntime.providers().filter { provider ->
                     val types = provider["types"] as? List<*>
-                    types?.any { it?.toString() in setOf("Anime", "AnimeMovie", "OVA") } == true
+                    types?.any { type -> type?.toString()?.let { it in setOf("Anime", "AnimeMovie", "OVA") } == true } == true
                 }
             }
             providers = loadedProviders

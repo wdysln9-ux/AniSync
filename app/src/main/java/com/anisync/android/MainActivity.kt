@@ -150,8 +150,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        com.anisync.android.cloudstream.CloudStreamRuntime.initialize(this)
-        com.lagradost.cloudstream3.CommonActivity.setActivityInstance(this)
         // Install the androidx splash screen before super.onCreate so the branded launch window
         // (theme-aware background + icon) shows through cold start, then hands off to Theme.AniSync.
         val splashScreen = installSplashScreen()
@@ -187,6 +185,8 @@ class MainActivity : AppCompatActivity() {
 
         val onCreateTime = measureTimeMillis {
             super.onCreate(savedInstanceState)
+            com.anisync.android.cloudstream.CloudStreamRuntime.initialize(this)
+            com.lagradost.cloudstream3.CommonActivity.setActivityInstance(this)
 
             // Device-theme styling only. The app's own light/dark setting drives the bar
             // icons through WindowInsetsControllerCompat in AppTheme, which is the

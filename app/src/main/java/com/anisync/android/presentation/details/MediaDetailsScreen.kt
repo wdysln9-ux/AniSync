@@ -1011,7 +1011,7 @@ fun DetailsPageContent(
     // Only surface tabs that have something to show. Overview is always present; Stats loads
     // lazily (so its emptiness isn't knowable up front) and Social always offers the "start
     // discussion" affordance, so none of those ever collapses.
-    val availableTabs = remember(displayCharacters, displayStaff) {
+    val availableTabs = remember(displayCharacters, displayStaff, details.type) {
         buildList {
             add(DetailsTab.OVERVIEW)
             if (displayCharacters.isNotEmpty() || displayStaff.isNotEmpty()) add(DetailsTab.CAST)

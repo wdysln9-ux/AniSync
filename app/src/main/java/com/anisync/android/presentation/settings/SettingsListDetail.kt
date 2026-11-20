@@ -41,6 +41,7 @@ import com.anisync.android.presentation.navigation.SettingsOpenSourceLicenses
 import com.anisync.android.presentation.navigation.SettingsRecapBuilder
 import com.anisync.android.presentation.navigation.SettingsRecaps
 import com.anisync.android.presentation.navigation.SettingsStorage
+import com.anisync.android.presentation.navigation.SettingsCloudStream
 import com.anisync.android.presentation.navigation.SettingsSupport
 import com.anisync.android.presentation.navigation.SettingsUpdates
 import com.anisync.android.presentation.navigation.TwoPaneListDetailScaffold
