@@ -1585,7 +1585,12 @@ fun DetailsPageContent(
                 DetailsTab.WATCH -> {
                     item(key = "cloudstream_watch") {
                         CloudStreamWatchContent(
+                            mediaId = details.id,
                             mediaTitle = details.titleUserPreferred,
+                            romajiTitle = details.titleRomaji,
+                            englishTitle = details.titleEnglish,
+                            synonyms = details.synonyms,
+                            malId = details.idMal,
                             modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.spacing_large))
                         )
                     }
