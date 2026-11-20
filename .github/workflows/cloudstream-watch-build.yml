@@ -23,7 +23,7 @@ jobs:
       - name: Build Stable Release
         run: |
           chmod +x gradlew
-          ./gradlew assembleStableRelease
+          ./gradlew assembleStableRelease --stacktrace
       - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
         with:
