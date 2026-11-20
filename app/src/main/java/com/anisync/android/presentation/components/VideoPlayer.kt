@@ -332,6 +332,11 @@ fun VideoPlayer(
                 onPlayPause = onPlayPause,
                 onToggleMute = onToggleMute,
                 onSeek = onSeek,
+                onSeekBy = { delta ->
+                    val target = (exoPlayer.currentPosition + delta).coerceIn(0L, durationMs.coerceAtLeast(0L))
+                    exoPlayer.seekTo(target)
+                    positionMs = target
+                },
                 onSeekFinished = onSeekFinished,
                 onToggleFullscreen = onEnterFullscreen,
                 onBack = null
@@ -552,6 +557,7 @@ internal fun VideoControlsOverlay(
     onPlayPause: () -> Unit,
     onToggleMute: () -> Unit,
     onSeek: (Float) -> Unit,
+    onSeekBy: (Long) -> Unit,
     onSeekFinished: () -> Unit,
     onToggleFullscreen: () -> Unit,
     onBack: (() -> Unit)?,
@@ -560,6 +566,7 @@ internal fun VideoControlsOverlay(
     var controlsVisible by remember { mutableStateOf(true) }
     // Bumped on every interaction to restart the auto-hide countdown.
     var interactions by remember { mutableIntStateOf(0) }
+    var seekFeedback by remember { mutableStateOf<String?>(null) }
 
     // Auto-hide while playing; idle countdown restarts whenever an interaction bumps [interactions].
     LaunchedEffect(controlsVisible, isPlaying, isBuffering, interactions) {
@@ -574,6 +581,7 @@ internal fun VideoControlsOverlay(
     }
 
     val poke: () -> Unit = { interactions++ }
+    LaunchedEffect(seekFeedback) { if (seekFeedback != null) { delay(650); seekFeedback = null } }
     val fraction = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -602,10 +610,15 @@ internal fun VideoControlsOverlay(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
-                    detectTapGestures(onTap = { controlsVisible = !controlsVisible })
+                    detectTapGestures(onTap = { controlsVisible = !controlsVisible }, onDoubleTap = { offset -> controlsVisible = true; poke(); val forward = offset.x >= size.width / 2f; onSeekBy(if (forward) 10_000L else -10_000L); seekFeedback = if (forward) "+10 detik" else "-10 detik" })
                 }
         )
 
+        AnimatedVisibility(visible = seekFeedback != null, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.align(Alignment.Center)) {
+            Surface(shape = RoundedCornerShape(24.dp), color = Color.Black.copy(alpha = 0.72f), contentColor = Color.White) {
+                Text(text = seekFeedback.orEmpty(), modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+        }
         AnimatedVisibility(
             visible = controlsVisible,
             enter = fadeIn(),
