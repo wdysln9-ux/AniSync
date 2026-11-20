@@ -364,7 +364,8 @@ private fun loadAniZip(malId: Int): Map<Int, AniZipEpisode> {
                 val summary = row.optString("summary").takeIf { it.isNotBlank() && it != "null" }
                     ?: row.optString("overview").takeIf { it.isNotBlank() && it != "null" }
                 val image = row.optString("image").takeIf { it.startsWith("http") }
-                put(number, AniZipEpisode(title, summary, image))
+                val releaseDate = row.optString("airdate").takeIf { it.isNotBlank() && it != "null" } ?: row.optString("airingAt").takeIf { it.isNotBlank() && it != "null" }
+                put(number, AniZipEpisode(title, summary, image, releaseDate))
             }
         }
     } catch (_: Throwable) { emptyMap() }
