@@ -61,10 +61,11 @@ class ExoPlayerCache internal constructor(private val context: Context) {
      * Returns an existing [ExoPlayer] for [url] if one is cached, or creates and
      * caches a new one.
      */
-    fun getOrCreate(url: String): ExoPlayer {
-        return players.getOrPut(url) {
+    fun getOrCreate(url: String, headers: Map<String, String> = emptyMap()): ExoPlayer {
+        val cacheKey = url + headers.toSortedMap().toString()
+        return players.getOrPut(cacheKey) {
             val start = System.currentTimeMillis()
-            buildVideoExoPlayer(context, url).also {
+            buildVideoExoPlayer(context, url, headers = headers).also {
                 val initTime = System.currentTimeMillis() - start
                 Log.d("PerfMetrics", "New ExoPlayer cached for $url in ${initTime}ms")
             }
@@ -125,6 +126,7 @@ internal fun buildVideoExoPlayer(
     loop: Boolean = true,
     autoPlay: Boolean = false,
     cache: Cache? = null,
+    headers: Map<String, String> = emptyMap(),
 ): ExoPlayer {
     val loadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
@@ -142,7 +144,7 @@ internal fun buildVideoExoPlayer(
 
     return ExoPlayer.Builder(context)
         .setLoadControl(loadControl)
-        .setMediaSourceFactory(DefaultMediaSourceFactory(videoDataSourceFactory(cache)))
+        .setMediaSourceFactory(DefaultMediaSourceFactory(videoDataSourceFactory(cache, headers)))
         .build().apply {
             setMediaItem(MediaItem.fromUri(url))
             repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
@@ -152,7 +154,7 @@ internal fun buildVideoExoPlayer(
                 override fun onPlayerError(error: PlaybackException) {
                     if (error.isMatroskaFormatFailure() && reloadedWithoutCueSeek.add(this@apply)) {
                         Log.w("VideoPlayer", "Reloading $url without the seek for Cues", error)
-                        reloadWithoutCueSeek(url, cache)
+                        reloadWithoutCueSeek(url, cache, headers)
                     }
                 }
             })
@@ -161,8 +163,10 @@ internal fun buildVideoExoPlayer(
 }
 
 @OptIn(UnstableApi::class)
-private fun videoDataSourceFactory(cache: Cache?): DataSource.Factory {
-    val http = OkHttpDataSource.Factory(MediaHttp.videoClient).setUserAgent(MediaHttp.USER_AGENT)
+private fun videoDataSourceFactory(cache: Cache?, headers: Map<String, String> = emptyMap()): DataSource.Factory {
+    val http = OkHttpDataSource.Factory(MediaHttp.videoClient)
+        .setUserAgent(MediaHttp.USER_AGENT)
+        .setDefaultRequestProperties(headers)
     if (cache == null) return http
     return CacheDataSource.Factory()
         .setCache(cache)
@@ -193,11 +197,11 @@ private fun PlaybackException.isMatroskaFormatFailure(): Boolean =
  * start, which is all an embedded clip needs.
  */
 @OptIn(UnstableApi::class)
-private fun ExoPlayer.reloadWithoutCueSeek(url: String, cache: Cache?) {
+private fun ExoPlayer.reloadWithoutCueSeek(url: String, cache: Cache?, headers: Map<String, String> = emptyMap()) {
     val extractors = DefaultExtractorsFactory()
         .setMatroskaExtractorFlags(MatroskaExtractor.FLAG_DISABLE_SEEK_FOR_CUES)
     setMediaSource(
-        ProgressiveMediaSource.Factory(videoDataSourceFactory(cache), extractors)
+        ProgressiveMediaSource.Factory(videoDataSourceFactory(cache, headers), extractors)
             .createMediaSource(MediaItem.fromUri(url))
     )
     prepare()

@@ -147,6 +147,7 @@ private val WIDE_CONTROLS_MIN_WIDTH = 600.dp
 fun VideoPlayer(
     url: String,
     modifier: Modifier = Modifier,
+    headers: Map<String, String> = emptyMap(),
     playerCache: ExoPlayerCache? = LocalExoPlayerCache.current,
     startMuted: Boolean = true,
     loop: Boolean = true,
@@ -173,9 +174,9 @@ fun VideoPlayer(
     // The self-managed instance uses the application context so it can be safely handed to the
     // fullscreen activity without leaking this composition's context.
     val exoPlayer = if (playerCache != null) {
-        remember(url) { playerCache.getOrCreate(url) }
+        remember(url, headers) { playerCache.getOrCreate(url, headers) }
     } else {
-        remember(url) { buildVideoExoPlayer(context.applicationContext, url, startMuted, loop, autoPlay) }
+        remember(url, headers) { buildVideoExoPlayer(context.applicationContext, url, startMuted, loop, autoPlay, headers = headers) }
     }
 
     DisposableEffect(exoPlayer) {

@@ -868,7 +868,8 @@ enum class DetailsTab(@StringRes val titleRes: Int) {
     OVERVIEW(R.string.details_tab_overview),
     CAST(R.string.details_tab_cast),
     STATS(R.string.details_tab_stats),
-    SOCIAL(R.string.details_tab_social)
+    SOCIAL(R.string.details_tab_social),
+    WATCH(R.string.details_tab_watch)
 }
 
 /** The two halves of the Cast tab. */
@@ -882,6 +883,7 @@ private fun detailsTabIcon(tab: DetailsTab): ImageVector = when (tab) {
     DetailsTab.CAST -> Icons.Default.Group
     DetailsTab.STATS -> Icons.Default.BarChart
     DetailsTab.SOCIAL -> Icons.Default.Forum
+    DetailsTab.WATCH -> Icons.Default.PlayCircle
 }
 
 private fun castSectionIcon(section: CastSection): ImageVector = when (section) {
@@ -1015,6 +1017,7 @@ fun DetailsPageContent(
             if (displayCharacters.isNotEmpty() || displayStaff.isNotEmpty()) add(DetailsTab.CAST)
             add(DetailsTab.STATS)
             add(DetailsTab.SOCIAL)
+            if (details.type == com.anisync.android.type.MediaType.ANIME) add(DetailsTab.WATCH)
         }
     }
 
@@ -1579,8 +1582,15 @@ fun DetailsPageContent(
                         )
                     }
                 }
+                DetailsTab.WATCH -> {
+                    item(key = "cloudstream_watch") {
+                        CloudStreamWatchContent(
+                            mediaTitle = details.titleUserPreferred,
+                            modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.spacing_large))
+                        )
+                    }
+                }
             }
-        }
 
         // Pinned copy of the strip, docked under the app bar. Shown only once the in-list strip has
         // reached the dock line (it is then scrolled under the opaque app bar, so they don't read as

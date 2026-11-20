@@ -683,6 +683,7 @@
     <string name="details_tab_staff">Staff</string>
     <string name="details_tab_stats">Stats</string>
     <string name="details_tab_social">Social</string>
+    <string name="details_tab_watch">Watch</string>
     <!-- Media details tracking card -->
     <string name="details_add_to_list">Add to list</string>
     <string name="details_quick_plan">Plan</string>
