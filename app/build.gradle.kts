@@ -140,8 +140,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // CloudStream loads extension APIs and plugin classes dynamically/reflection-based.
+            // Keep the Release APK unminified, matching Debug runtime behavior.
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
