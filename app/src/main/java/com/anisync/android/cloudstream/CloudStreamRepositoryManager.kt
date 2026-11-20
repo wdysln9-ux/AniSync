@@ -113,14 +113,23 @@ class CloudStreamRepositoryManager(context: Context) {
                         val item = array.optJSONObject(itemIndex) ?: continue
                         val pluginUrl = resolveUrl(listUrl, item.optString("url"))
                         if (pluginUrl.isBlank()) continue
+                        val internalName = item.optString("internalName").ifBlank { item.optString("name") }
+                        val pluginName = item.optString("name").ifBlank { internalName }
+                        val types = item.optJSONArray("tvTypes")?.toStringList().orEmpty()
+                        val metadata = "$internalName $pluginName".lowercase()
+                        val markedAdult = item.optBoolean("adult") || item.optBoolean("isAdult") ||
+                            types.any { type -> type.contains("adult", true) || type.contains("hentai", true) } ||
+                            listOf("adult", "hentai", "xxx", "porn", "erotic").any(metadata::contains)
+                        val isAnimeProvider = types.any { it in setOf("Anime", "AnimeMovie", "OVA") }
+                        if (markedAdult || !isAnimeProvider) continue
                         add(
                             CloudStreamPlugin(
-                                internalName = item.optString("internalName").ifBlank { item.optString("name") },
-                                name = item.optString("name").ifBlank { item.optString("internalName") },
+                                internalName = internalName,
+                                name = pluginName,
                                 url = pluginUrl,
                                 version = item.optInt("version", 1),
                                 language = item.optString("language").takeIf { it.isNotBlank() },
-                                types = item.optJSONArray("tvTypes")?.toStringList().orEmpty(),
+                                types = types,
                                 iconUrl = item.optString("iconUrl").takeIf { it.startsWith("https://") },
                                 repoUrl = repoUrl,
                             )

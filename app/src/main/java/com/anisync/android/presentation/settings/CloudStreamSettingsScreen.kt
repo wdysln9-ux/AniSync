@@ -86,7 +86,7 @@ fun CloudStreamSettingsScreen(onBackClick: () -> Unit) {
         ) {
             item {
                 Text(
-                    "Tambahkan URL repo.json CloudStream untuk melihat dan memasang extension .cs3. Pasang extension hanya dari repository yang kamu percaya.",
+                    "Tambahkan URL repo.json CloudStream untuk melihat dan memasang extension anime. Hanya provider anime yang terdaftar akan ditampilkan. Pasang extension dari repository yang kamu percaya.",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
