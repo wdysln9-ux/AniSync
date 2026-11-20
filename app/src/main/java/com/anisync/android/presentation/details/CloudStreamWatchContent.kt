@@ -32,6 +32,7 @@ import com.anisync.android.cloudstream.CloudStreamRuntime
 import com.anisync.android.presentation.components.VideoPlayer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)

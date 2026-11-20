@@ -1,6 +1,8 @@
 package com.anisync.android.cloudstream
 
 import android.content.Context
+import android.app.Activity
+import android.content.Intent
 import android.util.Log
 import java.io.File
 import java.util.concurrent.CountDownLatch
@@ -28,6 +30,18 @@ object CloudStreamRuntime {
                         if (runCatching { pluginHost.loadPlugin(file, appContext) }.getOrDefault(false)) loaded++
                     }
                     pluginHost.firePluginsLoaded()
+                    val activityLoads = pluginHost.pendingActivityLoads()
+                    val activity = context as? Activity
+                    if (activityLoads.isNotEmpty() && activity != null) {
+                        activity.runOnUiThread {
+                            runCatching {
+                                activity.startActivity(
+                                    Intent(activity, CsPluginLoaderActivity::class.java)
+                                        .putExtra(CsPluginLoaderActivity.EXTRA_PATHS, activityLoads.toTypedArray())
+                                )
+                            }
+                        }
+                    }
                     Log.i("AniSyncCloudStream", "Loaded $loaded of ${extensions.size} CloudStream extensions")
                 } finally {
                     ready.countDown()
@@ -67,8 +81,16 @@ object CloudStreamRuntime {
             ?: mapOf("sources" to emptyList<Any?>(), "subtitles" to emptyList<Any?>())
     }
 
-    fun uninstall(file: File) {
+    fun pollLinks(sourceName: String, episodeData: String): Map<String, Any?> {
         awaitReady()
+        return host?.polledLinks(sourceName, episodeData).orEmpty()
+    }
+
+    fun cancelResolve(sourceName: String, episodeData: String) {
+        host?.cancelSession(sourceName, episodeData)
+    }
+
+    fun uninstall(file: File) {
         host?.deleteByFiles(setOf(file.nameWithoutExtension))
         file.delete()
     }

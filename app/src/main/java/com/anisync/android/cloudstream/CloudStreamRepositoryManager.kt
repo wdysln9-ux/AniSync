@@ -82,7 +82,7 @@ class CloudStreamRepositoryManager(context: Context) {
             connection.inputStream.use { input -> temporary.outputStream().use { output -> input.copyTo(output) } }
             require(temporary.length() > 0L) { "File extension kosong" }
             check(temporary.renameTo(destination)) { "Tidak bisa menyimpan extension" }
-            CloudStreamRuntime.load(destination, hostContext)
+            check(CloudStreamRuntime.load(destination, hostContext)) { "Extension terunduh, tetapi gagal dimuat oleh CloudStream." }
             destination
         } finally {
             connection.disconnect()
