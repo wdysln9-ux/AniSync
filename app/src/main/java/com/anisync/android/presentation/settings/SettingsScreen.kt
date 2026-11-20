@@ -197,7 +197,7 @@ fun SettingsScreen(
                 key = "cloudstream",
                 title = "Provider",
                 subtitle = "Kelola repository dan extension CloudStream",
-                icon = Icons.Outlined.PlayCircle,
+                icon = Icons.Default.PlayCircle,
                 onClick = { onCategorySelected(SettingsCategory.CloudStream) }
             ),
             CategoryData(
