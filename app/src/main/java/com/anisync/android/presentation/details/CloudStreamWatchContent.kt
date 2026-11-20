@@ -35,6 +35,7 @@ import java.util.Locale
 
 private data class ResolveHit(val provider: String, val item: Map<String, Any?>, val score: Int)
 private data class AniZipEpisode(val title: String?, val summary: String?, val image: String?, val releaseDate: String? = null)
+private object CloudStreamWatchCache { val anime = mutableMapOf<Int, Triple<ResolveHit, Map<String, Any?>, List<Map<String, Any?>>>>(); val streams = mutableMapOf<String, Pair<List<Map<String, Any?>>, List<Map<String, Any?>>>>() }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +73,8 @@ internal fun CloudStreamWatchContent(
 
     fun loadHit(hit: ResolveHit) {
         selected = hit
+        val cachedAnime = CloudStreamWatchCache.anime[mediaId]
+        if (cachedAnime != null && cachedAnime.first.provider == hit.provider && cachedAnime.first.item["url"] == hit.item["url"]) { anime = cachedAnime.second; episodes = cachedAnime.third; resolving = false; error = null; return }
         anime = null
         episodes = emptyList()
         resolving = true
@@ -98,6 +101,7 @@ internal fun CloudStreamWatchContent(
                     selected = chosen
                     anime = detail
                     episodes = episodeList
+                    CloudStreamWatchCache.anime[mediaId] = Triple(chosen, detail!!, episodeList)
                     prefs.edit().putString("match_$mediaId", chosen.provider + "|" + chosen.item["url"].toString()).apply()
                 } else {
                     error = "Anime ditemukan, tetapi provider yang cocok tidak menyediakan daftar episode."
@@ -160,7 +164,7 @@ internal fun CloudStreamWatchContent(
             }
         }
         if (providers.isEmpty()) error = "Belum ada provider anime. Tambahkan repository di Pengaturan → Provider."
-        else resolveTitle()
+        else if (CloudStreamWatchCache.anime[mediaId] != null) { val cached = CloudStreamWatchCache.anime[mediaId]!!; selected = cached.first; anime = cached.second; episodes = cached.third } else resolveTitle()
     }
     LaunchedEffect(malId) {
         if (malId != null && malId > 0) metadata = withContext(Dispatchers.IO) { loadAniZip(malId) }
