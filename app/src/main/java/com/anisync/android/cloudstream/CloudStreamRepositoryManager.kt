@@ -33,6 +33,7 @@ data class CloudStreamRepository(
  * in app-private storage. Repository URLs and plugin metadata are treated as untrusted input.
  */
 class CloudStreamRepositoryManager(context: Context) {
+    private val hostContext = context
     private val appContext = context.applicationContext
     private val preferences = appContext.getSharedPreferences("cloudstream_repositories", Context.MODE_PRIVATE)
     private val extensionDir = File(appContext.filesDir, "cloudstream/extensions").apply { mkdirs() }
@@ -81,7 +82,7 @@ class CloudStreamRepositoryManager(context: Context) {
             connection.inputStream.use { input -> temporary.outputStream().use { output -> input.copyTo(output) } }
             require(temporary.length() > 0L) { "File extension kosong" }
             check(temporary.renameTo(destination)) { "Tidak bisa menyimpan extension" }
-            CloudStreamRuntime.load(destination, appContext)
+            CloudStreamRuntime.load(destination, hostContext)
             destination
         } finally {
             connection.disconnect()

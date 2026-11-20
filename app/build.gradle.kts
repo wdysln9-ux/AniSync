@@ -297,10 +297,11 @@ dependencies {
     // Bundled CloudStream API used to execute .cs3 extension packages natively.
     implementation("com.github.recloudstream.cloudstream:library:v4.8.0")
     implementation("org.apache.commons:commons-compress:1.27.1")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.2")
+    compileOnly("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.1")
     implementation("io.reactivex:rxjava:1.3.8")
     implementation("uy.kohesive.injekt:injekt-core:1.16.1")
     implementation("com.squareup.okhttp3:okhttp-dnsoverhttps:5.5.0")
+    runtimeOnly("io.ktor:ktor-http:3.2.3")
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
