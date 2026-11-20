@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.AutoAwesomeMotion
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
@@ -197,7 +198,7 @@ fun SettingsScreen(
                 key = "cloudstream",
                 title = "Provider",
                 subtitle = "Kelola repository dan extension CloudStream",
-                icon = Icons.Default.PlayCircle,
+                icon = Icons.Default.PlayArrow,
                 onClick = { onCategorySelected(SettingsCategory.CloudStream) }
             ),
             CategoryData(
@@ -426,6 +427,7 @@ private fun SettingsCategory.cardKey(): String = when (this) {
     SettingsCategory.Support -> "support"
     SettingsCategory.About -> "about"
     SettingsCategory.DeveloperTools -> "dev_tools"
+    SettingsCategory.CloudStream -> "cloudstream"
 }
 
 /**

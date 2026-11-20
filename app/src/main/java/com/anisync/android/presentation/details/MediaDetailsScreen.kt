@@ -883,7 +883,7 @@ private fun detailsTabIcon(tab: DetailsTab): ImageVector = when (tab) {
     DetailsTab.CAST -> Icons.Default.Group
     DetailsTab.STATS -> Icons.Default.BarChart
     DetailsTab.SOCIAL -> Icons.Default.Forum
-    DetailsTab.WATCH -> Icons.Default.PlayCircle
+    DetailsTab.WATCH -> Icons.Default.PlayArrow
 }
 
 private fun castSectionIcon(section: CastSection): ImageVector = when (section) {
@@ -1591,6 +1591,7 @@ fun DetailsPageContent(
                     }
                 }
             }
+        }
 
         // Pinned copy of the strip, docked under the app bar. Shown only once the in-list strip has
         // reached the dock line (it is then scrolled under the opaque app bar, so they don't read as

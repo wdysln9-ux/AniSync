@@ -7,6 +7,7 @@ import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.lagradost.cloudstream3.CloudStreamApp
+import com.lagradost.cloudstream3.CommonActivity
 import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
@@ -241,7 +242,7 @@ object CfWebViewSolver {
         android.util.Log.i("CfSolver", "solve() host=${runCatching { android.net.Uri.parse(url).host }.getOrNull()}")
         // Prefer the foreground Activity: the solver WebView must be attached to
         // a real window and rendered, or Cloudflare's JS challenge never runs.
-        val activity = com.spyou.watch_app.MainActivity.current?.get()
+        val activity = CommonActivity.activity
         val context = activity ?: CloudStreamApp.getContext() ?: return null
         val latch = CountDownLatch(1)
         val ref = AtomicReference<Result?>()
