@@ -73,6 +73,7 @@ import com.anisync.android.presentation.review.WriteReviewScreen
 import com.anisync.android.presentation.settings.AboutScreen
 import com.anisync.android.presentation.settings.AcknowledgmentsScreen
 import com.anisync.android.presentation.settings.AniListSettingsScreen
+import com.anisync.android.presentation.settings.CloudStreamSettingsScreen
 import com.anisync.android.presentation.settings.DeveloperToolsScreen
 import com.anisync.android.presentation.settings.RecapBuilderScreen
 import com.anisync.android.presentation.settings.FontSettingsScreen
@@ -1436,6 +1437,18 @@ fun AniSyncNavHost(
                             popUpTo(0) { inclusive = true }
                         }
                     },
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
+
+            // CloudStream provider repositories and extension manager
+            composable<SettingsCloudStream>(
+                enterTransition = { sharedAxisZEnter() },
+                exitTransition = { sharedAxisZExit() },
+                popEnterTransition = { sharedAxisZPopEnter() },
+                popExitTransition = { sharedAxisZPopExit() }
+            ) {
+                CloudStreamSettingsScreen(
                     onBackClick = { navController.popBackStack() }
                 )
             }

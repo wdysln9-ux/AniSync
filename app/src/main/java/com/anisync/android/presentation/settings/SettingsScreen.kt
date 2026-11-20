@@ -194,6 +194,13 @@ fun SettingsScreen(
                 onClick = { onCategorySelected(SettingsCategory.AniList) }
             ),
             CategoryData(
+                key = "cloudstream",
+                title = "Provider",
+                subtitle = "Kelola repository dan extension CloudStream",
+                icon = Icons.Outlined.PlayCircle,
+                onClick = { onCategorySelected(SettingsCategory.CloudStream) }
+            ),
+            CategoryData(
                 key = "notifications",
                 title = stringResource(R.string.settings_notifications),
                 subtitle = stringResource(R.string.settings_notifications_desc),

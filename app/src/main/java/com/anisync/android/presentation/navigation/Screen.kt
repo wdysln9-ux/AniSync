@@ -411,6 +411,9 @@ object SettingsLanguage
 @Serializable
 object SettingsAniList
 
+@Serializable
+object SettingsCloudStream
+
 /**
  * Notification settings with master toggle and granular controls.
  */

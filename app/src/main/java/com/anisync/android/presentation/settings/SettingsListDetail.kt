@@ -105,6 +105,7 @@ enum class SettingsCategory {
     General,
     LookAndFeel,
     AniList,
+    CloudStream,
     Notifications,
     Recaps,
     Storage,
@@ -119,6 +120,7 @@ private fun SettingsCategory.toPaneRoute(): Any = when (this) {
     SettingsCategory.General -> SettingsGeneral
     SettingsCategory.LookAndFeel -> SettingsLookAndFeel
     SettingsCategory.AniList -> SettingsAniList
+    SettingsCategory.CloudStream -> SettingsCloudStream
     SettingsCategory.Notifications -> SettingsNotifications
     SettingsCategory.Recaps -> SettingsRecaps
     SettingsCategory.Storage -> SettingsStorage
