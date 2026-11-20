@@ -1,4 +1,4 @@
-name: AniSync Stable ARM64 Debug
+name: AniSync Stable ARM64 Release
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Build AniSync Stable Debug (ARM64)
+    name: Build AniSync Stable Release (ARM64)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,13 +20,13 @@ jobs:
           distribution: zulu
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Build Stable Debug
+      - name: Build Stable Release
         run: |
           chmod +x gradlew
-          ./gradlew assembleStableDebug
+          ./gradlew assembleStableRelease
       - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
         with:
-          name: anisync-stable-debug-arm64
-          path: app/build/outputs/apk/stable/debug/*-arm64-v8a-debug.apk
+          name: anisync-stable-release-arm64
+          path: app/build/outputs/apk/stable/release/*-arm64-v8a-release.apk
           if-no-files-found: error
