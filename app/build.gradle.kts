@@ -4,8 +4,6 @@ import com.android.build.api.artifact.ArtifactTransformationRequest
 import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.variant.FilterConfiguration
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.io.FileInputStream
-import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -140,25 +138,6 @@ android {
         }
     }
 
-    signingConfigs {
-        create("release") {
-            val keystorePropertiesFile = rootProject.file("keystore.properties")
-            if (keystorePropertiesFile.exists()) {
-                val keystoreProperties = Properties()
-                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-                storeFile = file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-            } else {
-                storeFile = file(System.getenv("KEYSTORE_FILE") ?: "release.keystore")
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
-            }
-        }
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -168,7 +147,9 @@ android {
                 "proguard-rules.pro"
             )
             buildConfigField("Boolean", "IS_DEBUG_BUILD", "false")
-            signingConfig = signingConfigs.getByName("release")
+            // Keep the Release variant installable without repository secrets.
+            // GitHub runner provides Gradle's default debug keystore.
+            signingConfig = signingConfigs.getByName("debug")
             vcsInfo { include = false }
         }
         debug {
