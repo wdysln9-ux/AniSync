@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.anisync.android.cloudstream.CloudStreamRuntime
 import com.anisync.android.presentation.components.VideoPlayer
+import com.anisync.android.presentation.components.AppModalBottomSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -33,7 +34,7 @@ import java.text.Normalizer
 import java.util.Locale
 
 private data class ResolveHit(val provider: String, val item: Map<String, Any?>, val score: Int)
-private data class AniZipEpisode(val title: String?, val summary: String?, val image: String?)
+private data class AniZipEpisode(val title: String?, val summary: String?, val image: String?, val releaseDate: String? = null)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -244,7 +245,7 @@ internal fun CloudStreamWatchContent(
                             AsyncImage(model = meta?.image ?: item["posterUrl"]?.toString(), contentDescription = null, modifier = Modifier.size(112.dp, 66.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                 Text("${n ?: "?"}. ${title}", style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                Text("Ketuk untuk menonton", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                Text(meta?.releaseDate ?: "Tanggal rilis belum tersedia", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f))
                             }
                         }
                     }
@@ -290,7 +291,7 @@ internal fun CloudStreamWatchContent(
         val current = episode!!
         val number = (current["episode"] as? Number)?.toInt()
         val meta = number?.let { metadata[it] }
-        ModalBottomSheet(onDismissRequest = { sheet = false; episode = null }) {
+        AppModalBottomSheet(onDismissRequest = { sheet = false; episode = null }) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Box(Modifier.align(Alignment.CenterHorizontally).size(38.dp, 4.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .45f)))
                 Text("Episode ${number ?: "?"}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
