@@ -180,6 +180,9 @@ internal fun CloudStreamWatchContent(
         status = "Mencari sumber video…"
         scope.launch {
             val number = (chosen["episode"] as? Number)?.toInt()
+            val cacheKey = "$mediaId:${number ?: chosen["data"] ?: chosen["name"]}"
+            val cachedStreams = CloudStreamWatchCache.streams[cacheKey]
+            if (cachedStreams != null) { streams = cachedStreams.first; subtitles = cachedStreams.second; selectedStream = cachedStreams.first.firstOrNull(); resolving = false; return@launch }
             val candidates = listOfNotNull(selected) + hits.filter { it != selected }
             var success = false
             for (hit in candidates) {
@@ -207,6 +210,7 @@ internal fun CloudStreamWatchContent(
                         done = next["done"] == true
                         if (links.isNotEmpty()) {
                             streams = links; subtitles = subs; selectedStream = links.first(); selected = hit
+                            CloudStreamWatchCache.streams[cacheKey] = links to subs
                             success = true
                             break
                         }
@@ -214,6 +218,7 @@ internal fun CloudStreamWatchContent(
                     if (success) break
                     if (links.isNotEmpty()) {
                         streams = links; subtitles = subs; selectedStream = links.first(); selected = hit
+                        CloudStreamWatchCache.streams[cacheKey] = links to subs
                         success = true
                         break
                     }
