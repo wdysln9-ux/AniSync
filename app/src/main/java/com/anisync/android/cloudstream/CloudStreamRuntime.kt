@@ -92,6 +92,7 @@ object CloudStreamRuntime {
 
     fun uninstall(file: File) {
         host?.deleteByFiles(setOf(file.nameWithoutExtension))
+        file.setWritable(true)
         file.delete()
     }
 }

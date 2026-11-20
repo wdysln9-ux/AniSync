@@ -198,6 +198,18 @@ internal fun CloudStreamWatchContent(
                                     streams = (resolved["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
                                     subtitles = (resolved["subtitles"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
                                     selectedStream = streams.firstOrNull()
+                                    var done = resolved["done"] == true
+                                    val startedAt = System.currentTimeMillis()
+                                    while (!done && System.currentTimeMillis() - startedAt < 30_000L) {
+                                        delay(650)
+                                        val update = withContext(Dispatchers.IO) {
+                                            CloudStreamRuntime.pollLinks(source, data)
+                                        }
+                                        streams = (update["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>()?.orEmpty()
+                                        subtitles = (update["subtitles"] as? List<*>)?.filterIsInstance<Map<String, Any?>>()?.orEmpty()
+                                        if (selectedStream == null) selectedStream = streams.firstOrNull()
+                                        done = update["done"] == true
+                                    }
                                     message = if (streams.isEmpty()) "Tidak ada sumber video yang berhasil di-resolve." else null
                                 } catch (t: Throwable) {
                                     message = t.message ?: "Resolving gagal."
