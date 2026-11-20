@@ -76,13 +76,30 @@ internal fun CloudStreamWatchContent(
         status = "Memuat episode dari ${hit.provider}…"
         scope.launch {
             try {
-                val detail = withContext(Dispatchers.IO) {
-                    CloudStreamRuntime.loadAnime(hit.provider, hit.item["url"]?.toString().orEmpty())
+                val candidates = listOf(hit) + hits.filter { it != hit }
+                var chosen: ResolveHit? = null
+                var detail: Map<String, Any?>? = null
+                var episodeList = emptyList<Map<String, Any?>>()
+                for (candidate in candidates) {
+                    val loaded = withContext(Dispatchers.IO) {
+                        CloudStreamRuntime.loadAnime(candidate.provider, candidate.item["url"]?.toString().orEmpty())
+                    }
+                    val loadedEpisodes = (loaded?.get("episodes") as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
+                    if (loadedEpisodes.isNotEmpty()) {
+                        chosen = candidate
+                        detail = loaded
+                        episodeList = loadedEpisodes
+                        break
+                    }
                 }
-                anime = detail
-                episodes = (detail?.get("episodes") as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
-                if (episodes.isEmpty()) error = "Provider ini tidak menyediakan daftar episode."
-                prefs.edit().putString("match_$mediaId", hit.provider + "|" + hit.item["url"].toString()).apply()
+                if (chosen != null) {
+                    selected = chosen
+                    anime = detail
+                    episodes = episodeList
+                    prefs.edit().putString("match_$mediaId", chosen.provider + "|" + chosen.item["url"].toString()).apply()
+                } else {
+                    error = "Anime ditemukan, tetapi provider yang cocok tidak menyediakan daftar episode."
+                }
             } catch (t: Throwable) {
                 error = t.message ?: "Gagal memuat episode."
             } finally { resolving = false }
