@@ -254,6 +254,11 @@ private fun FullscreenVideoContent(
                         player.seekTo(positionMs)
                     }
                 },
+                onSeekBy = { delta ->
+                    val target = (player.currentPosition + delta).coerceIn(0L, durationMs.coerceAtLeast(0L))
+                    player.seekTo(target)
+                    positionMs = target
+                },
                 onSeekFinished = { isScrubbing = false },
                 onToggleFullscreen = onClose,
                 onBack = onClose
