@@ -294,6 +294,14 @@ dependencies {
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.biometric.compose)
 
+    // Bundled CloudStream API used to execute .cs3 extension packages natively.
+    implementation("com.github.recloudstream.cloudstream:library:v4.8.0")
+    implementation("org.apache.commons:commons-compress:1.27.1")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.2")
+    implementation("io.reactivex:rxjava:1.3.8")
+    implementation("uy.kohesive.injekt:injekt-core:1.16.1")
+    implementation("com.squareup.okhttp3:okhttp-dnsoverhttps:5.5.0")
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.apollo.mockserver)

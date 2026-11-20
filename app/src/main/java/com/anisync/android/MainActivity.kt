@@ -143,6 +143,8 @@ class MainActivity : AppCompatActivity() {
     fun consumePendingDeepLink() = accountDeepLinks.consume()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        com.anisync.android.cloudstream.CloudStreamRuntime.initialize(this)
+        com.anisync.android.cloudstream.CommonActivity.setActivityInstance(this)
         // Install the androidx splash screen before super.onCreate so the branded launch window
         // (theme-aware background + icon) shows through cold start, then hands off to Theme.AniSync.
         val splashScreen = installSplashScreen()

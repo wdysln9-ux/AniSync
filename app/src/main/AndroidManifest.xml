@@ -42,6 +42,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AniSync"
         tools:targetApi="31">
+        <activity
+            android:name=".cloudstream.CloudStreamSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AniSync" />
+        <activity
+            android:name=".cloudstream.CsPluginLoaderActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AniSync" />
         <!-- uiMode is handled in Compose: theme-mode switches and system dark flips swap the theme
              in place instead of recreating the activity. -->
         <activity

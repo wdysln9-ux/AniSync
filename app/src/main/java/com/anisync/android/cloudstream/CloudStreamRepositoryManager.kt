@@ -81,6 +81,7 @@ class CloudStreamRepositoryManager(context: Context) {
             connection.inputStream.use { input -> temporary.outputStream().use { output -> input.copyTo(output) } }
             require(temporary.length() > 0L) { "File extension kosong" }
             check(temporary.renameTo(destination)) { "Tidak bisa menyimpan extension" }
+            CloudStreamRuntime.load(destination, appContext)
             destination
         } finally {
             connection.disconnect()
@@ -90,7 +91,7 @@ class CloudStreamRepositoryManager(context: Context) {
     fun uninstall(plugin: CloudStreamPlugin) {
         val safeName = plugin.internalName.replace(Regex("[^A-Za-z0-9._-]"), "_")
         val repoTag = plugin.repoUrl.hashCode().toUInt().toString(16)
-        File(extensionDir, "${safeName}@${plugin.version}@repo-$repoTag.cs3").delete()
+        CloudStreamRuntime.uninstall(File(extensionDir, "${safeName}@${plugin.version}@repo-$repoTag.cs3"))
     }
 
     private fun fetchRepository(repoUrl: String): CloudStreamRepository {
