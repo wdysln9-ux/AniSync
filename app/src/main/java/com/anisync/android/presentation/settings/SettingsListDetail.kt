@@ -41,6 +41,7 @@ import com.anisync.android.presentation.navigation.SettingsOpenSourceLicenses
 import com.anisync.android.presentation.navigation.SettingsRecapBuilder
 import com.anisync.android.presentation.navigation.SettingsRecaps
 import com.anisync.android.presentation.navigation.SettingsStorage
+import com.anisync.android.presentation.settings.CloudStreamSettingsScreen
 import com.anisync.android.presentation.navigation.SettingsCloudStream
 import com.anisync.android.presentation.navigation.SettingsSupport
 import com.anisync.android.presentation.navigation.SettingsUpdates
@@ -199,6 +200,9 @@ private fun SettingsDetailPane(
             )
         }
         composable<SettingsLanguage> { LanguageScreen(onBackClick = popOrClose) }
+        composable<SettingsCloudStream> {
+            CloudStreamSettingsScreen(onBackClick = popOrClose)
+        }
         composable<SettingsAniList> {
             AniListSettingsScreen(
                 onLogout = { navController.navigate(Login) { popUpTo(0) { inclusive = true } } },
