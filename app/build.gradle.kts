@@ -90,9 +90,8 @@ android {
         abi {
             isEnable = true
             reset()
-            include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
-            isUniversalApk =
-                true // Creates a fat APK with all ABIs for users who don't know their phone's specs
+            include("arm64-v8a")
+            isUniversalApk = false
         }
     }
 
