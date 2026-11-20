@@ -1,4 +1,4 @@
-name: AniSync Stable ARM64 Release
+name: AniSync Stable ARM64 Release (Latest Only)
 
 on:
   push:
