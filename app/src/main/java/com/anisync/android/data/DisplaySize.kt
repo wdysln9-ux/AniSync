@@ -16,7 +16,7 @@ data class DisplaySize(val scale: Float) {
         }
 
     companion object {
-        const val MIN_SCALE = 0.1f
+        const val MIN_SCALE = 0.3f
         const val MAX_SCALE = 2f
         val SMALL = DisplaySize(0.9f)
         val DEFAULT = DisplaySize(1f)
