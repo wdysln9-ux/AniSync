@@ -121,7 +121,9 @@ class DiscoverRepositoryImpl @Inject constructor(
                 GetUpcomingMediaQuery(
                     perPage = Optional.present(20),
                     type = Optional.present(type),
-                    status = Optional.present(MediaStatus.NOT_YET_RELEASED)
+                    status = Optional.present(MediaStatus.NOT_YET_RELEASED),
+                    season = Optional.absent(),
+                    seasonYear = Optional.absent()
                 )
             )
             .fetchPolicy(FetchPolicy.NetworkOnly)
