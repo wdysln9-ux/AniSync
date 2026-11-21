@@ -614,10 +614,14 @@ private fun YearAndSeasonSheet(
         scrollableBody = false,
         footer = footer
     ) {
+        SheetSectionLabel(stringResource(R.string.filter_year))
+        Spacer(Modifier.height(10.dp))
+        YearPickerBody(filters, onFiltersChange)
         if (showSeason) {
+            Spacer(Modifier.height(10.dp))
             SheetSectionLabel(stringResource(R.string.filter_season))
             Spacer(Modifier.height(10.dp))
-            OptionPillGrid(
+            FilterChoiceChipGroup(
                 options = Seasons,
                 label = { it.toLabel().orEmpty() },
                 isSelected = { it == filters.season },
@@ -625,11 +629,7 @@ private fun YearAndSeasonSheet(
                     onFiltersChange(filters.copy(season = season.takeIf { it != filters.season }))
                 }
             )
-            Spacer(Modifier.height(10.dp))
         }
-        SheetSectionLabel(stringResource(R.string.filter_year))
-        Spacer(Modifier.height(10.dp))
-        YearPickerBody(filters, onFiltersChange)
     }
 }
 
