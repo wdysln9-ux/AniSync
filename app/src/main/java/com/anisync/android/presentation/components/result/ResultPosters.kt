@@ -66,8 +66,7 @@ import com.anisync.android.util.getTitle
 
 /**
  * A title in Discover search, as the Library grid card draws one. The bottom-end corner is the list
- * tab when the title is tracked and Add to list when it is not, and the countdown takes the other
- * bottom corner on anything with a schedule.
+ * tab when the title is tracked and Add to list when it is not; the airing countdown is top-right.
  */
 @Composable
 fun DiscoverResultPoster(
@@ -169,7 +168,7 @@ fun DiscoverResultPoster(
             }
         }
         PosterText(title = title) {
-            PosterFacts(facts = entry.formatAndYear())
+            PosterFacts(facts = entry.formatAndYear(), value = null)
         }
     }
 }
