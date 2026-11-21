@@ -113,7 +113,7 @@ fun SearchFilterChipBar(
             add(label to filters.copy(episodes = IntComparatorFilter()))
         }
         if (filters.hideMyAnime) {
-            add("Hide My Anime" to filters.copy(hideMyAnime = false))
+            add("Sembunyikan Daftar" to filters.copy(hideMyAnime = false))
         }
         if (filters.sort != SearchSort()) {
             add("Urutan: ${filters.sort.column.label()}" to filters.copy(sort = SearchSort()))
