@@ -2411,6 +2411,7 @@
     <string name="country_china">China</string>
     <string name="country_taiwan">Taiwan</string>
     <string name="search_sort_best_match">Best match</string>
+    <string name="search_sort_random">Acak</string>
     <string name="search_sort_popularity">Popularity</string>
     <string name="search_sort_score">Score</string>
     <string name="search_sort_trending">Trending</string>
