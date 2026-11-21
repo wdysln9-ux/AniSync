@@ -58,11 +58,11 @@ fun CloudStreamMpvPlayer(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val currentIsPlaying by rememberUpdatedState(isPlaying)
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
     val currentSubtitles by rememberUpdatedState(subtitles)
     var isMuted by remember(url) { mutableStateOf(startMuted) }
     var isPlaying by remember(url) { mutableStateOf(false) }
+    val currentIsPlaying by rememberUpdatedState(isPlaying)
     var isBuffering by remember(url) { mutableStateOf(true) }
     var isReady by remember(url) { mutableStateOf(false) }
     var isFullscreen by remember(url) { mutableStateOf(false) }
