@@ -3,6 +3,7 @@ package com.anisync.android.presentation.components
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,7 +49,7 @@ import com.anisync.android.domain.url
 import com.anisync.android.presentation.util.AppMotion
 import com.anisync.android.presentation.util.LocalLibraryStatuses
 import com.anisync.android.presentation.util.TransitionKeys
-import com.anisync.android.presentation.util.bouncyClickable
+import com.anisync.android.presentation.util.LocalLibraryEntryEditor
 import com.anisync.android.presentation.util.toLabel
 import com.anisync.android.ui.theme.StarGold
 import com.anisync.android.util.getTitle
@@ -124,6 +125,7 @@ fun MediaPosterCard(
     meta: (@Composable RowScope.() -> Unit)? = null
 ) {
     val title = item.getTitle(titleLanguage)
+    val onEditEntry = LocalLibraryEntryEditor.current
     val spatialSpec = if (sharedTransitionScope != null) AppMotion.rememberSpatialSpec() else null
 
     val coverData = item.cover.url() ?: item.coverUrl
@@ -165,8 +167,11 @@ fun MediaPosterCard(
     }
 
     Column(
-        modifier = modifier.bouncyClickable(
+        modifier = modifier.combinedClickable(
             onClick = onClick,
+            onLongClick = if (item.type == MediaType.ANIME) {
+                { onEditEntry(item) }
+            } else null,
             role = Role.Button,
             onClickLabel = stringResource(R.string.a11y_action_open_details, title)
         ),
