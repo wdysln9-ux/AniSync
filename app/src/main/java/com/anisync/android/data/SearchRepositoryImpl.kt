@@ -113,8 +113,9 @@ class SearchRepositoryImpl @Inject constructor(
             val pageData = response.data?.Page
             val pageInfo = pageData?.pageInfo
             val entries = pageData?.media?.filterNotNull()?.map { it.toLibraryEntry() } ?: emptyList()
+            val orderedEntries = if (filters.sort.column == com.anisync.android.domain.SearchSortColumn.RANDOM) entries.shuffled() else entries
             SearchPage(
-                entries = entries,
+                entries = orderedEntries,
                 total = pageInfo?.total ?: entries.size,
                 hasNextPage = pageInfo?.hasNextPage ?: false,
                 currentPage = pageInfo?.currentPage ?: page
@@ -235,7 +236,7 @@ class SearchRepositoryImpl @Inject constructor(
                         isAdult = resolveAdultFilter(filters.adultMode, quickSearch = false)
                     )
                 )
-                    .fetchPolicy(FetchPolicy.NetworkFirst)
+                    .fetchPolicy(if (filters.sort.column == com.anisync.android.domain.SearchSortColumn.RANDOM) FetchPolicy.NetworkOnly else FetchPolicy.NetworkFirst)
                     .execute()
 
                 val data = response.data
@@ -287,8 +288,8 @@ class SearchRepositoryImpl @Inject constructor(
                 } ?: emptyList()
 
                 SearchEverythingResult(
-                    anime = animeEntries,
-                    manga = mangaEntries,
+                    anime = if (filters.sort.column == com.anisync.android.domain.SearchSortColumn.RANDOM) animeEntries.shuffled() else animeEntries,
+                    manga = if (filters.sort.column == com.anisync.android.domain.SearchSortColumn.RANDOM) mangaEntries.shuffled() else mangaEntries,
                     animeHasNextPage = data?.anime?.pageInfo?.hasNextPage ?: false,
                     mangaHasNextPage = data?.manga?.pageInfo?.hasNextPage ?: false,
                     animeTotal = data?.anime?.pageInfo?.total ?: animeEntries.size,
