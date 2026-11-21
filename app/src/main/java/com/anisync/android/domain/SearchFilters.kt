@@ -59,8 +59,6 @@ data class SearchFilters(
     val genresExcluded: Set<String> = emptySet(),
     val tagsIncluded: Set<String> = emptySet(),
     val tagsExcluded: Set<String> = emptySet(),
-    /** Minimum AniList tag rank (0–100); zero leaves the threshold disabled. */
-    val minimumTagRank: Int = 0,
     val yearRange: IntRangeFilter = IntRangeFilter(),
     val season: MediaSeason? = null,
     val formats: Set<MediaFormat> = emptySet(),
@@ -71,7 +69,9 @@ data class SearchFilters(
     val chapters: IntComparatorFilter = IntComparatorFilter(),
     val country: OriginCountry? = null,
     val adultMode: AdultMode = AdultMode.ANY,
-    val hideMyAnime: Boolean = false
+    val hideMyAnime: Boolean = false,
+    /** Minimum AniList tag rank (0–100); zero leaves the threshold disabled. */
+    val minimumTagRank: Int = 0
 ) {
     /** A changed sort counts: ordering everything by score with nothing typed is a search. */
     val hasActiveFilters: Boolean get() = sort != SearchSort() || hasNarrowingFilters
