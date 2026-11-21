@@ -213,6 +213,7 @@
     <string name="discover_tba_marker">TBA</string>
     <string name="discover_search_placeholder_anime">Search anime, characters, studios</string>
     <string name="discover_search_placeholder_manga">Search manga, characters, staff</string>
+    <string name="discover_browse_recommendations">Recommendations</string>
     <string name="discover_browse_seasonal">Seasonal</string>
     <string name="discover_browse_schedule">Schedule</string>
     <string name="discover_browse_studios">Studios</string>
