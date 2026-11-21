@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -67,6 +68,10 @@ import com.anisync.android.type.MediaSeason
 import com.anisync.android.type.MediaSource
 import com.anisync.android.type.MediaStatus
 import java.util.Calendar
+
+enum class FilterId {
+    ALL, SORT, GENRES, TAGS, FORMAT, STATUS, YEAR, MORE
+}
 
 /**
  * Every sheet the Discover filter bar opens. Edits apply live, and each filter sheet closes on a
