@@ -75,6 +75,7 @@ internal fun CloudStreamWatchContent(
     var correction by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf(false) }
     var autoNextEnabled by remember { mutableStateOf(true) }
+    var manualQuery by remember(mediaTitle) { mutableStateOf(mediaTitle) }
 
     fun loadHit(hit: ResolveHit) {
         selected = hit
@@ -234,6 +235,38 @@ internal fun CloudStreamWatchContent(
         }
     }
 
+    fun searchManually(providerName: String? = null) {
+        val query = manualQuery.trim()
+        if (query.isBlank() || resolving) return
+        resolving = true
+        error = null
+        status = if (providerName == null) "Mencari \"$query\" di semua provider…" else "Mencari \"$query\" di $providerName…"
+        scope.launch {
+            try {
+                val targetProviders = providers.filter { providerName == null || it["name"]?.toString() == providerName }
+                val found = withContext(Dispatchers.IO) {
+                    coroutineScope {
+                        val gate = Semaphore(3)
+                        targetProviders.map { provider -> async {
+                            gate.acquire()
+                            try {
+                                val name = provider["name"]?.toString().orEmpty()
+                                CloudStreamRuntime.search(name, query).mapNotNull { item ->
+                                    val score = matchScore(item["name"]?.toString().orEmpty(), listOf(query))
+                                    if (score > 0) ResolveHit(name, item, score) else null
+                                }
+                            } catch (_: Throwable) { emptyList() }
+                            finally { gate.release() }
+                        } }.awaitAll().flatten()
+                    }
+                }
+                hits = found.distinctBy { it.provider + "|" + it.item["url"] }.sortedByDescending { it.score }
+                if (hits.isEmpty()) error = "Tidak ada hasil untuk \"$query\"" + (providerName?.let { " di $it" } ?: "") + ". Coba judul lain."
+                else status = "${hits.size} hasil ditemukan. Pilih salah satu secara manual."
+            } catch (t: Throwable) { error = t.message ?: "Pencarian manual gagal." }
+            finally { resolving = false }
+        }
+    }
     Column(modifier.fillMaxWidth().padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f)) {
@@ -272,30 +305,35 @@ internal fun CloudStreamWatchContent(
         onDismissRequest = { correction = false },
         title = { Text("Judul salah/sumber") },
         text = {
-            LazyColumn {
-                item { TextButton(onClick = { correction = false; resolveTitle() }) { Text("Cari ulang otomatis") } }
-                items(hits) { hit ->
-                    TextButton(onClick = { correction = false; loadHit(hit) }, modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.fillMaxWidth()) {
-                            Text(hit.item["name"]?.toString() ?: mediaTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("${hit.provider} · ${hit.score}% relevansi", style = MaterialTheme.typography.labelSmall)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(value = manualQuery, onValueChange = { manualQuery = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Cari judul anime") }, placeholder = { Text("Masukkan judul yang ingin dicari") })
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { searchManually() }, enabled = manualQuery.isNotBlank() && !resolving, modifier = Modifier.weight(1f)) { Text("Cari semua provider") }
+                    OutlinedButton(onClick = { correction = false; resolveTitle() }, enabled = !resolving) { Text("Auto Resolve") }
+                }
+                Text("Atau cari hanya di provider tertentu:", style = MaterialTheme.typography.labelMedium)
+                LazyColumn(Modifier.heightIn(max = 150.dp)) {
+                    items(providers, key = { it["name"]?.toString().orEmpty() }) { provider ->
+                        val name = provider["name"]?.toString().orEmpty()
+                        TextButton(onClick = { searchManually(name) }, enabled = manualQuery.isNotBlank() && !resolving, modifier = Modifier.fillMaxWidth()) { Text("Cari di $name", modifier = Modifier.fillMaxWidth()) }
+                    }
+                }
+                if (resolving) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp); Text(status, style = MaterialTheme.typography.bodySmall) }
+                if (hits.isNotEmpty()) {
+                    Text("Hasil pencarian — pilih judul yang benar", style = MaterialTheme.typography.titleSmall)
+                    LazyColumn(Modifier.heightIn(max = 280.dp)) {
+                        items(hits, key = { it.provider + "|" + it.item["url"] }) { hit ->
+                            TextButton(onClick = { correction = false; loadHit(hit) }, modifier = Modifier.fillMaxWidth()) {
+                                Column(Modifier.fillMaxWidth()) {
+                                    Text(hit.item["name"]?.toString() ?: manualQuery, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    Text("${hit.provider} · ${hit.score}% kecocokan", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
                         }
                     }
                 }
-                items(providers.filter { p -> hits.none { it.provider == p["name"]?.toString() } }) { p ->
-                    val name = p["name"]?.toString().orEmpty()
-                    TextButton(onClick = {
-                        correction = false
-                        scope.launch {
-                            resolving = true
-                            val found = withContext(Dispatchers.IO) { CloudStreamRuntime.search(name, aliases.first()) }
-                                .mapNotNull { item -> matchScore(item["name"]?.toString().orEmpty(), aliases).takeIf { it >= 62 }?.let { ResolveHit(name, item, it) } }
-                                .maxByOrNull { it.score }
-                            if (found != null) { hits = (listOf(found) + hits).distinctBy { it.provider + "|" + it.item["url"] }; loadHit(found) }
-                            else { error = "Judul tidak ditemukan di $name."; resolving = false }
-                        }
-                    }, modifier = Modifier.fillMaxWidth()) { Text("Cari di $name") }
-                }
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                TextButton(onClick = { correction = false }) { Text("Tutup") }
             }
         },
         confirmButton = { TextButton(onClick = { correction = false }) { Text("Tutup") } }
