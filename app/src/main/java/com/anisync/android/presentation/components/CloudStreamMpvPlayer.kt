@@ -30,6 +30,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.jdtech.mpv.MPVLib
 import kotlinx.coroutines.delay
 import java.util.concurrent.atomic.AtomicBoolean
@@ -54,6 +57,8 @@ fun CloudStreamMpvPlayer(
     onFullscreenEntered: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val currentIsPlaying by rememberUpdatedState(isPlaying)
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
     val currentSubtitles by rememberUpdatedState(subtitles)
     var isMuted by remember(url) { mutableStateOf(startMuted) }
@@ -93,6 +98,25 @@ fun CloudStreamMpvPlayer(
     }
 
     LaunchedEffect(isMuted) { session.setMuted(isMuted) }
+
+    DisposableEffect(session, lifecycleOwner) {
+        var resumeAfterBackground = false
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    resumeAfterBackground = currentIsPlaying
+                    session.setPaused(true)
+                }
+                Lifecycle.Event.ON_RESUME -> if (resumeAfterBackground) {
+                    session.setPaused(false)
+                    resumeAfterBackground = false
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(autoEnterFullscreen, isReady, isFullscreen) {
         if (autoEnterFullscreen && isReady && !isFullscreen) {
@@ -316,7 +340,7 @@ private class CloudStreamMpvSession(
         mpv.setOptionString("sub-auto", "fuzzy")
         mpv.setOptionString("keep-open", "no")
         if (headers.isNotEmpty()) {
-            val fields = headers.entries.joinToString(",") { (key, value) -> "$key: $value" }
+            val fields = headers.entries.joinToString(",") { (key, value) -> "$key=$value" }
             mpv.setOptionString("http-header-fields", fields)
         }
         mpv.init()
