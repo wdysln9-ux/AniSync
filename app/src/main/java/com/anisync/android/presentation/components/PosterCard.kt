@@ -84,7 +84,8 @@ fun PosterCard(
     transitionPrefix: String = TransitionKeys.POSTER,
     aspectRatio: Float = 0.7f,
     shape: Shape = ExpressiveShapes.mediaCover,
-    scoreAlignment: Alignment = Alignment.TopStart
+    scoreAlignment: Alignment = Alignment.TopStart,
+    showScoreBadge: Boolean = false
 ) {
     // Use memoized motion specs from AppMotion
     val spatialSpec = AppMotion.rememberSpatialSpec()
@@ -164,7 +165,7 @@ fun PosterCard(
 
                 // Top corner: this card prints its title over the bottom of the poster.
                 val hasScoreBadge = (item.averageScore ?: 0.0) > 0.0
-                val listIndicatorCorner = if (hasScoreBadge && scoreAlignment == Alignment.TopStart) {
+                val listIndicatorCorner = if (showScoreBadge && hasScoreBadge && scoreAlignment == Alignment.TopStart) {
                     ListIndicatorCorner.BottomEnd
                 } else {
                     ListIndicatorCorner.TopStart
@@ -181,7 +182,7 @@ fun PosterCard(
                     )
                 }
 
-                item.averageScore?.takeIf { it > 0.0 }?.let { score ->
+                if (showScoreBadge) item.averageScore?.takeIf { it > 0.0 }?.let { score ->
                     Surface(
                         modifier = Modifier.align(scoreAlignment).padding(8.dp),
                         color = Color.Black.copy(alpha = 0.42f),
