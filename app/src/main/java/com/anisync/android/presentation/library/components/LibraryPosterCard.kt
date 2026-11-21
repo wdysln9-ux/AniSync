@@ -466,7 +466,7 @@ private fun ScorePosterBadge(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(Color.Black.copy(alpha = backgroundAlpha))
+            .background(Color.Black.copy(alpha = 0.50f))
             .padding(horizontal = 6.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp)
