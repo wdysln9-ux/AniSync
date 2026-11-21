@@ -119,7 +119,8 @@ class SearchRepositoryImpl @Inject constructor(
                     chapters_lesser = filters.chapters.lesser(),
                     countryOfOrigin = filters.country?.let { Optional.present(it.code) }
                         ?: Optional.absent(),
-                    isAdult = resolveAdultFilter(filters.adultMode, quickSearch = true)
+                    isAdult = resolveAdultFilter(filters.adultMode, quickSearch = true),
+                    onList = if (type == MediaType.ANIME && filters.hideMyAnime) Optional.present(false) else Optional.absent()
                 )
             )
                 .fetchPolicy(FetchPolicy.NetworkOnly)
@@ -258,7 +259,8 @@ class SearchRepositoryImpl @Inject constructor(
                         chapters_lesser = filters.chapters.lesser(),
                         countryOfOrigin = filters.country?.let { Optional.present(it.code) }
                             ?: Optional.absent(),
-                        isAdult = resolveAdultFilter(filters.adultMode, quickSearch = false)
+                        isAdult = resolveAdultFilter(filters.adultMode, quickSearch = false),
+                        animeOnList = if (filters.hideMyAnime) Optional.present(false) else Optional.absent()
                     )
                 )
                     .fetchPolicy(FetchPolicy.NetworkOnly)
