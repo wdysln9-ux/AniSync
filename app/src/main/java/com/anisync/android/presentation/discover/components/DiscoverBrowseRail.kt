@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,6 +45,7 @@ import com.anisync.android.type.MediaType
 
 /** The browse entry points, which are not the same on both tabs. */
 enum class BrowseChip {
+    RECOMMENDATIONS,
     SEASONAL,
     SCHEDULE,
     STUDIOS,
@@ -62,6 +64,7 @@ enum class BrowseChip {
  */
 fun browseChipsFor(type: MediaType): List<BrowseChip> = if (type == MediaType.ANIME) {
     listOf(
+        BrowseChip.RECOMMENDATIONS,
         BrowseChip.SEASONAL,
         BrowseChip.GENRES,
         BrowseChip.TOP_100,
@@ -172,6 +175,7 @@ private fun BrowseChipItem(chip: BrowseChip, onClick: () -> Unit) {
 }
 
 private fun BrowseChip.labelRes(): Int = when (this) {
+    BrowseChip.RECOMMENDATIONS -> R.string.discover_browse_recommendations
     BrowseChip.SEASONAL -> R.string.discover_browse_seasonal
     BrowseChip.SCHEDULE -> R.string.discover_browse_schedule
     BrowseChip.STUDIOS -> R.string.discover_browse_studios
@@ -183,6 +187,7 @@ private fun BrowseChip.labelRes(): Int = when (this) {
 }
 
 private fun BrowseChip.icon(): ImageVector = when (this) {
+    BrowseChip.RECOMMENDATIONS -> Icons.Default.Shuffle
     BrowseChip.SEASONAL -> Icons.Default.CalendarMonth
     BrowseChip.SCHEDULE -> Icons.Default.Schedule
     BrowseChip.STUDIOS -> Icons.Default.Domain
