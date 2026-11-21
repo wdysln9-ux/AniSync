@@ -175,6 +175,8 @@ fun DiscoverScreen(
     val titleLanguage by viewModel.titleLanguage.collectAsStateWithLifecycle()
 
     val coroutineScope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val scrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
 
     val currentMediaType = uiState.mediaType
@@ -287,6 +289,10 @@ fun DiscoverScreen(
                 attempts++
                 if (searchBarState.currentValue != SearchBarValue.Expanded) delay(100)
             }
+            // Browse tabs open the search results programmatically. Keep the overlay open,
+            // but do not summon the keyboard; only a direct tap on the search field should do that.
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
         }
     }
 
