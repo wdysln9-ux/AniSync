@@ -26,34 +26,6 @@ query GetMediaBySort($sort: [MediaSort], $type: MediaType, $perPage: Int) {
   }
 }
 
-query GetRecommendations($page: Int, $perPage: Int) {
-  Page(page: $page, perPage: $perPage) {
-    recommendations(sort: [RATING_DESC]) {
-      mediaRecommendation {
-        id
-        title {
-          userPreferred
-          romaji
-          english
-          native
-        }
-        coverImage {
-          medium
-          large
-          extraLarge
-        }
-        episodes
-        chapters
-        volumes
-        type
-        format
-        averageScore: weightedScore
-        seasonYear
-      }
-    }
-  }
-}
-
 query GetUpcomingMedia(
   $perPage: Int,
   $type: MediaType,
