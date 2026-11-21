@@ -2,6 +2,10 @@ package com.anisync.android.presentation.components
 
 import android.content.Context
 import android.util.Log
+import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
+import java.io.File
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -132,15 +136,13 @@ internal fun buildVideoExoPlayer(
 ): ExoPlayer {
     val loadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
-            1500, // minBufferMs: minimum buffered before playback starts
-            5000, // maxBufferMs: maximum buffered
-            500,  // bufferForPlaybackMs
-            1500  // bufferForPlaybackAfterRebufferMs
+            30_000,       // Keep a useful forward buffer before playback is considered healthy.
+            90 * 60_000,  // Allow long-form episodes to continue loading well ahead.
+            2_000,
+            5_000
         )
-        // 4 MB cap holds a typical short AniList clip in full, so the REPEAT_MODE_ONE loop
-        // replays from memory instead of re-downloading every pass, while bounding total
-        // memory across the (max 6) cached players.
-        .setTargetBufferBytes(4 * 1024 * 1024)
+        // Let Media3 size its in-memory sample queues for the selected tracks. The durable
+        // downloaded bytes are stored by SharedVideoDiskCache below, not in a tiny 4 MB cap.
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
@@ -152,9 +154,10 @@ internal fun buildVideoExoPlayer(
         DefaultRenderersFactory(context)
     }
 
+    val diskCache = cache ?: SharedVideoDiskCache.get(context)
     return ExoPlayer.Builder(context, renderersFactory)
         .setLoadControl(loadControl)
-        .setMediaSourceFactory(DefaultMediaSourceFactory(videoDataSourceFactory(cache, headers)))
+        .setMediaSourceFactory(DefaultMediaSourceFactory(videoDataSourceFactory(diskCache, headers)))
         .build().apply {
             setMediaItem(MediaItem.fromUri(url))
             repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
@@ -170,6 +173,25 @@ internal fun buildVideoExoPlayer(
             })
             prepare()
         }
+}
+
+@OptIn(UnstableApi::class)
+/**
+ * Shared persistent cache for streamed video. The LRU evictor keeps the directory below 1.2 GB
+ * and removes least-recently-used media when space is needed.
+ */
+@OptIn(UnstableApi::class)
+internal object SharedVideoDiskCache {
+    private const val MAX_CACHE_BYTES = 1_200L * 1024L * 1024L
+    @Volatile private var instance: SimpleCache? = null
+
+    fun get(context: Context): Cache = instance ?: synchronized(this) {
+        instance ?: SimpleCache(
+            File(context.applicationContext.cacheDir, "stream-video-cache"),
+            LeastRecentlyUsedCacheEvictor(MAX_CACHE_BYTES),
+            StandaloneDatabaseProvider(context.applicationContext)
+        ).also { instance = it }
+    }
 }
 
 @OptIn(UnstableApi::class)
