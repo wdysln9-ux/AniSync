@@ -576,6 +576,10 @@ class DiscoverViewModel @Inject constructor(
         val tabCategory =
             if (_uiState.value.mediaType == MediaType.ANIME) ResultCategory.ANIME else ResultCategory.MANGA
         when (chip) {
+            BrowseChip.RECOMMENDATIONS -> openPresetSearch(
+                SearchFilters(sort = SearchSort(SearchSortColumn.RANDOM)),
+                ResultCategory.ANIME
+            )
             BrowseChip.SEASONAL -> {
                 val now = Calendar.getInstance()
                 openPresetSearch(
