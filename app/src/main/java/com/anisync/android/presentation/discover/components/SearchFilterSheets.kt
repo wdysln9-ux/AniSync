@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.anisync.android.R
 import com.anisync.android.domain.ADULT_GENRES
+import com.anisync.android.domain.AdultMode
 import com.anisync.android.domain.ComparatorMode
 import com.anisync.android.domain.IntComparatorFilter
 import com.anisync.android.domain.IntRangeFilter
@@ -56,6 +57,8 @@ import com.anisync.android.presentation.components.filtersheet.OptionPillGrid
 import com.anisync.android.presentation.components.filtersheet.SegmentedChoice
 import com.anisync.android.presentation.components.filtersheet.SheetFooterButton
 import com.anisync.android.presentation.components.filtersheet.SheetSectionLabel
+import com.anisync.android.presentation.components.filtersheet.TagChoice
+import com.anisync.android.presentation.components.filtersheet.TagPickerSheet
 import com.anisync.android.presentation.components.filtersheet.SortSheet
 import com.anisync.android.presentation.components.filtersheet.TriState
 import com.anisync.android.presentation.components.filtersheet.airingStatusTitle
@@ -321,21 +324,6 @@ private fun AnimeWStyleFilterSheet(
             role = Role.Checkbox
         )
         Spacer(Modifier.height(18.dp))
-        SheetSectionLabel("Skor minimum")
-        val score = if (filters.score.mode == ComparatorMode.AT_LEAST) filters.score.value ?: 0 else 0
-        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Minimum", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("$score%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-        }
-        Slider(
-            value = score.toFloat(),
-            onValueChange = { value ->
-                val picked = value.toInt()
-                onFiltersChange(filters.copy(score = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
-            },
-            valueRange = 0f..100f,
-            steps = 99
-        )
         if (category != ResultCategory.MANGA) {
             SheetSectionLabel(stringResource(R.string.filter_episodes))
             val episodeCount = filters.episodes.value ?: 1
@@ -374,6 +362,22 @@ private fun AnimeWStyleFilterSheet(
                 onCheckedChange = { onFiltersChange(filters.copy(hideMyAnime = it)) }
             )
         }
+
+        SheetSectionLabel("Skor minimum")
+        val score = if (filters.score.mode == ComparatorMode.AT_LEAST) filters.score.value ?: 0 else 0
+        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Minimum", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("$score%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        }
+        Slider(
+            value = score.toFloat(),
+            onValueChange = { value ->
+                val picked = value.toInt()
+                onFiltersChange(filters.copy(score = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
+            },
+            valueRange = 0f..100f,
+            steps = 99
+        )
     }
 }
 
@@ -620,7 +624,13 @@ private fun YearPickerBody(
     val currentYear = remember { Calendar.getInstance().get(Calendar.YEAR) }
     val maxYear = currentYear + 1
     val minYear = 1940
-    val years = remember(maxYear) { (minYear..maxYear).toList().reversed() }
+    var showOlderYears by rememberSaveable { mutableStateOf(false) }
+    val years = remember(maxYear, showOlderYears) {
+        (if (showOlderYears) minYear else 2012..maxYear).let { range ->
+            if (showOlderYears) (minYear..maxYear).toList().reversed()
+            else (2012..maxYear).toList().reversed()
+        }
+    }
 
     val from = filters.yearRange.min
     val to = filters.yearRange.max
@@ -679,6 +689,20 @@ private fun YearPickerBody(
                     inRange = from != null && to != null && from != to && year > from && year < to,
                     isToday = year == currentYear && !isEndpoint,
                     onClick = { onYearTap(year) }
+                )
+            }
+        }
+        if (!showOlderYears && currentYear > 2012) {
+            Surface(
+                onClick = { showOlderYears = true },
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                modifier = Modifier.padding(top = 10.dp)
+            ) {
+                Text(
+                    "Selengkapnya (+22)",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelMedium
                 )
             }
         }
