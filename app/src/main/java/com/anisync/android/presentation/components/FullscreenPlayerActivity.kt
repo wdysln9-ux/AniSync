@@ -2,6 +2,7 @@ package com.anisync.android.presentation.components
 
 import android.content.pm.ActivityInfo
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.OptIn
@@ -100,6 +101,9 @@ class FullscreenPlayerActivity : ComponentActivity() {
 
         // Edge-to-edge + hide the system bars for a true immersive view (swipe brings them back).
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.attributes = window.attributes.apply {
+            layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
         WindowInsetsControllerCompat(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -165,7 +169,7 @@ private fun FullscreenVideoContent(
     var isStretching by remember { mutableStateOf(false) }
     var snappedRatio by remember { mutableStateOf<Float?>(null) }
     var cinematicIntensity by remember { mutableFloatStateOf(FullscreenVideoBridge.cinematicIntensity.floatValue) }
-    var displayMode by remember { mutableStateOf("Fit") }
+    var displayMode by remember { mutableStateOf("Isi layar") }
     // Seeded from the launch extra, then corrected off the player itself, so the fitted box tracks
     // the real picture even when the inline player never reported a size before the handoff.
     var aspect by remember {
@@ -274,10 +278,7 @@ private fun FullscreenVideoContent(
         // window. On a phone the two are the same box; on a tablet — especially in portrait, where
         // a wide clip fills a band across the middle — it keeps the controls on the video instead
         // of stranding the scrubber at the bottom of the screen, far from the picture.
-        val videoModifier = Modifier
-            .fillMaxSize()
-            .wrapContentSize(Alignment.Center)
-            .aspectRatio(aspect)
+        val videoModifier = Modifier.fillMaxSize()
 
         if (cinematicIntensity > 0f) {
             Box(
