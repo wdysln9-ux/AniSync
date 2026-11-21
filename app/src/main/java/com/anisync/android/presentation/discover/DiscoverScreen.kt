@@ -939,18 +939,6 @@ private fun DiscoverSearchOverlay(
     var openedFilter by remember { mutableStateOf<FilterId?>(null) }
     val category = state.activeCategory
     val focusManager = LocalFocusManager.current
-    // Apply Hide My Anime before deriving empty states and available result categories.
-    // Previously only the final card list was filtered, so an all-hidden page looked like
-    // a successful search with a blank result area instead of continuing pagination/showing empty.
-    val libraryMediaIds = LocalLibraryStatuses.current.keys
-    val visibleSearchState = remember(state, libraryMediaIds) {
-        if (state.searchFilters.hideMyAnime) {
-            state.copy(searchAnime = state.searchAnime.filterNot { it.mediaId in libraryMediaIds })
-        } else {
-            state
-        }
-    }
-
     val fieldCollapse = rememberSearchFieldCollapse(searchBarState)
     // A spinner, an error or an empty result has nothing to scroll, so nothing else could bring
     // the field back.
@@ -1027,7 +1015,7 @@ private fun DiscoverSearchOverlay(
                 )
             }
             SearchResultsContent(
-                state = visibleSearchState,
+                state = state,
                 navController = navController,
                 titleLanguage = titleLanguage,
                 onAction = onAction,
