@@ -225,7 +225,7 @@ private fun AnimeWStyleFilterSheet(
         )
         Spacer(Modifier.height(18.dp))
         SheetSectionLabel("Tahun Rilis")
-        val startYear = (filters.yearRange.min ?: 1940).coerceIn(1940, currentYear)
+        val startYear = (filters.yearRange.min ?: 1990).coerceIn(1990, currentYear)
         val endYear = (filters.yearRange.max ?: currentYear).coerceIn(startYear, currentYear)
         Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(startYear.toString(), style = MaterialTheme.typography.titleMedium)
@@ -236,9 +236,9 @@ private fun AnimeWStyleFilterSheet(
             onValueChange = { range ->
                 val from = range.start.toInt()
                 val to = range.endInclusive.toInt()
-                onFiltersChange(filters.copy(yearRange = if (from == 1940 && to == currentYear) IntRangeFilter() else IntRangeFilter(from, to)))
+                onFiltersChange(filters.copy(yearRange = if (from == 1990 && to == currentYear) IntRangeFilter() else IntRangeFilter(from, to)))
             },
-            valueRange = 1940f..currentYear.toFloat()
+            valueRange = 1990f..currentYear.toFloat()
         )
         if (category != ResultCategory.MANGA) {
             Spacer(Modifier.height(18.dp))
