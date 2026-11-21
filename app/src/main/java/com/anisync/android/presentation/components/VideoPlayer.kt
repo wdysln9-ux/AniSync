@@ -155,7 +155,9 @@ fun VideoPlayer(
     startMuted: Boolean = true,
     loop: Boolean = true,
     autoPlay: Boolean = false,
-    artwork: (@Composable () -> Unit)? = null
+    artwork: (@Composable () -> Unit)? = null,
+    sourceOptions: List<String> = emptyList(),
+    onSelectSource: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -341,6 +343,9 @@ fun VideoPlayer(
                     positionMs = target
                 },
                 onSeekFinished = onSeekFinished,
+                onSetPlaybackSpeed = { exoPlayer.setPlaybackSpeed(it) },
+                sourceOptions = sourceOptions,
+                onSelectSource = onSelectSource,
                 onToggleFullscreen = onEnterFullscreen,
                 onBack = null
             )
