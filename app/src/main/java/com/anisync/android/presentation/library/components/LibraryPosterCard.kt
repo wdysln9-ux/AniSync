@@ -82,9 +82,8 @@ private val ActionSize = 48.dp
  * The browsing card: a clean cover with the title and one line of state underneath.
  *
  * Text stays off the artwork for the same reason `MediaPosterCard` keeps it off — a long title and
- * a score both stay readable, and the cover keeps its own contrast. What this variant adds over
- * that one is the quick-progress button, because a grid of a list you are actively watching still
- * has to let you mark an episode without opening anything.
+ * a score both stay readable, and the cover keeps its own contrast. Long-pressing the card opens the
+ * shared entry editor; the poster itself stays free of quick-action buttons.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -248,8 +247,9 @@ private fun PosterArt(
             .then(coverModifier)
             .clip(shape)
     ) {
-        // 10dp inset either side, the 48dp action, and an 8dp gap the chip must never cross.
-        val chipMaxWidth = (maxWidth - ActionSize - 28.dp).coerceAtLeast(0.dp)
+        // Leave room for the selection check only while selecting; otherwise the chip can use
+        // the full width between its 10dp side insets.
+        val chipMaxWidth = (maxWidth - if (selectionMode) ActionSize + 28.dp else 20.dp).coerceAtLeast(0.dp)
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(entry.cover.url() ?: entry.coverUrl)
@@ -262,8 +262,8 @@ private fun PosterArt(
             modifier = Modifier.fillMaxSize()
         )
 
-        // The indicator takes the top-start corner here, because the bottom-end one is spent on
-        // the action — the same swap `PosterCard` makes when a title occupies the bottom edge.
+        // Keep list membership in the top-start corner; the bottom corners stay clear for the
+        // remaining-count chip and selection state.
         if (showListIndicator) {
             ListIndicator(
                 status = entry.status,
