@@ -159,7 +159,8 @@ fun VideoPlayer(
     artwork: (@Composable () -> Unit)? = null,
     sourceOptions: List<String> = emptyList(),
     onSelectSource: (Int) -> Unit = {},
-    onPlaybackEnded: () -> Unit = {}
+    onPlaybackEnded: () -> Unit = {},
+    onAutoNextChange: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -352,6 +353,7 @@ fun VideoPlayer(
                 onSetPlaybackSpeed = { exoPlayer.setPlaybackSpeed(it) },
                 sourceOptions = sourceOptions,
                 onSelectSource = onSelectSource,
+                onAutoNextChange = onAutoNextChange,
                 onToggleFullscreen = onEnterFullscreen,
                 onBack = null
             )
@@ -576,6 +578,7 @@ internal fun VideoControlsOverlay(
     onSetPlaybackSpeed: (Float) -> Unit,
     sourceOptions: List<String>,
     onSelectSource: (Int) -> Unit,
+    onAutoNextChange: (Boolean) -> Unit = {},
     onToggleFullscreen: () -> Unit,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier
@@ -707,7 +710,7 @@ internal fun VideoControlsOverlay(
                             DropdownMenuItem(text = { Text(label) }, onClick = { onSelectSource(index); quickSettingsExpanded = false; poke() })
                         }
                     }
-                    DropdownMenuItem(text = { Text("${if (autoNextEnabled) "✓ " else ""}Putar episode berikutnya otomatis") }, onClick = { autoNextEnabled = !autoNextEnabled; poke() })
+                    DropdownMenuItem(text = { Text("${if (autoNextEnabled) "✓ " else ""}Putar episode berikutnya otomatis") }, onClick = { autoNextEnabled = !autoNextEnabled; onAutoNextChange(autoNextEnabled); poke() })
                     DropdownMenuItem(text = { Text("${if (cinematicEnabled) "✓ " else ""}Pencahayaan sinematik") }, onClick = { cinematicEnabled = !cinematicEnabled; poke() })
                     DropdownMenuItem(text = { Text("${if (isMuted) "Aktifkan suara" else "Bisukan"}") }, onClick = { onToggleMute(); poke() })
                 }
