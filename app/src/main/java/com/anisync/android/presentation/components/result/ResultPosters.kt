@@ -22,6 +22,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,7 +47,6 @@ import com.anisync.android.presentation.components.ListIndicator
 import com.anisync.android.presentation.components.ListIndicatorStyle
 import com.anisync.android.presentation.library.components.PosterAspect
 import com.anisync.android.presentation.library.components.PosterFacts
-import com.anisync.android.presentation.library.components.PosterStateChip
 import com.anisync.android.presentation.library.components.PosterTitle
 import com.anisync.android.presentation.library.components.PosterValueText
 import com.anisync.android.presentation.util.LocalLibraryStatuses
@@ -100,16 +100,42 @@ fun DiscoverResultPoster(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            // Without a list entry nothing is waiting to be watched, so the chip only ever counts
-            // down to the next episode.
-            PosterStateChip(
-                entry = entry,
-                aired = null,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(10.dp)
-                    .widthIn(max = (maxWidth - 76.dp).coerceAtLeast(0.dp))
-            )
+            // Score badge: no filled container, with both the star and value using the
+            // same score-tier color as AnimeW.
+            entry.communityScoreLabel()?.let { score ->
+                val scoreColor = when {
+                    (entry.averageScore ?: 0) >= 75 -> Color(0xFF4CAF50)
+                    (entry.averageScore ?: 0) >= 70 -> Color(0xFFFFD54F)
+                    (entry.averageScore ?: 0) >= 60 -> Color(0xFFFF9800)
+                    else -> Color(0xFFF44336)
+                }
+                Row(
+                    modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = scoreColor,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = score,
+                        color = scoreColor,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+            // Episode count sits at the lower-left corner, also without a filled background.
+            entry.totalEpisodes?.takeIf { it > 1 }?.let { episodeCount ->
+                Text(
+                    text = "Ep $episodeCount",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.align(Alignment.BottomStart).padding(8.dp)
+                )
+            }
             if (listStatus != null) {
                 ListIndicator(
                     status = listStatus,
@@ -124,11 +150,7 @@ fun DiscoverResultPoster(
             }
         }
         PosterText(title = title) {
-            val score = entry.communityScoreLabel()
-            PosterFacts(
-                facts = entry.formatAndYear(),
-                value = score?.let { { PosterIconValue(Icons.Default.Star, StarGold, it, iconSize = 15.dp) } }
-            )
+            PosterFacts(facts = entry.formatAndYear())
         }
     }
 }
