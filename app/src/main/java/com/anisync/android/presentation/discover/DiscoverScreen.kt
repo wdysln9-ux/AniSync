@@ -985,12 +985,7 @@ private fun DiscoverSearchOverlay(
             if (category.hasMediaFilters()) {
                 SearchFilterChipBar(
                     filters = state.searchFilters,
-                    category = category,
-                    onChipTap = { filterId ->
-                        onAction(DiscoverAction.LoadTaxonomy)
-                        openedFilter = filterId
-                    },
-                    onClear = { onAction(DiscoverAction.ClearFilters) }
+                    onFiltersChange = { onAction(DiscoverAction.UpdateFilters(it)) }
                 )
             }
             if (WhatsNewItem.DISCOVER_SEARCH_FILTERS in rememberActiveWhatsNew()) {
