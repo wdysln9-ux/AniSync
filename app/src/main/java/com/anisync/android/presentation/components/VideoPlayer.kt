@@ -255,9 +255,10 @@ fun VideoPlayer(
             videoAspectRatio = exoPlayer.videoSize.width.toFloat() / exoPlayer.videoSize.height.toFloat()
         }
         isPlaying = exoPlayer.isPlaying
+        exoPlayer.setPlaybackParameters(PlaybackParameters(PlayerPreferences.playbackSpeed(context), 1f))
+        exoPlayer.volume = if (PlayerPreferences.isMuted(context, startMuted)) 0f else 1f
         isMuted = exoPlayer.volume == 0f
-
-        exoPlayer.setPlaybackParameters(PlaybackParameters(PlayerPreferences.playbackSpeed(context), 1f))\n        exoPlayer.volume = if (PlayerPreferences.isMuted(context, startMuted)) 0f else 1f\n        exoPlayer.addListener(listener)
+        exoPlayer.addListener(listener)
 
         onDispose {
             exoPlayer.removeListener(listener)
@@ -669,7 +670,8 @@ internal fun VideoControlsOverlay(
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current\n    var controlsVisible by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    var controlsVisible by remember { mutableStateOf(true) }
     // Bumped on every interaction to restart the auto-hide countdown.
     var interactions by remember { mutableIntStateOf(0) }
     var seekFeedback by remember { mutableStateOf<String?>(null) }
@@ -816,7 +818,7 @@ internal fun VideoControlsOverlay(
                                     Text("Putar episode berikutnya otomatis")
                                     androidx.compose.material3.Switch(
                                         checked = autoNextEnabled,
-                                        onCheckedChange = { autoNextEnabled = it; onAutoNextChange(it); poke() }
+                                        onCheckedChange = { autoNextEnabled = it; PlayerPreferences.setAutoNext(context, it); onAutoNextChange(it); poke() }
                                     )
                                 }
                                 Row(
@@ -840,6 +842,7 @@ internal fun VideoControlsOverlay(
                                         checked = cinematicEnabled,
                                         onCheckedChange = { enabled ->
                                             cinematicEnabled = enabled
+                                            PlayerPreferences.setCinematicEnabled(context, enabled)
                                             onCinematicLightingChange(if (enabled) cinematicIntensity else 0f)
                                         }
                                     )
