@@ -2,7 +2,7 @@ package com.anisync.android.presentation.components
 
 import android.content.Context
 import androidx.compose.material.icons.filled.Brightness6
-import android.provider.Settings
+import android.provider.Settings as AndroidSettings
 import android.media.AudioManager
 import android.content.ContextWrapper
 import android.content.Intent
@@ -731,7 +731,7 @@ internal fun VideoControlsOverlay(
     var brightnessLevel by remember(hostWindow) {
         mutableFloatStateOf(
             if (originalWindowBrightness >= 0f) originalWindowBrightness
-            else (Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128) / 255f)
+            else (AndroidSettings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128) / 255f)
         )
     }
     var volumeLevel by remember(audioManager) {
