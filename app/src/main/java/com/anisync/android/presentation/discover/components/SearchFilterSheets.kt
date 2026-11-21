@@ -179,10 +179,7 @@ private fun AnimeWStyleFilterSheet(
 ) {
     val currentYear = remember { Calendar.getInstance().get(Calendar.YEAR) }
     val footer: @Composable () -> Unit = {
-        SheetFooterButton(
-            text = pluralStringResourceOrDefault(R.plurals.library_show_results, matchingTitles, matchingTitles),
-            onClick = onDismiss
-        )
+        SheetFooterButton(text = "Terapkan", onClick = onDismiss)
     }
     FilterSheetScaffold(
         title = "Filter",
@@ -191,6 +188,7 @@ private fun AnimeWStyleFilterSheet(
         resetEnabled = filters != SearchFilters(),
         footer = footer
     ) {
+        // 1. Urutkan
         SheetSectionLabel("Urutkan")
         FilterChoiceChipGroup(
             options = sortColumns(category, hasQuery),
@@ -198,7 +196,9 @@ private fun AnimeWStyleFilterSheet(
             isSelected = { it == filters.sort.column.on(category) },
             onClick = { onFiltersChange(filters.copy(sort = SearchSort(it, filters.sort.descending))) }
         )
+
         Spacer(Modifier.height(18.dp))
+        // 2. Tipe
         SheetSectionLabel("Tipe")
         FilterChoiceChipGroup(
             options = formatOptions(category),
@@ -206,15 +206,19 @@ private fun AnimeWStyleFilterSheet(
             isSelected = { it in filters.formats },
             onClick = { onFiltersChange(filters.copy(formats = filters.formats.toggle(it))) }
         )
+
         Spacer(Modifier.height(18.dp))
-        SheetSectionLabel(airingStatusTitle(manga = category == ResultCategory.MANGA))
+        // 3. Status tayang
+        SheetSectionLabel("Status tayang")
         FilterChoiceChipGroup(
             options = StatusOptions,
             label = { it.toLabel() },
             isSelected = { it in filters.statuses },
             onClick = { onFiltersChange(filters.copy(statuses = filters.statuses.toggle(it))) }
         )
+
         Spacer(Modifier.height(18.dp))
+        // 4. Negara
         SheetSectionLabel("Negara")
         FilterChoiceChipGroup(
             options = OriginCountry.entries,
@@ -222,39 +226,131 @@ private fun AnimeWStyleFilterSheet(
             isSelected = { it == filters.country },
             onClick = { onFiltersChange(filters.copy(country = it.takeIf { it != filters.country })) }
         )
+
         Spacer(Modifier.height(18.dp))
-        SheetSectionLabel("Tahun Rilis")
+        // 5. Slider tahun rilis
+        SheetSectionLabel("Tahun rilis")
         val startYear = (filters.yearRange.min ?: 1990).coerceIn(1990, currentYear)
         val endYear = (filters.yearRange.max ?: currentYear).coerceIn(startYear, currentYear)
-        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Text(startYear.toString(), style = MaterialTheme.typography.titleMedium)
             Text(endYear.toString(), style = MaterialTheme.typography.titleMedium)
         }
         androidx.compose.material3.RangeSlider(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             value = startYear.toFloat()..endYear.toFloat(),
             onValueChange = { range ->
                 val from = range.start.toInt()
                 val to = range.endInclusive.toInt()
-                onFiltersChange(filters.copy(yearRange = if (from == 1990 && to == currentYear) IntRangeFilter() else IntRangeFilter(from, to)))
+                onFiltersChange(filters.copy(
+                    yearRange = if (from == 1990 && to == currentYear) IntRangeFilter()
+                    else IntRangeFilter(from, to)
+                ))
             },
             valueRange = 1990f..currentYear.toFloat()
         )
-        var showOlderYearChips by rememberSaveable { mutableStateOf((filters.yearRange.min ?: currentYear) < 2012) }
+
+        // 6. Slider episode (batas minimum dan maksimum)
+        if (category != ResultCategory.MANGA) {
+            Spacer(Modifier.height(18.dp))
+            SheetSectionLabel("Episode")
+            val episodeMin = when (filters.episodes.mode) {
+                ComparatorMode.AT_LEAST -> filters.episodes.value ?: 0
+                ComparatorMode.EXACTLY -> filters.episodes.value ?: 0
+                else -> 0
+            }.coerceIn(0, 200)
+            val episodeMax = (filters.episodes.maxValue
+                ?: if (filters.episodes.mode == ComparatorMode.AT_MOST) filters.episodes.value else null
+                ?: 200).coerceIn(episodeMin, 200)
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Minimal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (episodeMin == 0) "Semua" else episodeMin.toString(), style = MaterialTheme.typography.titleMedium)
+                Text("Maksimal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (episodeMax == 200) "Semua" else episodeMax.toString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            }
+            androidx.compose.material3.RangeSlider(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                value = episodeMin.toFloat()..episodeMax.toFloat(),
+                onValueChange = { range ->
+                    val min = range.start.toInt()
+                    val max = range.endInclusive.toInt()
+                    onFiltersChange(filters.copy(episodes = if (min == 0 && max == 200) {
+                        IntComparatorFilter()
+                    } else {
+                        IntComparatorFilter(
+                            mode = if (min > 0) ComparatorMode.AT_LEAST else ComparatorMode.ANY,
+                            value = min.takeIf { it > 0 },
+                            maxValue = max.takeIf { it < 200 }
+                        )
+                    }))
+                },
+                valueRange = 0f..200f,
+                steps = 199
+            )
+        }
+
+        // 7. Slider skor (batas minimum dan maksimum)
+        Spacer(Modifier.height(18.dp))
+        SheetSectionLabel("Skor")
+        val scoreMin = when (filters.score.mode) {
+            ComparatorMode.AT_LEAST, ComparatorMode.EXACTLY -> filters.score.value ?: 0
+            else -> 0
+        }.coerceIn(0, 100)
+        val scoreMax = (filters.score.maxValue
+            ?: if (filters.score.mode == ComparatorMode.AT_MOST) filters.score.value else null
+            ?: 100).coerceIn(scoreMin, 100)
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Minimal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("$scoreMin%", style = MaterialTheme.typography.titleMedium)
+            Text("Maksimal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("$scoreMax%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        }
+        androidx.compose.material3.RangeSlider(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            value = scoreMin.toFloat()..scoreMax.toFloat(),
+            onValueChange = { range ->
+                val min = range.start.toInt()
+                val max = range.endInclusive.toInt()
+                onFiltersChange(filters.copy(score = if (min == 0 && max == 100) {
+                    IntComparatorFilter()
+                } else {
+                    IntComparatorFilter(
+                        mode = if (min > 0) ComparatorMode.AT_LEAST else ComparatorMode.ANY,
+                        value = min.takeIf { it > 0 },
+                        maxValue = max.takeIf { it < 100 }
+                    )
+                }))
+            },
+            valueRange = 0f..100f,
+            steps = 99
+        )
+
+        // 8. Chip tahun — terpisah dari slider tahun
+        Spacer(Modifier.height(18.dp))
+        SheetSectionLabel("Tahun")
+        var showOlderYearChips by rememberSaveable {
+            mutableStateOf((filters.yearRange.min ?: currentYear) < 2012)
+        }
         val yearChips = if (showOlderYearChips) (1990..currentYear).toList().reversed()
             else (2012..currentYear).toList().reversed()
-        Spacer(Modifier.height(10.dp))
         FilterChoiceChipGroup(
             options = yearChips,
             label = { it.toString() },
             isSelected = { it == filters.yearRange.min && it == filters.yearRange.max },
             onClick = { year ->
-                onFiltersChange(
-                    filters.copy(
-                        yearRange = if (filters.yearRange.min == year && filters.yearRange.max == year) {
-                            IntRangeFilter()
-                        } else IntRangeFilter(year, year)
-                    )
-                )
+                onFiltersChange(filters.copy(
+                    yearRange = if (filters.yearRange.min == year && filters.yearRange.max == year)
+                        IntRangeFilter() else IntRangeFilter(year, year)
+                ))
             }
         )
         if (!showOlderYearChips && currentYear > 2012) {
@@ -264,76 +360,30 @@ private fun AnimeWStyleFilterSheet(
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
                 modifier = Modifier.padding(start = 24.dp, top = 8.dp)
             ) {
-                Text(
-                    "Selengkapnya (+22)",
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.labelMedium
-                )
+                Text("Selengkapnya", modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelMedium)
             }
         }
-        if (category != ResultCategory.MANGA) {
-            SheetSectionLabel(stringResource(R.string.filter_episodes))
-            val episodeCount = filters.episodes.value ?: 0
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Minimal episode", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(if (episodeCount == 0) "Semua" else episodeCount.toString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-            }
-            Slider(
-                value = episodeCount.toFloat(),
-                onValueChange = { value ->
-                    val picked = value.toInt()
-                    onFiltersChange(filters.copy(episodes = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
-                },
-                valueRange = 0f..200f,
-                steps = 199
-            )
-        }
-        SheetSectionLabel("Skor minimum")
-        val score = if (filters.score.mode == ComparatorMode.AT_LEAST) filters.score.value ?: 0 else 0
-        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Minimum", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("$score%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-        }
-        Slider(
-            value = score.toFloat(),
-            onValueChange = { value ->
-                val picked = value.toInt()
-                onFiltersChange(filters.copy(score = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
-            },
-            valueRange = 0f..100f,
-            steps = 99
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("Hide My Anime", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "Sembunyikan anime yang sudah ada di daftar AniList kamu",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = filters.hideMyAnime,
-                onCheckedChange = { onFiltersChange(filters.copy(hideMyAnime = it)) }
-            )
-        }
+
+        // 9. Musim
         if (category != ResultCategory.MANGA) {
             Spacer(Modifier.height(18.dp))
             SheetSectionLabel("Musim")
             FilterChoiceChipGroup(
                 options = Seasons,
-                label = { it.toLabel().orEmpty() },
+                label = { season -> when (season) {
+                    MediaSeason.WINTER -> "Winter"
+                    MediaSeason.SPRING -> "Spring"
+                    MediaSeason.SUMMER -> "Summer"
+                    MediaSeason.FALL -> "Fall"
+                    else -> ""
+                } },
                 isSelected = { it == filters.season },
                 onClick = { season -> onFiltersChange(filters.copy(season = season.takeIf { it != filters.season })) }
             )
         }
+
+        // 10. Genre
         Spacer(Modifier.height(18.dp))
         SheetSectionLabel("Genre")
         val visibleGenres = if (showAdultContent) genres else genres.filterNot { it in ADULT_GENRES }
@@ -358,6 +408,8 @@ private fun AnimeWStyleFilterSheet(
                 }
             }
         }
+
+        // 11. Tags
         Spacer(Modifier.height(18.dp))
         SheetSectionLabel("Tags")
         Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -396,20 +448,39 @@ private fun AnimeWStyleFilterSheet(
                 }
             }
         }
+
+        // 12. Hide my anime
+        Spacer(Modifier.height(18.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Hide My Anime", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Sembunyikan anime yang sudah ada di daftar AniList kamu",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = filters.hideMyAnime,
+                onCheckedChange = { onFiltersChange(filters.copy(hideMyAnime = it)) }
+            )
+        }
+
+        // Source stays after the requested twelve sections.
         Spacer(Modifier.height(18.dp))
         SheetSectionLabel("Source")
-        OptionPillGrid(
+        FilterChoiceChipGroup(
             options = SourceOptions,
             label = { it.toLabel().orEmpty() },
             isSelected = { it in filters.sources },
-            onClick = { onFiltersChange(filters.copy(sources = filters.sources.toggle(it))) },
-            role = Role.Checkbox
+            onClick = { onFiltersChange(filters.copy(sources = filters.sources.toggle(it))) }
         )
-        Spacer(Modifier.height(18.dp))
-
     }
 }
-
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
