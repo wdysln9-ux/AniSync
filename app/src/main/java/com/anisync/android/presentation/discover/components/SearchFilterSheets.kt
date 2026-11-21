@@ -319,24 +319,12 @@ private fun AnimeWStyleFilterSheet(
             steps = 99
         )
         if (category != ResultCategory.MANGA) {
-            FilterOptionGroup(
-                label = stringResource(R.string.filter_episodes),
-                summary = filters.episodes.summary() ?: stringResource(R.string.filter_any),
-                expanded = false,
-                onToggle = {}
-            ) {
-                ThresholdBody(filters.episodes, (1..200).toList(), 12, { onFiltersChange(filters.copy(episodes = it)) })
-            }
+            SheetSectionLabel(stringResource(R.string.filter_episodes))
+            ThresholdBody(filters.episodes, (1..200).toList(), 12, { onFiltersChange(filters.copy(episodes = it)) })
         }
         if (category != ResultCategory.ANIME) {
-            FilterOptionGroup(
-                label = stringResource(R.string.filter_chapters),
-                summary = filters.chapters.summary() ?: stringResource(R.string.filter_any),
-                expanded = false,
-                onToggle = {}
-            ) {
-                ThresholdBody(filters.chapters, (1..1000).toList(), 50, { onFiltersChange(filters.copy(chapters = it)) })
-            }
+            SheetSectionLabel(stringResource(R.string.filter_chapters))
+            ThresholdBody(filters.chapters, (1..1000).toList(), 50, { onFiltersChange(filters.copy(chapters = it)) })
         }
         SheetSectionLabel(stringResource(R.string.filter_adult_content))
         OptionPillGrid(
