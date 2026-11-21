@@ -98,7 +98,7 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
         inputBuffer.position(inputBuffer.position() + completeBytes)
         inputFrames += frames
 
-        if (appliedSpeed <= 1.001f) {
+        if (abs(appliedSpeed - 1f) <= 0.001f) {
             emitInputAsIs()
         } else {
             processWsola(final = false)
@@ -185,7 +185,7 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
 
             val lower = max(lastCandidateStart + 1, expected - searchFrames)
             val availableMax = inputFrames - windowFrames
-            val upper = min(availableMax, expected + searchFrames)
+            val upper = if (final) min(realInputFrames - windowFrames, expected + searchFrames) else min(availableMax, expected + searchFrames)
             if (lower > upper) break
 
             val candidate = findBestCandidate(lower, upper)
@@ -203,7 +203,7 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
             copySecondHalfToTail(candidate)
             lastCandidateStart = candidate
             analysisPosition = candidate + appliedSpeed.toDouble() * hopFrames
-            pruneOldInput()
+            if (!final) pruneOldInput()
         }
 
         if (final && hasTail) {
@@ -214,7 +214,14 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
             hasTail = false
         }
 
-        outputSamples.writeTo(this)
+        emitSamples(outputSamples.toArray())
+    }
+
+    private fun emitSamples(samples: ShortArray) {
+        if (samples.isEmpty()) return
+        val output = replaceOutputBuffer(samples.size * 2).order(ByteOrder.nativeOrder())
+        for (sample in samples) output.putShort(sample)
+        output.flip()
     }
 
     private fun findBestCandidate(lower: Int, upper: Int): Int {
@@ -278,12 +285,7 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
             values[size++] = value
         }
 
-        fun writeTo(processor: WsolaAudioProcessor) {
-            if (size == 0) return
-            val output = processor.replaceOutputBuffer(size * 2).order(ByteOrder.nativeOrder())
-            for (index in 0 until size) output.putShort(values[index])
-            output.flip()
-        }
+        fun toArray(): ShortArray = values.copyOf(size)
     }
 }
 
