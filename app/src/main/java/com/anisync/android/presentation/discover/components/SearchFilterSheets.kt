@@ -408,7 +408,7 @@ internal fun SearchSortColumn.on(category: ResultCategory): SearchSortColumn = w
 internal fun SearchSortColumn.label(): String = stringResource(
     when (this) {
         SearchSortColumn.BEST_MATCH -> R.string.search_sort_best_match
-        SearchSortColumn.RANDOM -> R.string.search_sort_best_match
+        SearchSortColumn.RANDOM -> R.string.search_sort_random
         SearchSortColumn.POPULARITY -> R.string.search_sort_popularity
         SearchSortColumn.SCORE -> R.string.search_sort_score
         SearchSortColumn.TRENDING -> R.string.search_sort_trending
