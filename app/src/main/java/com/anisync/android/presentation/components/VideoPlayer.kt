@@ -631,6 +631,7 @@ internal fun VideoControlsOverlay(
     var interactions by remember { mutableIntStateOf(0) }
     var seekFeedback by remember { mutableStateOf<String?>(null) }
     var quickSettingsExpanded by remember { mutableStateOf(false) }
+    var playerSettingsExpanded by remember { mutableStateOf(false) }
     var selectedSpeed by remember { mutableFloatStateOf(1f) }
     var autoNextEnabled by remember { mutableStateOf(true) }
     var cinematicEnabled by remember { mutableStateOf(false) }
@@ -744,6 +745,75 @@ internal fun VideoControlsOverlay(
                         Icon(Icons.Default.Settings, contentDescription = "Pengaturan pemutar", modifier = Modifier.size(buttonIconSize))
                     }
                 }
+                if (playerSettingsExpanded) {
+                    AlertDialog(
+                        onDismissRequest = { playerSettingsExpanded = false },
+                        title = { Text("Pengaturan pemutar") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("Kecepatan pemutaran · ${selectedSpeed}x")
+                                Slider(
+                                    value = selectedSpeed,
+                                    onValueChange = { selectedSpeed = it; onSetPlaybackSpeed(it) },
+                                    valueRange = 0.5f..4f,
+                                    steps = 13
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Putar episode berikutnya otomatis")
+                                    androidx.compose.material3.Switch(
+                                        checked = autoNextEnabled,
+                                        onCheckedChange = { autoNextEnabled = it; onAutoNextChange(it); poke() }
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(if (isMuted) "Suara mati" else "Suara aktif")
+                                    androidx.compose.material3.Switch(
+                                        checked = !isMuted,
+                                        onCheckedChange = { onToggleMute(); poke() }
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Pencahayaan sinematik")
+                                    androidx.compose.material3.Switch(
+                                        checked = cinematicEnabled,
+                                        onCheckedChange = { enabled ->
+                                            cinematicEnabled = enabled
+                                            onCinematicLightingChange(if (enabled) cinematicIntensity else 0f)
+                                        }
+                                    )
+                                }
+                                Text("Intensitas cahaya · ${(cinematicIntensity * 100).toInt()}%")
+                                Slider(
+                                    value = cinematicIntensity,
+                                    onValueChange = { cinematicIntensity = it; if (cinematicEnabled) onCinematicLightingChange(it) },
+                                    valueRange = 0.05f..0.8f,
+                                    enabled = cinematicEnabled
+                                )
+                                Text(
+                                    "Cubit layar dengan dua jari untuk mengatur lebar video. Garis rasio dan snap akan muncul selama pengaturan.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { playerSettingsExpanded = false }) { Text("Selesai") }
+                        }
+                    )
+                }
+
                 if (cinematicSettingsExpanded) {
                     AlertDialog(
                         onDismissRequest = { cinematicSettingsExpanded = false },
@@ -764,6 +834,7 @@ internal fun VideoControlsOverlay(
                 }
 
                 DropdownMenu(expanded = quickSettingsExpanded, onDismissRequest = { quickSettingsExpanded = false }) {
+                    DropdownMenuItem(text = { Text("Pengaturan lengkap") }, onClick = { quickSettingsExpanded = false; playerSettingsExpanded = true; poke() })
                     DropdownMenuItem(text = { Text("Kecepatan") }, onClick = {})
                     listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 3f, 4f).forEach { speed ->
                         DropdownMenuItem(text = { Text("${if (selectedSpeed == speed) "✓ " else ""}${speed}x") }, onClick = { selectedSpeed = speed; onSetPlaybackSpeed(speed); poke() })
