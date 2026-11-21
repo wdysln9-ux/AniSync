@@ -1746,7 +1746,7 @@
     <string name="a11y_filter_off">Nonaktif</string>
     <string name="a11y_filter_included">Disertakan</string>
     <string name="a11y_filter_excluded">Dikecualikan</string>
-    <string name="library_filter_exclude_hint">Ketuk untuk menyertakan, ketuk lagi untuk mengecualikan. Tekan lama untuk mengecualikan.</string>
+    <string name="library_filter_exclude_hint">Ketuk untuk menyertakan, tekan lama untuk mengecualikan.</string>
     <string name="filter_hint_with_counts">%1$s. %2$s</string>
     <string name="filter_chip_value">%1$s · %2$s</string>
     <string name="filter_chip_value_more">%1$s · %2$s +%3$d</string>
