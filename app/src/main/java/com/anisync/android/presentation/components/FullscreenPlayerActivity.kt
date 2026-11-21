@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -163,6 +164,7 @@ private fun FullscreenVideoContent(
     var isStretching by remember { mutableStateOf(false) }
     var snappedRatio by remember { mutableStateOf<Float?>(null) }
     var cinematicIntensity by remember { mutableFloatStateOf(FullscreenVideoBridge.cinematicIntensity.floatValue) }
+    var displayMode by remember { mutableStateOf("Fit") }
     // Seeded from the launch extra, then corrected off the player itself, so the fitted box tracks
     // the real picture even when the inline player never reported a size before the handoff.
     var aspect by remember {
@@ -290,7 +292,12 @@ private fun FullscreenVideoContent(
                 PlayerSurface(
                     exoPlayer = player,
                     active = true,
-                    modifier = Modifier.fillMaxSize().graphicsLayer(scaleX = stretchX)
+                    modifier = Modifier.fillMaxSize().graphicsLayer(scaleX = stretchX),
+                    contentScale = when (displayMode) {
+                        "Isi layar" -> ContentScale.Crop
+                        "Stretch" -> ContentScale.FillBounds
+                        else -> ContentScale.Fit
+                    }
                 )
             }
         }
@@ -359,6 +366,8 @@ private fun FullscreenVideoContent(
                     FullscreenVideoBridge.cinematicIntensity.floatValue = intensity
                 },
                 onResetStretch = { stretchX = 1f },
+                displayMode = displayMode,
+                onDisplayModeChange = { displayMode = it },
                 onToggleFullscreen = onClose,
                 onBack = onClose
             )

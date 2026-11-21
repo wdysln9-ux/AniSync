@@ -474,7 +474,8 @@ private const val HTTP_GONE = 410
 internal fun PlayerSurface(
     exoPlayer: ExoPlayer,
     active: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Fit
 ) {
     LaunchedEffect(exoPlayer, active) {
         if (active && exoPlayer.playbackState == Player.STATE_IDLE) exoPlayer.prepare()
@@ -482,7 +483,7 @@ internal fun PlayerSurface(
     ContentFrame(
         player = if (active) exoPlayer else null,
         surfaceType = SURFACE_TYPE_TEXTURE_VIEW,
-        contentScale = ContentScale.Fit,
+        contentScale = contentScale,
         modifier = modifier
     )
 }
@@ -623,6 +624,8 @@ internal fun VideoControlsOverlay(
     onAutoNextChange: (Boolean) -> Unit = {},
     onCinematicLightingChange: (Float) -> Unit = {},
     onResetStretch: () -> Unit = {},
+    displayMode: String = "Fit",
+    onDisplayModeChange: (String) -> Unit = {},
     onToggleFullscreen: () -> Unit,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier
@@ -752,6 +755,14 @@ internal fun VideoControlsOverlay(
                         title = { Text("Pengaturan pemutar") },
                         text = {
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("Mode tampilan")
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    listOf("Fit", "Isi layar", "Stretch").forEach { mode ->
+                                        TextButton(onClick = { onDisplayModeChange(mode); poke() }) {
+                                            Text(if (displayMode == mode) "✓ $mode" else mode)
+                                        }
+                                    }
+                                }
                                 Text("Kecepatan pemutaran · ${selectedSpeed}x")
                                 Slider(
                                     value = selectedSpeed,
