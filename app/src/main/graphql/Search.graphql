@@ -25,7 +25,8 @@ query SearchMedia(
   $chapters_greater: Int,
   $chapters_lesser: Int,
   $countryOfOrigin: CountryCode,
-  $isAdult: Boolean
+  $isAdult: Boolean,
+  $onList: Boolean
 ) {
   Page(page: $page, perPage: $perPage) {
     pageInfo {
@@ -58,7 +59,8 @@ query SearchMedia(
       chapters_greater: $chapters_greater,
       chapters_lesser: $chapters_lesser,
       countryOfOrigin: $countryOfOrigin,
-      isAdult: $isAdult
+      isAdult: $isAdult,
+      onList: $onList
     ) {
       id
       title {
