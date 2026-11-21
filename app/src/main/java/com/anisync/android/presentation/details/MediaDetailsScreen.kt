@@ -997,8 +997,9 @@ fun DetailsPageContent(
     var youtubeVideoId by rememberSaveable { mutableStateOf<String?>(null) }
     var showScoreInfo by rememberSaveable { mutableStateOf(false) }
     var viewerIndex by rememberSaveable { mutableIntStateOf(0) }
-    var viewerImages by remember(details.id, details.cover.url() ?: details.coverUrl, details.bannerUrl) {
-        mutableStateOf(listOfNotNull(details.cover.url() ?: details.coverUrl, details.bannerUrl).distinct())
+    val initialCoverUrl = details.cover.url() ?: details.coverUrl
+    var viewerImages by remember(details.id, initialCoverUrl, details.bannerUrl) {
+        mutableStateOf(listOfNotNull(initialCoverUrl, details.bannerUrl).distinct())
     }
 
     // Add AniZip artwork and the TMDB poster after the AniList images are ready.
