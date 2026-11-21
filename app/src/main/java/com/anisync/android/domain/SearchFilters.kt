@@ -68,7 +68,8 @@ data class SearchFilters(
     val episodes: IntComparatorFilter = IntComparatorFilter(),
     val chapters: IntComparatorFilter = IntComparatorFilter(),
     val country: OriginCountry? = null,
-    val adultMode: AdultMode = AdultMode.ANY
+    val adultMode: AdultMode = AdultMode.ANY,
+    val hideMyAnime: Boolean = false
 ) {
     /** A changed sort counts: ordering everything by score with nothing typed is a search. */
     val hasActiveFilters: Boolean get() = sort != SearchSort() || hasNarrowingFilters
