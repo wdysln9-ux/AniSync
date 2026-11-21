@@ -550,7 +550,7 @@ private fun ThemeIdentity(theme: MediaTheme) {
 }
 
 @Composable
-private fun SheetLabel(text: String) {
+internal fun SheetLabel(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelLarge,
@@ -664,7 +664,7 @@ private fun variantLabel(video: ThemeVideo): String = buildList {
 }.joinToString(" · ")
 
 @Composable
-private fun SourceChip(
+internal fun SourceChip(
     label: String,
     isSelected: Boolean,
     onClick: () -> Unit,
