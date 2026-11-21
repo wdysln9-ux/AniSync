@@ -89,7 +89,7 @@ fun SearchFilterChipBar(
             add(label to filters.copy(country = null))
         }
         filters.score.takeIf { it.isActive }?.let { value ->
-            val amount = value.value ?: return@let
+            val amount = value.value ?: 0
             val label = when {
                 value.maxValue != null && amount > 0 -> "Skor $amount–${value.maxValue}"
                 value.maxValue != null -> "Skor ≤ ${value.maxValue}"
