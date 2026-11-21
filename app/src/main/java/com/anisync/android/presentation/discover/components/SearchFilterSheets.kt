@@ -539,26 +539,14 @@ private fun SearchSortSheet(
  * Best match joins while a query is typed. Length columns only make sense for one type at a time,
  * so All leaves them out.
  */
-internal fun sortColumns(category: ResultCategory, hasQuery: Boolean): List<SearchSortColumn> = buildList {
-    if (hasQuery) add(SearchSortColumn.BEST_MATCH)
-    add(SearchSortColumn.RANDOM)
-    addAll(
-        listOf(
-            SearchSortColumn.POPULARITY,
-            SearchSortColumn.SCORE,
-            SearchSortColumn.TRENDING,
-            SearchSortColumn.FAVOURITES,
-            SearchSortColumn.RELEASE_DATE,
-            SearchSortColumn.UPDATED,
-            SearchSortColumn.TITLE
-        )
-    )
-    when (category) {
-        ResultCategory.ANIME -> addAll(listOf(SearchSortColumn.EPISODES, SearchSortColumn.DURATION))
-        ResultCategory.MANGA -> addAll(listOf(SearchSortColumn.CHAPTERS, SearchSortColumn.VOLUMES))
-        else -> Unit
-    }
-}
+internal fun sortColumns(category: ResultCategory, hasQuery: Boolean): List<SearchSortColumn> = listOf(
+    SearchSortColumn.POPULARITY,
+    SearchSortColumn.TRENDING,
+    SearchSortColumn.SCORE,
+    SearchSortColumn.TITLE,
+    SearchSortColumn.RELEASE_DATE,
+    SearchSortColumn.RANDOM
+)
 
 /** A length column named the way [category] reads it: Chapters on manga, Episodes on anime. */
 internal fun SearchSortColumn.on(category: ResultCategory): SearchSortColumn = when (category) {
@@ -680,9 +668,7 @@ private fun formatOptions(category: ResultCategory): List<MediaFormat> = when (c
 private val StatusOptions = listOf(
     MediaStatus.RELEASING,
     MediaStatus.FINISHED,
-    MediaStatus.NOT_YET_RELEASED,
-    MediaStatus.HIATUS,
-    MediaStatus.CANCELLED
+    MediaStatus.NOT_YET_RELEASED
 )
 
 // =============================================================================
