@@ -98,6 +98,10 @@ import com.anisync.android.presentation.components.alert.TopToastHost
 import com.anisync.android.presentation.components.navigation.CompactNavBar
 import com.anisync.android.presentation.components.navigation.CompactNavBarItem
 import com.anisync.android.presentation.navigation.AniSyncNavHost
+import com.anisync.android.presentation.library.LibraryViewModel
+import com.anisync.android.presentation.library.LibraryAction
+import com.anisync.android.presentation.library.components.EditLibraryEntrySheet
+import com.anisync.android.presentation.util.LocalLibraryEntryEditor
 import com.anisync.android.presentation.navigation.Discover
 import com.anisync.android.presentation.navigation.navigateSafely
 import com.anisync.android.presentation.navigation.Feed
@@ -207,6 +211,8 @@ fun MainScreen(
     viewModel: MainScreenViewModel = hiltViewModel()
 ) {
     val navController = rememberNavController()
+    val libraryEditorViewModel: LibraryViewModel = hiltViewModel()
+    val libraryEditorState by libraryEditorViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     LaunchedEffect(navController) {
         val activity = context as? com.anisync.android.MainActivity ?: return@LaunchedEffect
@@ -309,32 +315,58 @@ fun MainScreen(
         CompositionLocalProvider(
             LocalMainNavBarSuppressor provides navBarSuppressor,
             LocalRateLimitMonitor provides viewModel.rateLimitMonitor,
+            LocalLibraryEntryEditor provides { entry ->
+                libraryEditorViewModel.onAction(LibraryAction.EditEntry(entry))
+            }
         ) {
-            if (adaptive.isCompact || adaptive.isCompactHeight) {
-                CompactNavLayout(
-                    navController = navController,
-                    startDestination = startDestination,
-                    unreadNotificationCount = unreadNotificationCount,
-                    navBarStyle = navBarStyle,
-                    navBarShowLabels = navBarShowLabels,
-                    navBarCornerRadius = navBarCornerRadius,
-                    onTabSelected = viewModel::onMainTabSelected,
-                    onTabTapped = viewModel::onTabTapped,
-                    onTabSearch = viewModel::onTabSearchRequested,
-                    supportPrompt = supportPrompt,
-                    toastHost = { TopToastHost(toastManager = viewModel.toastManager) }
-                )
-            } else {
-                RailNavLayout(
-                    navController = navController,
-                    startDestination = startDestination,
-                    unreadNotificationCount = unreadNotificationCount,
-                    onTabSelected = viewModel::onMainTabSelected,
-                    onTabTapped = viewModel::onTabTapped,
-                    onTabSearch = viewModel::onTabSearchRequested,
-                    supportPrompt = supportPrompt,
-                    toastHost = { TopToastHost(toastManager = viewModel.toastManager) }
-                )
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (adaptive.isCompact || adaptive.isCompactHeight) {
+                    CompactNavLayout(
+                        navController = navController,
+                        startDestination = startDestination,
+                        unreadNotificationCount = unreadNotificationCount,
+                        navBarStyle = navBarStyle,
+                        navBarShowLabels = navBarShowLabels,
+                        navBarCornerRadius = navBarCornerRadius,
+                        onTabSelected = viewModel::onMainTabSelected,
+                        onTabTapped = viewModel::onTabTapped,
+                        onTabSearch = viewModel::onTabSearchRequested,
+                        supportPrompt = supportPrompt,
+                        toastHost = { TopToastHost(toastManager = viewModel.toastManager) }
+                    )
+                } else {
+                    RailNavLayout(
+                        navController = navController,
+                        startDestination = startDestination,
+                        unreadNotificationCount = unreadNotificationCount,
+                        onTabSelected = viewModel::onMainTabSelected,
+                        onTabTapped = viewModel::onTabTapped,
+                        onTabSearch = viewModel::onTabSearchRequested,
+                        supportPrompt = supportPrompt,
+                        toastHost = { TopToastHost(toastManager = viewModel.toastManager) }
+                    )
+                }
+
+                libraryEditorState.editingEntry?.let { entry ->
+                    EditLibraryEntrySheet(
+                        entry = entry,
+                        titleLanguage = libraryEditorState.titleLanguage,
+                        scoreFormat = libraryEditorState.userScoreFormat,
+                        availableCustomLists = libraryEditorState.customListNames,
+                        advancedScoringCategories = libraryEditorState.advancedScoringCategories,
+                        onDismiss = {
+                            libraryEditorViewModel.onAction(LibraryAction.DismissEditor)
+                        },
+                        onSave = { updatedEntry ->
+                            libraryEditorViewModel.onAction(LibraryAction.UpdateEntry(updatedEntry))
+                            libraryEditorViewModel.onAction(LibraryAction.DismissEditor)
+                        },
+                        onDelete = {
+                            libraryEditorViewModel.onAction(LibraryAction.DeleteEntry(entry.id, entry.mediaId))
+                            libraryEditorViewModel.onAction(LibraryAction.DismissEditor)
+                        }
+                    )
+                }
             }
         }
     }
