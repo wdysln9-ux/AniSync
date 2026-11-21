@@ -342,6 +342,21 @@ private fun AnimeWStyleFilterSheet(
                 steps = 198
             )
         }
+        SheetSectionLabel("Skor minimum")
+        val score = if (filters.score.mode == ComparatorMode.AT_LEAST) filters.score.value ?: 0 else 0
+        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Minimum", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("$score%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        }
+        Slider(
+            value = score.toFloat(),
+            onValueChange = { value ->
+                val picked = value.toInt()
+                onFiltersChange(filters.copy(score = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
+            },
+            valueRange = 0f..100f,
+            steps = 99
+        )
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -360,22 +375,6 @@ private fun AnimeWStyleFilterSheet(
                 onCheckedChange = { onFiltersChange(filters.copy(hideMyAnime = it)) }
             )
         }
-
-        SheetSectionLabel("Skor minimum")
-        val score = if (filters.score.mode == ComparatorMode.AT_LEAST) filters.score.value ?: 0 else 0
-        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Minimum", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("$score%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-        }
-        Slider(
-            value = score.toFloat(),
-            onValueChange = { value ->
-                val picked = value.toInt()
-                onFiltersChange(filters.copy(score = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
-            },
-            valueRange = 0f..100f,
-            steps = 99
-        )
     }
 }
 
