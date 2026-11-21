@@ -961,7 +961,7 @@ internal fun VideoControlsOverlay(
                                 cap = androidx.compose.ui.graphics.StrokeCap.Round
                             )
                             drawLine(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
+                                color = Color.White.copy(alpha = 0.55f),
                                 start = androidx.compose.ui.geometry.Offset(0f, trackY),
                                 end = androidx.compose.ui.geometry.Offset(size.width * bufferedFraction, trackY),
                                 strokeWidth = 4.dp.toPx(),
