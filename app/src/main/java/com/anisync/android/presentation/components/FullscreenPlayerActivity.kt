@@ -63,7 +63,8 @@ import kotlinx.coroutines.delay
  */
 internal object PlayerPreferences {
     private const val PREFS = "anisync_player_settings"
-    private const val SPEED = "playback_speed"\n    private const val MUTED = "muted"
+    private const val SPEED = "playback_speed"
+    private const val MUTED = "muted"
     private const val DISPLAY_MODE = "display_mode"
     private const val AUTO_NEXT = "auto_next"
     private const val CINEMATIC_ENABLED = "cinematic_enabled"
@@ -73,7 +74,11 @@ internal object PlayerPreferences {
     private fun prefs(context: android.content.Context) =
         context.applicationContext.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
 
-    fun isMuted(context: android.content.Context, defaultValue: Boolean = true) = prefs(context).getBoolean(MUTED, defaultValue)\n    fun setMuted(context: android.content.Context, value: Boolean) {\n        prefs(context).edit().putBoolean(MUTED, value).apply()\n    }\n    fun playbackSpeed(context: android.content.Context) = prefs(context).getFloat(SPEED, 1f).coerceIn(0.5f, 4f)
+    fun isMuted(context: android.content.Context, defaultValue: Boolean = true) = prefs(context).getBoolean(MUTED, defaultValue)
+    fun setMuted(context: android.content.Context, value: Boolean) {
+        prefs(context).edit().putBoolean(MUTED, value).apply()
+    }
+    fun playbackSpeed(context: android.content.Context) = prefs(context).getFloat(SPEED, 1f).coerceIn(0.5f, 4f)
     fun setPlaybackSpeed(context: android.content.Context, value: Float) {
         prefs(context).edit().putFloat(SPEED, value.coerceIn(0.5f, 4f)).apply()
     }
@@ -99,7 +104,8 @@ internal object PlayerPreferences {
     }
 }
 
-@OptIn(UnstableApi::class)\ninternal object FullscreenVideoBridge {
+@OptIn(UnstableApi::class)
+internal object FullscreenVideoBridge {
     var player: ExoPlayer? = null
     var closeFullscreen: (() -> Unit)? = null
     var onPlaybackEnded: (() -> Unit)? = null
@@ -303,7 +309,8 @@ private fun FullscreenVideoContent(
                                     next = (nearest / aspect).coerceIn(0.45f, 2.5f)
                                     snappedRatio = nearest
                                 } else snappedRatio = null
-                                stretchX = next\n                                PlayerPreferences.setStretchScale(context, next)
+                                stretchX = next
+                                PlayerPreferences.setStretchScale(context, next)
                             }
                             fingers.forEach { it.consume() }
                         }
