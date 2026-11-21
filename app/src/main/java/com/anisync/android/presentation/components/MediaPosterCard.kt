@@ -190,32 +190,6 @@ fun MediaPosterCard(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxWidth()
             )
-            item.averageScore?.takeIf { it > 0.0 }?.let { score ->
-                Surface(
-                    modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
-                    color = Color.Black.copy(alpha = 0.42f),
-                    shape = RoundedCornerShape(50)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = StarGold,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = String.format(Locale.US, "%.1f", score / 10.0),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-                }
-            }
 
             listStatus?.let { status ->
                 ListIndicator(
