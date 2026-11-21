@@ -246,7 +246,13 @@ fun VideoPlayer(
         onDispose {
             exoPlayer.removeListener(listener)
             // Only release if self-managed; cached players are released by ExoPlayerCache.releaseAll().
-            if (playerCache == null) exoPlayer.release() else exoPlayer.pause()
+            if (playerCache == null) {
+                exoPlayer.release()
+            } else if (!isHandedOff.value) {
+                // The inline composition can be disposed while the same player is owned by
+                // FullscreenPlayerActivity. Do not pause it during that hand-off.
+                exoPlayer.pause()
+            }
         }
     }
 
@@ -265,8 +271,8 @@ fun VideoPlayer(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> if (!handedOff) exoPlayer.pause()
-                Lifecycle.Event.ON_RESUME -> if (isPlaying && !handedOff) exoPlayer.play()
+                Lifecycle.Event.ON_PAUSE -> if (!isHandedOff.value) exoPlayer.pause()
+                Lifecycle.Event.ON_RESUME -> if (exoPlayer.playWhenReady && !isHandedOff.value) exoPlayer.play()
                 else -> {}
             }
         }
