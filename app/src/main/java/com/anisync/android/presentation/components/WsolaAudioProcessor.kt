@@ -8,7 +8,9 @@ import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -17,8 +19,8 @@ import kotlin.math.sqrt
 /**
  * WSOLA time-stretch processor for the CloudStream episode player.
  *
- * It uses waveform-similarity search and overlap/add (the same family of technique used by
- * mpv's scaletempo2), while keeping the decoded PCM path inside Media3. This is an independent
+ * It uses waveform-similarity search and overlap/add, tuned around mpv scaletempo2's
+ * documented defaults (20 ms overlap window, 30 ms search interval). This is an independent
  * Kotlin implementation, not a binary or source-level copy of mpv.
  *
  * Media3 supplies signed 16-bit PCM because float output is disabled for this renderer.
@@ -50,10 +52,13 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
         }
         sampleRate = inputAudioFormat.sampleRate
         channelCount = inputAudioFormat.channelCount
-        windowFrames = max(256, (sampleRate * 0.020f).toInt())
+        // WSOLA's overlap window is 20 ms. The full analysis segment is two
+        // overlap windows: one for the current crossfade and one retained as tail.
+        windowFrames = max(512, (sampleRate * 0.040f).toInt())
         if (windowFrames % 2 != 0) windowFrames++
         hopFrames = windowFrames / 2
-        searchFrames = max(1, (sampleRate * 0.040f).toInt())
+        // Match scaletempo2's default +/- search interval (30 ms).
+        searchFrames = max(1, (sampleRate * 0.030f).toInt())
         return inputAudioFormat
     }
 
@@ -226,21 +231,37 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
         val stride = 2
         var start = lower
         while (start <= upper) {
+            // Use one channel to choose a shared offset for every channel. This
+            // prevents stereo phase differences from cancelling the correlation.
+            var oldSum = 0.0
+            var newSum = 0.0
             var dot = 0.0
-            var oldEnergy = 1.0
-            var newEnergy = 1.0
+            var oldSquare = 0.0
+            var newSquare = 0.0
+            var samples = 0
             var frame = 0
             while (frame < hopFrames) {
-                for (channel in 0 until channelCount) {
-                    val oldValue = tail[frame * channelCount + channel].toDouble()
-                    val newValue = input[(start + frame) * channelCount + channel].toDouble()
-                    dot += oldValue * newValue
-                    oldEnergy += oldValue * oldValue
-                    newEnergy += newValue * newValue
-                }
+                val oldValue = tail[frame * channelCount].toDouble()
+                val newValue = input[(start + frame) * channelCount].toDouble()
+                oldSum += oldValue
+                newSum += newValue
+                dot += oldValue * newValue
+                oldSquare += oldValue * oldValue
+                newSquare += newValue * newValue
+                samples++
                 frame += 4
             }
-            val score = dot / sqrt(oldEnergy * newEnergy)
+            val covariance = dot - oldSum * newSum / max(1, samples)
+            val oldEnergy = oldSquare - oldSum * oldSum / max(1, samples)
+            val newEnergy = newSquare - newSum * newSum / max(1, samples)
+            val denominator = sqrt(max(1.0, oldEnergy) * max(1.0, newEnergy))
+            val score = if (oldEnergy < 1.0 || newEnergy < 1.0) {
+                // During silence, waveform matching is meaningless. Keep the
+                // earliest candidate instead of jumping to a noisy match.
+                -abs(start - analysisPosition)
+            } else {
+                covariance / denominator
+            }
             if (score > bestScore) {
                 bestScore = score
                 bestStart = start
