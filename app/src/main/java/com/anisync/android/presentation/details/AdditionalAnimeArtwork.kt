@@ -34,23 +34,31 @@ internal suspend fun loadAdditionalAnimeArtwork(
         }
     }
 
-    if (malId != null && malId > 0) {
-        runCatching {
-            val mapping = getJson("https://api.ani.zip/mappings?mal_id=$malId")
-            val tmdbId = mapping.optJSONObject("mappings")
-                ?.optString("themoviedb_id")
-                ?.toIntOrNull()
-            if (tmdbId != null && tmdbId > 0) {
-                val html = getText("https://www.themoviedb.org/tv/$tmdbId")
-                val patterns = listOf(
-                    Regex("""<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']""", RegexOption.IGNORE_CASE),
-                    Regex("""<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']""", RegexOption.IGNORE_CASE)
-                )
+    runCatching {
+        val mappingUrl = if (malId != null && malId > 0) {
+            "https://api.ani.zip/mappings?mal_id=$malId"
+        } else {
+            "https://api.ani.zip/mappings?anilist_id=$anilistId"
+        }
+        val mapping = getJson(mappingUrl)
+        val tmdbId = mapping.optJSONObject("mappings")
+            ?.optString("themoviedb_id")
+            ?.toIntOrNull()
+        if (tmdbId != null && tmdbId > 0) {
+            val patterns = listOf(
+                Regex("""<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']""", RegexOption.IGNORE_CASE),
+                Regex("""<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']""", RegexOption.IGNORE_CASE)
+            )
+            // AniZip mappings may point to either a TV series or an anime film.
+            for (kind in listOf("tv", "movie")) {
+                val html = runCatching { getText("https://www.themoviedb.org/$kind/$tmdbId") }.getOrNull()
+                    ?: continue
                 val poster = patterns.firstNotNullOfOrNull { it.find(html)?.groupValues?.getOrNull(1) }
                     ?.replace("&amp;", "&")
                     ?.trim()
                 if (poster != null && poster.startsWith("https://image.tmdb.org/")) {
                     urls += poster
+                    break
                 }
             }
         }
