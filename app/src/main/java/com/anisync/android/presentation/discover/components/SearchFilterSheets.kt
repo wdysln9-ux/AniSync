@@ -434,17 +434,11 @@ private fun AnimeWStyleFilterSheet(
                     )
                 }
                 if (tags.size > 16) {
-                    Surface(
-                        onClick = { showAllTags = !showAllTags },
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest
-                    ) {
-                        Text(
-                            if (showAllTags) "Tampilkan lebih sedikit" else "Selengkapnya (+${tags.size - 16})",
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    }
+                    IncludeExcludeChip(
+                        label = if (showAllTags) "Tampilkan lebih sedikit" else "Selengkapnya (+${tags.size - 16})",
+                        state = TriState.OFF,
+                        onStateChange = { showAllTags = !showAllTags }
+                    )
                 }
             }
         }
