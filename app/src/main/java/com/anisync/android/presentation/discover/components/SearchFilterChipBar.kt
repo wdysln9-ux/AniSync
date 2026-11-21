@@ -60,12 +60,12 @@ fun SearchFilterChipBar(
             }
             add(label to filters.copy(yearRange = IntRangeFilter()))
         }
-        filters.season?.let { add(it.toLabel() to filters.copy(season = null)) }
+        filters.season?.let { add(it.toLabel().orEmpty() to filters.copy(season = null)) }
         filters.formats.forEach { value ->
-            add(value.toLabel() to filters.copy(formats = filters.formats - value))
+            add(value.toLabel().orEmpty() to filters.copy(formats = filters.formats - value))
         }
         filters.statuses.forEach { value ->
-            add(value.toLabel() to filters.copy(statuses = filters.statuses - value))
+            add(value.toLabel().orEmpty() to filters.copy(statuses = filters.statuses - value))
         }
         filters.sources.forEach { value ->
             add(value.name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() } to
