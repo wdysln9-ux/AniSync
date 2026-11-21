@@ -821,7 +821,8 @@ private fun LazyListScope.discoverSection(
                 titleLanguage = titleLanguage,
                 transitionPrefix = TransitionKeys.DISCOVER_POPULAR,
                 sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope
+                animatedVisibilityScope = animatedVisibilityScope,
+                cardWidth = 148.dp
             )
         }
 
@@ -871,7 +872,7 @@ private fun LazyListScope.discoverSection(
 private fun DiscoverSection.skeletonCardWidth(): Dp = when (this) {
     DiscoverSection.TRENDING -> 112.dp
     DiscoverSection.AIRING_TODAY, DiscoverSection.RELEASING_NOW -> 132.dp
-    DiscoverSection.POPULAR -> 171.dp
+    DiscoverSection.POPULAR -> 148.dp
     DiscoverSection.NOT_YET_RELEASED, DiscoverSection.NEWLY_ADDED -> 148.dp
     DiscoverSection.REVIEWS -> 310.dp
 }
