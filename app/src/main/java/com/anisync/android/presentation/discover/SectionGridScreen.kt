@@ -121,7 +121,8 @@ fun MediaGridContent(
                                 onClick = { onMediaClick(item.mediaId) },
                                 sharedTransitionScope = sharedTransitionScope,
                                 animatedVisibilityScope = animatedVisibilityScope,
-                                transitionPrefix = "sectiongrid"
+                                transitionPrefix = "sectiongrid",
+                                scoreAlignment = if (sectionType == "trending") Alignment.TopEnd else Alignment.TopStart
                             )
                         }
                     }
