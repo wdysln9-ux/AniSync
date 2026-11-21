@@ -90,21 +90,25 @@ fun SearchFilterChipBar(
         }
         filters.score.takeIf { it.isActive }?.let { value ->
             val amount = value.value ?: return@let
-            val label = when (value.mode) {
-                ComparatorMode.AT_LEAST -> "Skor ≥ $amount"
-                ComparatorMode.AT_MOST -> "Skor ≤ $amount"
-                ComparatorMode.EXACTLY -> "Skor = $amount"
-                ComparatorMode.ANY -> "Skor $amount"
+            val label = when {
+                value.maxValue != null && amount > 0 -> "Skor $amount–${value.maxValue}"
+                value.maxValue != null -> "Skor ≤ ${value.maxValue}"
+                value.mode == ComparatorMode.AT_LEAST -> "Skor ≥ $amount"
+                value.mode == ComparatorMode.AT_MOST -> "Skor ≤ $amount"
+                value.mode == ComparatorMode.EXACTLY -> "Skor = $amount"
+                else -> "Skor $amount"
             }
             add(label to filters.copy(score = IntComparatorFilter()))
         }
         filters.episodes.takeIf { it.isActive }?.let { value ->
             val amount = value.value ?: return@let
-            val label = when (value.mode) {
-                ComparatorMode.AT_LEAST -> "Episode ≥ $amount"
-                ComparatorMode.AT_MOST -> "Episode ≤ $amount"
-                ComparatorMode.EXACTLY -> "Episode = $amount"
-                ComparatorMode.ANY -> "Episode $amount"
+            val label = when {
+                value.maxValue != null && amount > 0 -> "Episode $amount–${value.maxValue}"
+                value.maxValue != null -> "Episode ≤ ${value.maxValue}"
+                value.mode == ComparatorMode.AT_LEAST -> "Episode ≥ $amount"
+                value.mode == ComparatorMode.AT_MOST -> "Episode ≤ $amount"
+                value.mode == ComparatorMode.EXACTLY -> "Episode = $amount"
+                else -> "Episode $amount"
             }
             add(label to filters.copy(episodes = IntComparatorFilter()))
         }
