@@ -90,10 +90,9 @@ fun ThemeSheet(
         enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
     )
 ) {
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface
+    ThemeSheet(
+        onDismiss = onDismiss,
+        sheetState = sheetState
     ) {
         ThemeDetail(
             theme = theme,
@@ -101,11 +100,40 @@ fun ThemeSheet(
             animeSlug = animeSlug,
             coverUrl = coverUrl,
             twoColumn = false,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+/**
+ * Shared sheet shell for the OP/ED detail panel and other detail sheets.
+ *
+ * Keeping the modal, drag handle, scrolling, insets and horizontal padding here means
+ * callers reuse the exact same sheet implementation instead of approximating its appearance.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ThemeSheet(
+    onDismiss: () -> Unit,
+    sheetState: SheetState = rememberBottomSheetState(
+        initialValue = SheetValue.Hidden,
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+    ),
+    content: @Composable ColumnScope.() -> Unit
+) {
+    AppModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = dimensionResource(R.dimen.spacing_large))
-                .padding(bottom = dimensionResource(R.dimen.spacing_large))
+                .padding(bottom = dimensionResource(R.dimen.spacing_large)),
+            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_medium)),
+            content = content
         )
     }
 }
