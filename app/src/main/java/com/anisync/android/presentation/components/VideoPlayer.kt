@@ -89,6 +89,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
@@ -163,6 +164,8 @@ fun VideoPlayer(
     onSelectSource: (Int) -> Unit = {},
     onPlaybackEnded: () -> Unit = {},
     onAutoNextChange: (Boolean) -> Unit = {},
+    autoEnterFullscreen: Boolean = false,
+    onFullscreenEntered: () -> Unit = {},
     onCinematicLightingChange: (Float) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -205,7 +208,7 @@ fun VideoPlayer(
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) currentOnPlaybackEnded()
+                if (playbackState == Player.STATE_ENDED && !handedOff) currentOnPlaybackEnded()
                 if (playbackState == Player.STATE_READY) {
                     val d = exoPlayer.duration
                     if (d > 0) durationMs = d
@@ -275,6 +278,20 @@ fun VideoPlayer(
         ActivityResultContracts.StartActivityForResult()
     ) { handedOff = false }
 
+    DisposableEffect(exoPlayer) {
+        FullscreenVideoBridge.onPlaybackEnded = {
+            FullscreenVideoBridge.closeFullscreen?.invoke()
+            currentOnPlaybackEnded()
+        }
+        onDispose {
+            if (FullscreenVideoBridge.onPlaybackEnded != null) FullscreenVideoBridge.onPlaybackEnded = null
+        }
+    }
+
+    LaunchedEffect(playerState, autoEnterFullscreen, handedOff) {
+        if (autoEnterFullscreen && playerState == PlayerState.Ready && !handedOff) onEnterFullscreen()
+    }
+
     val onPlayPause: () -> Unit = { if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play() }
     val onToggleMute: () -> Unit = {
         isMuted = !isMuted
@@ -299,6 +316,7 @@ fun VideoPlayer(
     val onEnterFullscreen: () -> Unit = {
         FullscreenVideoBridge.player = exoPlayer
         handedOff = true
+        onFullscreenEntered()
         fullscreenLauncher.launch(
             Intent(context, FullscreenPlayerActivity::class.java)
                 .putExtra(FullscreenPlayerActivity.EXTRA_ASPECT, videoAspectRatio)
@@ -357,7 +375,7 @@ fun VideoPlayer(
                     positionMs = target
                 },
                 onSeekFinished = onSeekFinished,
-                onSetPlaybackSpeed = { exoPlayer.setPlaybackSpeed(it) },
+                onSetPlaybackSpeed = { exoPlayer.setPlaybackParameters(PlaybackParameters(it, 1f)) },
                 sourceOptions = sourceOptions,
                 onSelectSource = onSelectSource,
                 onAutoNextChange = onAutoNextChange,
