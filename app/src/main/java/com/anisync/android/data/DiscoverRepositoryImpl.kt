@@ -166,8 +166,8 @@ class DiscoverRepositoryImpl @Inject constructor(
                     perPage = Optional.present(10),
                     type = Optional.present(type),
                     status = Optional.present(MediaStatus.NOT_YET_RELEASED),
-                    season = Optional.present(nextSeason),
-                    seasonYear = Optional.present(nextYear)
+                    season = if (type == MediaType.ANIME) Optional.present(nextSeason) else Optional.absent(),
+                    seasonYear = if (type == MediaType.ANIME) Optional.present(nextYear) else Optional.absent()
                 )
             )
                 .fetchPolicy(FetchPolicy.NetworkOnly)
