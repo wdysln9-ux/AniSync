@@ -47,9 +47,11 @@ enum class ComparatorMode { ANY, AT_LEAST, AT_MOST, EXACTLY }
 @Immutable
 data class IntComparatorFilter(
     val mode: ComparatorMode = ComparatorMode.ANY,
-    val value: Int? = null
+    val value: Int? = null,
+    /** Optional upper bound used by the Discover score/episode range sliders. */
+    val maxValue: Int? = null
 ) {
-    val isActive: Boolean get() = mode != ComparatorMode.ANY && value != null
+    val isActive: Boolean get() = maxValue != null || (mode != ComparatorMode.ANY && value != null)
 }
 
 @Immutable
