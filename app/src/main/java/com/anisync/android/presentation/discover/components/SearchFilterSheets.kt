@@ -805,8 +805,7 @@ private fun MoreFiltersSheet(
             )
         },
         resetEnabled = filters.sources.isNotEmpty() || filters.country != null ||
-            filters.score.isActive || filters.episodes.isActive || filters.chapters.isActive ||
-            filters.adultMode != AdultMode.ANY,
+            filters.score.isActive || filters.episodes.isActive || filters.hideMyAnime,
         footer = footer
     ) {
         SheetSectionLabel(stringResource(R.string.filter_source))
