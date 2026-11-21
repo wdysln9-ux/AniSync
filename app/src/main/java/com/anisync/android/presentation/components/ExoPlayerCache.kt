@@ -18,6 +18,7 @@ import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.upstream.Loader
@@ -127,6 +128,7 @@ internal fun buildVideoExoPlayer(
     autoPlay: Boolean = false,
     cache: Cache? = null,
     headers: Map<String, String> = emptyMap(),
+    useWsolaAudio: Boolean = false,
 ): ExoPlayer {
     val loadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
@@ -142,7 +144,9 @@ internal fun buildVideoExoPlayer(
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
-    return ExoPlayer.Builder(context)
+    val renderersFactory = if (useWsolaAudio) WsolaRenderersFactory(context) else DefaultRenderersFactory(context)
+
+    return ExoPlayer.Builder(context, renderersFactory)
         .setLoadControl(loadControl)
         .setMediaSourceFactory(DefaultMediaSourceFactory(videoDataSourceFactory(cache, headers)))
         .build().apply {
