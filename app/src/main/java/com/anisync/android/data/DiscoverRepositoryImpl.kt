@@ -147,17 +147,6 @@ class DiscoverRepositoryImpl @Inject constructor(
      */
     override suspend fun getNotYetReleased(type: MediaType): Result<List<LibraryEntry>> {
         return safeApiCall {
-            val response = apolloClient.query(
-                GetUpcomingMediaQuery(
-                    perPage = Optional.present(20),
-                    type = Optional.present(type),
-                    status = Optional.present(MediaStatus.NOT_YET_RELEASED)
-                )
-            )
-                .fetchPolicy(FetchPolicy.NetworkOnly)
-                .doNotStore(true)
-                .execute()
-
             val now = java.time.LocalDate.now()
             val currentSeason = when (now.monthValue) {
                 in 1..3 -> com.anisync.android.type.MediaSeason.WINTER
@@ -172,6 +161,19 @@ class DiscoverRepositoryImpl @Inject constructor(
                 com.anisync.android.type.MediaSeason.FALL -> com.anisync.android.type.MediaSeason.WINTER
             }
             val nextYear = if (currentSeason == com.anisync.android.type.MediaSeason.FALL) now.year + 1 else now.year
+            val response = apolloClient.query(
+                GetUpcomingMediaQuery(
+                    perPage = Optional.present(10),
+                    type = Optional.present(type),
+                    status = Optional.present(MediaStatus.NOT_YET_RELEASED),
+                    season = Optional.present(nextSeason),
+                    seasonYear = Optional.present(nextYear)
+                )
+            )
+                .fetchPolicy(FetchPolicy.NetworkOnly)
+                .doNotStore(true)
+                .execute()
+
             response.dataOrThrow().Page?.media?.filterNotNull()
                 ?.map { media -> media.toLibraryEntry("UPCOMING") }
                 .orEmpty()
