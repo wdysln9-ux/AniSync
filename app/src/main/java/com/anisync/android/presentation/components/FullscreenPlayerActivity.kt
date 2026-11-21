@@ -207,6 +207,7 @@ private fun FullscreenVideoContent(
     LaunchedEffect(isPlaying, isScrubbing) {
         while (isPlaying && !isScrubbing) {
             positionMs = player.currentPosition
+            bufferedPositionMs = player.bufferedPosition.coerceAtLeast(0L)
             val d = player.duration
             if (d > 0) durationMs = d
             delay(250)
@@ -339,6 +340,7 @@ private fun FullscreenVideoContent(
                 isMuted = isMuted,
                 positionMs = positionMs,
                 durationMs = durationMs,
+                bufferedPositionMs = bufferedPositionMs,
                 isFullscreen = true,
                 onPlayPause = { if (player.isPlaying) player.pause() else player.play() },
                 onToggleMute = {
