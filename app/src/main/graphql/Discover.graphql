@@ -65,7 +65,9 @@ query GetPaginatedMedia(
   $sort: [MediaSort],
   $type: MediaType,
   $status: MediaStatus,
-  $format: MediaFormat
+  $format: MediaFormat,
+  $season: MediaSeason,
+  $seasonYear: Int
 ) {
   Page(page: $page, perPage: $perPage) {
     pageInfo {
@@ -74,7 +76,7 @@ query GetPaginatedMedia(
       lastPage
       total
     }
-    media(sort: $sort, type: $type, status: $status, format: $format) {
+    media(sort: $sort, type: $type, status: $status, format: $format, season: $season, seasonYear: $seasonYear) {
       id
       title {
         userPreferred
