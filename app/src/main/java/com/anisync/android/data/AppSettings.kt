@@ -969,7 +969,7 @@ class AppSettings @Inject constructor(
 
     fun setDisplaySize(size: DisplaySize) {
         _displaySize.value = size
-        prefs.edit().putString(KEY_DISPLAY_SIZE, size.name).apply()
+        prefs.edit().putString(KEY_DISPLAY_SIZE, "${(size.scale * 100f).toInt()}").apply()
     }
 
     fun setAvatarShape(shape: AvatarShape) {
