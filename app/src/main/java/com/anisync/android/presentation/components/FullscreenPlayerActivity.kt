@@ -260,6 +260,9 @@ private fun FullscreenVideoContent(
                     positionMs = target
                 },
                 onSeekFinished = { isScrubbing = false },
+                onSetPlaybackSpeed = { player.setPlaybackSpeed(it) },
+                sourceOptions = emptyList(),
+                onSelectSource = {},
                 onToggleFullscreen = onClose,
                 onBack = onClose
             )
