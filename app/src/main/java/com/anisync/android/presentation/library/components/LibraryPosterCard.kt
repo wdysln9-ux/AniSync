@@ -120,7 +120,7 @@ fun LibraryPosterCard(
             onClick = onClick,
             onLongClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onLongPress()
+                onEdit()
             },
             role = Role.Button,
             onClickLabel = stringResource(R.string.a11y_action_open_details, title),
