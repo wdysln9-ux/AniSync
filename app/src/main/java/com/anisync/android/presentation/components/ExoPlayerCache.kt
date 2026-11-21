@@ -177,7 +177,6 @@ internal fun buildVideoExoPlayer(
         }
 }
 
-@OptIn(UnstableApi::class)
 /**
  * Shared persistent cache for streamed video. The LRU evictor keeps the directory below 1.2 GB
  * and removes least-recently-used media when space is needed.
