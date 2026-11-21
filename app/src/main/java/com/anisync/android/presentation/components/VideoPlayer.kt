@@ -257,7 +257,7 @@ fun VideoPlayer(
         isPlaying = exoPlayer.isPlaying
         isMuted = exoPlayer.volume == 0f
 
-        exoPlayer.setPlaybackParameters(PlaybackParameters(PlayerPreferences.playbackSpeed(context), 1f))\n        exoPlayer.addListener(listener)
+        exoPlayer.setPlaybackParameters(PlaybackParameters(PlayerPreferences.playbackSpeed(context), 1f))\n        exoPlayer.volume = if (PlayerPreferences.isMuted(context, startMuted)) 0f else 1f\n        exoPlayer.addListener(listener)
 
         onDispose {
             exoPlayer.removeListener(listener)
