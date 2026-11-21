@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.ui.input.pointer.awaitPointerEvent
 import androidx.compose.ui.input.pointer.consume
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -281,7 +280,7 @@ private fun FullscreenVideoContent(
                 Modifier.fillMaxSize().background(
                     Brush.radialGradient(
                         colors = listOf(Color(0xFFFFC47A).copy(alpha = cinematicIntensity * 0.34f), Color(0xFF8B5CF6).copy(alpha = cinematicIntensity * 0.12f), Color.Transparent),
-                        radius = size.width * 0.82f
+                        radius = 1400f
                     )
                 )
             )
