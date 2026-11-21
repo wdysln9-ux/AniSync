@@ -47,6 +47,8 @@ import kotlinx.coroutines.delay
 @OptIn(UnstableApi::class)
 internal object FullscreenVideoBridge {
     var player: ExoPlayer? = null
+    var closeFullscreen: (() -> Unit)? = null
+    var onPlaybackEnded: (() -> Unit)? = null
 }
 
 /**
@@ -113,6 +115,7 @@ class FullscreenPlayerActivity : ComponentActivity() {
         super.onDestroy()
         // Release the shared reference; the inline player keeps its own and reattaches on return.
         FullscreenVideoBridge.player = null
+        FullscreenVideoBridge.closeFullscreen = null
     }
 }
 
@@ -130,6 +133,11 @@ private fun FullscreenVideoContent(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(Unit) {
+        FullscreenVideoBridge.closeFullscreen = onClose
+        onDispose { FullscreenVideoBridge.closeFullscreen = null }
+    }
 
     var isMuted by remember { mutableStateOf(player.volume == 0f) }
     var isPlaying by remember { mutableStateOf(player.isPlaying) }
@@ -159,6 +167,7 @@ private fun FullscreenVideoContent(
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) FullscreenVideoBridge.onPlaybackEnded?.invoke()
                 if (playbackState == Player.STATE_READY) {
                     val d = player.duration
                     if (d > 0) durationMs = d
@@ -260,7 +269,7 @@ private fun FullscreenVideoContent(
                     positionMs = target
                 },
                 onSeekFinished = { isScrubbing = false },
-                onSetPlaybackSpeed = { player.setPlaybackSpeed(it) },
+                onSetPlaybackSpeed = { player.setPlaybackParameters(androidx.media3.common.PlaybackParameters(it, 1f)) },
                 sourceOptions = emptyList(),
                 onSelectSource = {},
                 onToggleFullscreen = onClose,
