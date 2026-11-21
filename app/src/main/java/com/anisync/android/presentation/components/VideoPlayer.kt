@@ -391,7 +391,11 @@ fun VideoPlayer(
                 sourceOptions = sourceOptions,
                 onSelectSource = onSelectSource,
                 onAutoNextChange = onAutoNextChange,
-                onCinematicLightingChange = { cinematicOverlayIntensity = it; onCinematicLightingChange(it) },
+                onCinematicLightingChange = { intensity ->
+                    cinematicOverlayIntensity = intensity
+                    FullscreenVideoBridge.cinematicIntensity.floatValue = intensity
+                    onCinematicLightingChange(intensity)
+                },
                 onToggleFullscreen = onEnterFullscreen,
                 onBack = null
             )

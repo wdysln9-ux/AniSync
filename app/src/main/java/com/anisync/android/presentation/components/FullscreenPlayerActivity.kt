@@ -5,11 +5,22 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.OptIn
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.awaitPointerEvent
+import androidx.compose.ui.input.pointer.consume
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.Composable
@@ -49,6 +60,7 @@ internal object FullscreenVideoBridge {
     var player: ExoPlayer? = null
     var closeFullscreen: (() -> Unit)? = null
     var onPlaybackEnded: (() -> Unit)? = null
+    val cinematicIntensity = mutableFloatStateOf(0f)
 }
 
 /**
@@ -148,6 +160,10 @@ private fun FullscreenVideoContent(
         mutableStateOf(mapPlaybackState(player.playbackState, PlayerState.Loading))
     }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var stretchX by remember { mutableFloatStateOf(1f) }
+    var isStretching by remember { mutableStateOf(false) }
+    var snappedRatio by remember { mutableStateOf<Float?>(null) }
+    var cinematicIntensity by remember { mutableFloatStateOf(FullscreenVideoBridge.cinematicIntensity.floatValue) }
     // Seeded from the launch extra, then corrected off the player itself, so the fitted box tracks
     // the real picture even when the inline player never reported a size before the handoff.
     var aspect by remember {
@@ -211,7 +227,44 @@ private fun FullscreenVideoContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(Color.Black)
+            .pointerInput(aspect) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    var baseSpan = 0f
+                    var baseStretch = stretchX
+                    var pinched = false
+                    do {
+                        val event = awaitPointerEvent()
+                        val fingers = event.changes.filter { it.pressed }
+                        if (fingers.size >= 2) {
+                            val span = kotlin.math.abs(fingers[0].position.x - fingers[1].position.x)
+                            if (baseSpan == 0f) {
+                                baseSpan = span.coerceAtLeast(1f)
+                                baseStretch = stretchX
+                                pinched = true
+                                isStretching = true
+                            } else {
+                                var next = (baseStretch * span / baseSpan).coerceIn(0.45f, 2.5f)
+                                val targetAspect = aspect * next
+                                val ratios = listOf(16f / 9f, 3f / 2f, 4f / 3f, 1f)
+                                val nearest = ratios.minByOrNull { kotlin.math.abs(targetAspect - it) }
+                                val distancePx = nearest?.let { kotlin.math.abs(targetAspect - it) * size.height } ?: Float.MAX_VALUE
+                                if (nearest != null && distancePx <= 18.dp.toPx()) {
+                                    next = (nearest / aspect).coerceIn(0.45f, 2.5f)
+                                    snappedRatio = nearest
+                                } else snappedRatio = null
+                                stretchX = next
+                            }
+                            fingers.forEach { it.consume() }
+                        }
+                    } while (event.changes.any { it.pressed })
+                    if (pinched) {
+                        isStretching = false
+                        snappedRatio = null
+                    }
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         // Fit a box to the clip rather than letting the surface letterbox itself inside the whole
@@ -223,9 +276,39 @@ private fun FullscreenVideoContent(
             .wrapContentSize(Alignment.Center)
             .aspectRatio(aspect)
 
+        if (cinematicIntensity > 0f) {
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.radialGradient(
+                        colors = listOf(Color(0xFFFFC47A).copy(alpha = cinematicIntensity * 0.34f), Color(0xFF8B5CF6).copy(alpha = cinematicIntensity * 0.12f), Color.Transparent),
+                        radius = size.width * 0.82f
+                    )
+                )
+            )
+        }
         Box(videoModifier) {
             if (playerState != PlayerState.Error) {
-                PlayerSurface(exoPlayer = player, active = true, modifier = Modifier.fillMaxSize())
+                PlayerSurface(
+                    exoPlayer = player,
+                    active = true,
+                    modifier = Modifier.fillMaxSize().graphicsLayer(scaleX = stretchX)
+                )
+            }
+        }
+        if (isStretching) {
+            Canvas(Modifier.fillMaxSize()) {
+                val guideRatios = listOf(16f / 9f, 3f / 2f, 4f / 3f, 1f)
+                guideRatios.forEach { ratio ->
+                    val guideWidth = minOf(size.width, size.height * ratio)
+                    val guideHeight = guideWidth / ratio
+                    val isActive = snappedRatio == ratio
+                    drawRect(
+                        color = if (isActive) Color(0xFFFF8A3D) else Color.White.copy(alpha = 0.48f),
+                        topLeft = Offset((size.width - guideWidth) / 2f, (size.height - guideHeight) / 2f),
+                        size = Size(guideWidth, guideHeight),
+                        style = Stroke(width = if (isActive) 3.dp.toPx() else 1.dp.toPx())
+                    )
+                }
             }
         }
 
@@ -272,6 +355,10 @@ private fun FullscreenVideoContent(
                 onSetPlaybackSpeed = { player.setPlaybackParameters(androidx.media3.common.PlaybackParameters(it, 1f)) },
                 sourceOptions = emptyList(),
                 onSelectSource = {},
+                onCinematicLightingChange = { intensity ->
+                    cinematicIntensity = intensity
+                    FullscreenVideoBridge.cinematicIntensity.floatValue = intensity
+                },
                 onToggleFullscreen = onClose,
                 onBack = onClose
             )
