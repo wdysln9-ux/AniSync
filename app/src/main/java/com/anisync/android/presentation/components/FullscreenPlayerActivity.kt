@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.Composable
@@ -355,6 +356,7 @@ private fun FullscreenVideoContent(
             }
         }
         if (isStretching) {
+            val snapGuideColor = MaterialTheme.colorScheme.primary
             Canvas(Modifier.fillMaxSize()) {
                 val guideRatios = listOf(16f / 9f, 3f / 2f, 4f / 3f, 1f)
                 guideRatios.forEach { ratio ->
@@ -362,7 +364,7 @@ private fun FullscreenVideoContent(
                     val guideHeight = guideWidth / ratio
                     val isActive = snappedRatio == ratio
                     drawRect(
-                        color = if (isActive) Color(0xFFFF8A3D) else Color.White.copy(alpha = 0.48f),
+                        color = if (isActive) snapGuideColor else Color.White.copy(alpha = 0.48f),
                         topLeft = Offset((size.width - guideWidth) / 2f, (size.height - guideHeight) / 2f),
                         size = Size(guideWidth, guideHeight),
                         style = Stroke(width = if (isActive) 3.dp.toPx() else 1.dp.toPx())
