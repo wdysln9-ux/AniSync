@@ -985,11 +985,7 @@ private fun LibraryTabContent(
                             null
                         },
                         onEdit = { onEdit(entry) },
-                        onLongPress = if (selectable) {
-                            { onEntryLongPress(entry) }
-                        } else {
-                            null
-                        },
+                        onLongPress = { onEdit(entry) },
                         selectionMode = selectionMode,
                         selected = selected,
                         sharedTransitionScope = sharedTransitionScope,
