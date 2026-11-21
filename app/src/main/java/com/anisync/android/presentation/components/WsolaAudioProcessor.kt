@@ -9,7 +9,6 @@ import androidx.media3.common.util.UnstableApi
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.abs
-import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -40,7 +39,6 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
     private var hasTail = false
     private var analysisPosition = 0.0
     private var lastCandidateStart = 0
-    private var inputEnded = false
 
     fun setPlaybackSpeed(speed: Float) {
         requestedSpeed = speed.coerceIn(0.5f, 4f)
@@ -106,9 +104,8 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
     }
 
     override fun onQueueEndOfStream() {
-        inputEnded = true
         if (inputFrames == 0) return
-        if (appliedSpeed <= 1.001f || !hasTail) {
+        if (abs(appliedSpeed - 1f) <= 0.001f || !hasTail) {
             emitInputAsIs()
             return
         }
@@ -120,7 +117,6 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
         hasTail = false
         analysisPosition = 0.0
         lastCandidateStart = 0
-        inputEnded = false
         if (channelCount > 0 && hopFrames > 0) tail = FloatArray(hopFrames * channelCount)
     }
 
