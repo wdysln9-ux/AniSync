@@ -41,7 +41,10 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.rounded.BrokenImage
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -559,6 +562,9 @@ internal fun VideoControlsOverlay(
     onSeek: (Float) -> Unit,
     onSeekBy: (Long) -> Unit,
     onSeekFinished: () -> Unit,
+    onSetPlaybackSpeed: (Float) -> Unit,
+    sourceOptions: List<String>,
+    onSelectSource: (Int) -> Unit,
     onToggleFullscreen: () -> Unit,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier
@@ -567,6 +573,10 @@ internal fun VideoControlsOverlay(
     // Bumped on every interaction to restart the auto-hide countdown.
     var interactions by remember { mutableIntStateOf(0) }
     var seekFeedback by remember { mutableStateOf<String?>(null) }
+    var quickSettingsExpanded by remember { mutableStateOf(false) }
+    var selectedSpeed by remember { mutableFloatStateOf(1f) }
+    var autoNextEnabled by remember { mutableStateOf(true) }
+    var cinematicEnabled by remember { mutableStateOf(false) }
 
     // Auto-hide while playing; idle countdown restarts whenever an interaction bumps [interactions].
     LaunchedEffect(controlsVisible, isPlaying, isBuffering, interactions) {
@@ -660,7 +670,7 @@ internal fun VideoControlsOverlay(
                     }
                 }
 
-                // Mute (top-end).
+                // Quick Settings (top-end), replacing the old mute shortcut.
                 Surface(
                     shape = CircleShape,
                     color = Color.Black.copy(alpha = 0.5f),
@@ -671,15 +681,24 @@ internal fun VideoControlsOverlay(
                         .padding(edgePadding)
                         .size(buttonSize)
                 ) {
-                    IconButton(onClick = { poke(); onToggleMute() }) {
-                        Crossfade(targetState = isMuted, label = "mute_crossfade") { muted ->
-                            Icon(
-                                imageVector = if (muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
-                                contentDescription = if (muted) stringResource(R.string.unmute) else stringResource(R.string.mute),
-                                modifier = Modifier.size(buttonIconSize)
-                            )
+                    IconButton(onClick = { poke(); quickSettingsExpanded = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Pengaturan pemutar", modifier = Modifier.size(buttonIconSize))
+                    }
+                }
+                DropdownMenu(expanded = quickSettingsExpanded, onDismissRequest = { quickSettingsExpanded = false }) {
+                    DropdownMenuItem(text = { Text("Kecepatan") }, onClick = {})
+                    listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 3f, 4f).forEach { speed ->
+                        DropdownMenuItem(text = { Text("${if (selectedSpeed == speed) "✓ " else ""}${speed}x") }, onClick = { selectedSpeed = speed; onSetPlaybackSpeed(speed); poke() })
+                    }
+                    if (sourceOptions.isNotEmpty()) {
+                        DropdownMenuItem(text = { Text("Ganti sumber") }, onClick = {})
+                        sourceOptions.forEachIndexed { index, label ->
+                            DropdownMenuItem(text = { Text(label) }, onClick = { onSelectSource(index); quickSettingsExpanded = false; poke() })
                         }
                     }
+                    DropdownMenuItem(text = { Text("${if (autoNextEnabled) "✓ " else ""}Putar episode berikutnya otomatis") }, onClick = { autoNextEnabled = !autoNextEnabled; poke() })
+                    DropdownMenuItem(text = { Text("${if (cinematicEnabled) "✓ " else ""}Pencahayaan sinematik") }, onClick = { cinematicEnabled = !cinematicEnabled; poke() })
+                    DropdownMenuItem(text = { Text("${if (isMuted) "Aktifkan suara" else "Bisukan"}") }, onClick = { onToggleMute(); poke() })
                 }
 
                 // Centre play / pause (hidden while buffering — the spinner shows instead).
