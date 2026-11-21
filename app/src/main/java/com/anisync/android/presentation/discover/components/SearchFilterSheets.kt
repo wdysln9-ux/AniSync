@@ -239,6 +239,38 @@ private fun AnimeWStyleFilterSheet(
             },
             valueRange = 1990f..currentYear.toFloat()
         )
+        var showOlderYearChips by rememberSaveable { mutableStateOf((filters.yearRange.min ?: currentYear) < 2012) }
+        val yearChips = if (showOlderYearChips) (1990..currentYear).toList().reversed()
+            else (2012..currentYear).toList().reversed()
+        Spacer(Modifier.height(10.dp))
+        FilterChoiceChipGroup(
+            options = yearChips,
+            label = { it.toString() },
+            isSelected = { it == filters.yearRange.min && it == filters.yearRange.max },
+            onClick = { year ->
+                onFiltersChange(
+                    filters.copy(
+                        yearRange = if (filters.yearRange.min == year && filters.yearRange.max == year) {
+                            IntRangeFilter()
+                        } else IntRangeFilter(year, year)
+                    )
+                )
+            }
+        )
+        if (!showOlderYearChips && currentYear > 2012) {
+            Surface(
+                onClick = { showOlderYearChips = true },
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                modifier = Modifier.padding(start = 24.dp, top = 8.dp)
+            ) {
+                Text(
+                    "Selengkapnya (+22)",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+        }
         if (category != ResultCategory.MANGA) {
             Spacer(Modifier.height(18.dp))
             SheetSectionLabel("Musim")
