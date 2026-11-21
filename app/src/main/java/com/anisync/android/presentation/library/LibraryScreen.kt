@@ -979,13 +979,7 @@ private fun LibraryTabContent(
                         showListIndicator = tab is LibraryTab.All || tab is LibraryTab.Custom,
                         showPriority = showPriority,
                         onClick = { onEntryClick(entry) },
-                        onIncrement = if (hasQuickProgress) {
-                            { onIncrement(entry.mediaId) }
-                        } else {
-                            null
-                        },
                         onEdit = { onEdit(entry) },
-                        onLongPress = { onEdit(entry) },
                         selectionMode = selectionMode,
                         selected = selected,
                         sharedTransitionScope = sharedTransitionScope,
