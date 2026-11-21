@@ -22,9 +22,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
@@ -187,8 +185,6 @@ fun LibraryPosterCard(
                 scoreFormat = scoreFormat,
                 showListIndicator = showListIndicator,
                 showPriority = showPriority,
-                onIncrement = onIncrement,
-                onEdit = onEdit,
                 selectionMode = selectionMode,
                 selected = selected,
                 sharedTransitionScope = sharedTransitionScope,
@@ -221,8 +217,6 @@ private fun PosterArt(
     scoreFormat: ScoreFormat,
     showListIndicator: Boolean,
     showPriority: Boolean,
-    onIncrement: (() -> Unit)?,
-    onEdit: (() -> Unit)?,
     selectionMode: Boolean,
     selected: Boolean,
     sharedTransitionScope: SharedTransitionScope?,
@@ -317,31 +311,7 @@ private fun PosterArt(
             )
         }
 
-        when {
-            selectionMode -> Box(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp)
-            ) {
-                PosterSelectionCheck(selected = selected)
-            }
 
-            onIncrement == null && onEdit != null -> Box(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp)
-            ) {
-                PosterEditButton(onEdit = onEdit)
-            }
-
-            onIncrement != null -> Box(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp)
-            ) {
-                PosterIncrementButton(
-                    nextEpisode = entry.progress + 1,
-                    ready = aired != null && entry.progress < aired &&
-                        entry.status == LibraryStatus.CURRENT,
-                    onIncrement = onIncrement,
-                    onEdit = onEdit
-                )
-            }
-        }
     }
 }
 
@@ -451,94 +421,6 @@ internal fun PosterValueText(text: String) {
         color = MaterialTheme.colorScheme.onSurface,
         maxLines = 1
     )
-}
-
-@Composable
-private fun PosterIncrementButton(
-    nextEpisode: Int,
-    ready: Boolean,
-    onIncrement: () -> Unit,
-    onEdit: (() -> Unit)?
-) {
-    val haptic = rememberHapticFeedback()
-    val shape = RoundedCornerShape(16.dp)
-    Box {
-        Surface(
-            shape = shape,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier
-                .size(ActionSize)
-                .bouncyCombinedClickable(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onIncrement()
-                    },
-                    onLongClick = onEdit?.let {
-                        {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            it()
-                        }
-                    },
-                    role = Role.Button,
-                    onClickLabel = stringResource(R.string.a11y_action_mark_episode, nextEpisode),
-                    onLongClickLabel = stringResource(R.string.a11y_action_edit_entry),
-                    clipShape = shape
-                )
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-        }
-        // Which of these can I advance right now, without reading a word.
-        if (ready) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 0.dp)
-                    .size(12.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                    .padding(2.dp)
-                    .clip(CircleShape)
-                    .background(listIndicatorColor(ListIndicatorKind.WATCHING).content)
-            )
-        }
-    }
-}
-
-@Composable
-private fun PosterEditButton(onEdit: () -> Unit) {
-    val haptic = rememberHapticFeedback()
-    val shape = RoundedCornerShape(16.dp)
-    Surface(
-        shape = shape,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        modifier = Modifier
-            .size(ActionSize)
-            .bouncyClickable(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onEdit()
-                },
-                role = Role.Button,
-                onClickLabel = stringResource(R.string.a11y_action_edit_entry),
-                clipShape = shape
-            )
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(22.dp)
-            )
-        }
-    }
 }
 
 @Composable
