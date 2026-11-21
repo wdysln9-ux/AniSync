@@ -362,6 +362,7 @@ internal fun CloudStreamWatchContent(
                             startMuted = false,
                             loop = false,
                             autoPlay = true,
+                            useWsolaAudio = true,
                             onAutoNextChange = { autoNextEnabled = it },
                             autoEnterFullscreen = autoNextFullscreen,
                             onFullscreenEntered = { autoNextFullscreen = false },
