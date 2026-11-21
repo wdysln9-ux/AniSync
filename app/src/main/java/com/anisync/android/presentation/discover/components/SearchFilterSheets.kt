@@ -39,7 +39,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.anisync.android.R
 import com.anisync.android.domain.ADULT_GENRES
-import com.anisync.android.domain.AdultMode
 import com.anisync.android.domain.ComparatorMode
 import com.anisync.android.domain.IntComparatorFilter
 import com.anisync.android.domain.IntRangeFilter
@@ -801,8 +800,6 @@ private fun MoreFiltersSheet(
                     country = null,
                     score = IntComparatorFilter(),
                     episodes = IntComparatorFilter(),
-                    chapters = IntComparatorFilter(),
-                    adultMode = com.anisync.android.domain.AdultMode.ANY,
                     hideMyAnime = false
                 )
             )
@@ -898,37 +895,7 @@ private fun MoreFiltersSheet(
             }
         }
 
-        if (category != ResultCategory.ANIME) {
-            FilterOptionGroup(
-                label = stringResource(R.string.filter_chapters),
-                summary = filters.chapters.summary() ?: any,
-                expanded = expanded == "chapters",
-                onToggle = { toggle("chapters") }
-            ) {
-                ThresholdBody(
-                    filter = filters.chapters,
-                    values = (1..1000).toList(),
-                    defaultValue = 50,
-                    onChange = { onFiltersChange(filters.copy(chapters = it)) }
-                )
-            }
-        }
 
-        FilterOptionGroup(
-            label = stringResource(R.string.filter_adult_content),
-            summary = filters.adultMode.label(),
-            expanded = expanded == "adult",
-            onToggle = { toggle("adult") }
-        ) {
-            OptionPillGrid(
-                options = AdultMode.entries,
-                label = { it.label() },
-                isSelected = { it == filters.adultMode },
-                onClick = { onFiltersChange(filters.copy(adultMode = it)) },
-                horizontalPadding = 0.dp,
-                idleColor = groupPill
-            )
-        }
     }
 }
 
@@ -1001,15 +968,6 @@ private fun IntComparatorFilter.summary(suffix: String = ""): String? {
         ComparatorMode.EXACTLY -> stringResource(R.string.filter_exactly_value, shown)
     }
 }
-
-@Composable
-private fun AdultMode.label(): String = stringResource(
-    when (this) {
-        AdultMode.ANY -> R.string.filter_any
-        AdultMode.HIDE -> R.string.filter_adult_hide
-        AdultMode.ONLY -> R.string.filter_adult_only
-    }
-)
 
 private fun <T> Set<T>.toggle(item: T): Set<T> = if (item in this) this - item else this + item
 
