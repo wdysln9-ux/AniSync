@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,7 +39,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.anisync.android.R
 import com.anisync.android.domain.ADULT_GENRES
-import com.anisync.android.domain.AdultMode
 import com.anisync.android.domain.ComparatorMode
 import com.anisync.android.domain.IntComparatorFilter
 import com.anisync.android.domain.IntRangeFilter
@@ -57,8 +57,6 @@ import com.anisync.android.presentation.components.filtersheet.SegmentedChoice
 import com.anisync.android.presentation.components.filtersheet.SheetFooterButton
 import com.anisync.android.presentation.components.filtersheet.SheetSectionLabel
 import com.anisync.android.presentation.components.filtersheet.SortSheet
-import com.anisync.android.presentation.components.filtersheet.TagChoice
-import com.anisync.android.presentation.components.filtersheet.TagPickerSheet
 import com.anisync.android.presentation.components.filtersheet.TriState
 import com.anisync.android.presentation.components.filtersheet.airingStatusTitle
 import com.anisync.android.presentation.util.pluralStringResourceOrDefault
@@ -279,8 +277,10 @@ private fun AnimeWStyleFilterSheet(
         SheetSectionLabel("Tags")
         Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             IncludeExcludeHint(counts = null)
+            var showAllTags by rememberSaveable { mutableStateOf(false) }
+            val visibleTags = if (showAllTags) tags else tags.take(16)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                tags.forEach { tag ->
+                visibleTags.forEach { tag ->
                     IncludeExcludeChip(
                         label = tag.name,
                         state = when (tag.name) {
@@ -295,6 +295,19 @@ private fun AnimeWStyleFilterSheet(
                             ))
                         }
                     )
+                }
+                if (tags.size > 16) {
+                    Surface(
+                        onClick = { showAllTags = !showAllTags },
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest
+                    ) {
+                        Text(
+                            if (showAllTags) "Tampilkan lebih sedikit" else "Selengkapnya (+${tags.size - 16})",
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
                 }
             }
         }
@@ -325,19 +338,42 @@ private fun AnimeWStyleFilterSheet(
         )
         if (category != ResultCategory.MANGA) {
             SheetSectionLabel(stringResource(R.string.filter_episodes))
-            ThresholdBody(filters.episodes, (1..200).toList(), 12, { onFiltersChange(filters.copy(episodes = it)) })
+            val episodeCount = filters.episodes.value ?: 1
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Minimal episode", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("$episodeCount", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            }
+            Slider(
+                value = episodeCount.toFloat(),
+                onValueChange = { value ->
+                    val picked = value.toInt().coerceAtLeast(1)
+                    onFiltersChange(filters.copy(episodes = IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
+                },
+                valueRange = 1f..200f,
+                steps = 198
+            )
         }
-        if (category != ResultCategory.ANIME) {
-            SheetSectionLabel(stringResource(R.string.filter_chapters))
-            ThresholdBody(filters.chapters, (1..1000).toList(), 50, { onFiltersChange(filters.copy(chapters = it)) })
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Hide My Anime", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Sembunyikan anime yang sudah ada di daftar AniList kamu",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = filters.hideMyAnime,
+                onCheckedChange = { onFiltersChange(filters.copy(hideMyAnime = it)) }
+            )
         }
-        SheetSectionLabel(stringResource(R.string.filter_adult_content))
-        OptionPillGrid(
-            options = AdultMode.entries,
-            label = { it.label() },
-            isSelected = { it == filters.adultMode },
-            onClick = { onFiltersChange(filters.copy(adultMode = it)) }
-        )
     }
 }
 
@@ -716,7 +752,8 @@ private fun MoreFiltersSheet(
                     score = IntComparatorFilter(),
                     episodes = IntComparatorFilter(),
                     chapters = IntComparatorFilter(),
-                    adultMode = AdultMode.ANY
+                    adultMode = com.anisync.android.domain.AdultMode.ANY,
+                    hideMyAnime = false
                 )
             )
         },
