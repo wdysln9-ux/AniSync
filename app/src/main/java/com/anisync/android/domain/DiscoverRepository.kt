@@ -16,11 +16,11 @@ interface DiscoverRepository {
     suspend fun getTrending(type: MediaType): Result<List<LibraryEntry>>
 
     /**
-     * Get popular (all-time) media by type.
+     * Get community recommendations, ordered by recommendation rating, for the requested media type.
      * @param type Media type (ANIME or MANGA)
-     * @return List of popular entries or error
+     * @return Recommended media entries or error
      */
-    suspend fun getPopular(type: MediaType): Result<List<LibraryEntry>>
+    suspend fun getRecommendations(type: MediaType): Result<List<LibraryEntry>>
 
     /**
      * Get upcoming/not-yet-released media by type.

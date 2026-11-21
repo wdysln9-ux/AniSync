@@ -1,6 +1,7 @@
 package com.anisync.android.data
 
 import com.anisync.android.GetMediaBySortQuery
+import com.anisync.android.GetRecommendationsQuery
 import com.anisync.android.GetPaginatedMediaQuery
 import com.anisync.android.GetUpcomingMediaQuery
 import com.anisync.android.data.util.dataOrThrow
@@ -30,8 +31,52 @@ class DiscoverRepositoryImpl @Inject constructor(
         return fetchMedia(listOf(MediaSort.TRENDING_DESC), type)
     }
 
-    override suspend fun getPopular(type: MediaType): Result<List<LibraryEntry>> {
-        return fetchMedia(listOf(MediaSort.POPULARITY_DESC), type)
+    override suspend fun getRecommendations(type: MediaType): Result<List<LibraryEntry>> {
+        return safeApiCall {
+            val response = apolloClient.query(
+                GetRecommendationsQuery(
+                    page = Optional.present(1),
+                    perPage = Optional.present(25)
+                )
+            )
+                .fetchPolicy(FetchPolicy.NetworkOnly)
+                .doNotStore(true)
+                .execute()
+
+            response.dataOrThrow().Page?.recommendations
+                ?.filterNotNull()
+                ?.mapNotNull { recommendation ->
+                    val media = recommendation.mediaRecommendation ?: return@mapNotNull null
+                    if (media.type != type) return@mapNotNull null
+                    LibraryEntry(
+                        id = 0,
+                        mediaId = media.id ?: 0,
+                        titleRomaji = media.title?.romaji,
+                        titleEnglish = media.title?.english,
+                        titleNative = media.title?.native,
+                        titleUserPreferred = media.title?.userPreferred ?: "Unknown",
+                        coverUrl = media.coverImage?.extraLarge,
+                        cover = com.anisync.android.domain.CoverImage.of(
+                            media.coverImage?.medium,
+                            media.coverImage?.large,
+                            media.coverImage?.extraLarge
+                        ),
+                        progress = 0,
+                        totalEpisodes = media.episodes,
+                        totalChapters = media.chapters,
+                        totalVolumes = media.volumes,
+                        type = media.type,
+                        format = media.format,
+                        status = LibraryStatus.UNKNOWN,
+                        mediaStatus = null,
+                        averageScore = media.averageScore,
+                        seasonYear = media.seasonYear
+                    )
+                }
+                .distinctBy { it.mediaId }
+                .take(10)
+                .orEmpty()
+        }
     }
 
     override suspend fun getNewlyAdded(type: MediaType): Result<List<LibraryEntry>> {
