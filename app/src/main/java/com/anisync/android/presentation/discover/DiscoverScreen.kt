@@ -28,6 +28,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
@@ -947,14 +948,29 @@ private fun DiscoverSearchOverlay(
         state = searchBarState,
         anchor = searchAnchor,
         inputField = {
-            SearchInputField(
-                searchBarState = searchBarState,
-                textFieldState = textFieldState,
-                mediaType = state.mediaType,
-                coroutineScope = coroutineScope,
-                onSearch = { onAction(DiscoverAction.OnSearch(textFieldState.text.toString())) },
-                modifier = fieldCollapse.field
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SearchInputField(
+                    searchBarState = searchBarState,
+                    textFieldState = textFieldState,
+                    mediaType = state.mediaType,
+                    coroutineScope = coroutineScope,
+                    onSearch = { onAction(DiscoverAction.OnSearch(textFieldState.text.toString())) },
+                    modifier = fieldCollapse.field.weight(1f)
+                )
+                if (category.hasMediaFilters()) {
+                    IconButton(
+                        onClick = {
+                            onAction(DiscoverAction.LoadTaxonomy)
+                            openedFilter = FilterId.ALL
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = "Filter pencarian"
+                        )
+                    }
+                }
+            }
         }
     ) {
         HideKeyboardOnCollapse(fieldCollapse)
