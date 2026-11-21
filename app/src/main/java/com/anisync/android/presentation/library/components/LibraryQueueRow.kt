@@ -127,16 +127,18 @@ fun LibraryQueueRow(
     )
 
     val shape = RoundedCornerShape(16.dp)
-    val clickModifier = if (onLongPress != null) {
+    val clickModifier = if (onEdit != null || onLongPress != null) {
         Modifier.bouncyCombinedClickable(
             onClick = onClick,
             onLongClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onLongPress()
+                if (onEdit != null) onEdit() else onLongPress?.invoke()
             },
             role = Role.Button,
             onClickLabel = stringResource(R.string.a11y_action_open_details, title),
-            onLongClickLabel = stringResource(R.string.a11y_action_select_entry),
+            onLongClickLabel = stringResource(
+                if (onEdit != null) R.string.a11y_action_edit_entry else R.string.a11y_action_select_entry
+            ),
             clipShape = shape
         )
     } else {
@@ -227,21 +229,13 @@ fun LibraryQueueRow(
                 )
             }
 
-            Spacer(Modifier.width(12.dp))
-
-            Box(
-                modifier = Modifier.size(ActionSize).align(Alignment.CenterVertically),
-                contentAlignment = Alignment.Center
-            ) {
-                when {
-                    selectionMode -> SelectionCheck(selected = selected)
-                    onIncrement != null -> IncrementButton(
-                        nextEpisode = entry.progress + 1,
-                        onIncrement = onIncrement,
-                        onEdit = onEdit
-                    )
-                    // A list with nothing to advance still gets its one-tap edit.
-                    onEdit != null -> EditButton(onEdit = onEdit)
+            if (selectionMode) {
+                Spacer(Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier.size(ActionSize).align(Alignment.CenterVertically),
+                    contentAlignment = Alignment.Center
+                ) {
+                    SelectionCheck(selected = selected)
                 }
             }
         }
