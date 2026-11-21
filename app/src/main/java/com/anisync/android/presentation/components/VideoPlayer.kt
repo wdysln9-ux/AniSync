@@ -159,6 +159,7 @@ fun VideoPlayer(
     startMuted: Boolean = true,
     loop: Boolean = true,
     autoPlay: Boolean = false,
+    useWsolaAudio: Boolean = false,
     artwork: (@Composable () -> Unit)? = null,
     sourceOptions: List<String> = emptyList(),
     onSelectSource: (Int) -> Unit = {},
@@ -190,10 +191,20 @@ fun VideoPlayer(
     // buildVideoExoPlayer so the OkHttp/browser-UA data source and eager prepare apply identically.
     // The self-managed instance uses the application context so it can be safely handed to the
     // fullscreen activity without leaking this composition's context.
-    val exoPlayer = if (playerCache != null) {
+    val exoPlayer = if (playerCache != null && !useWsolaAudio) {
         remember(url, headers) { playerCache.getOrCreate(url, headers) }
     } else {
-        remember(url, headers) { buildVideoExoPlayer(context.applicationContext, url, startMuted, loop, autoPlay, headers = headers) }
+        remember(url, headers, useWsolaAudio) {
+            buildVideoExoPlayer(
+                context.applicationContext,
+                url,
+                startMuted,
+                loop,
+                autoPlay,
+                headers = headers,
+                useWsolaAudio = useWsolaAudio
+            )
+        }
     }
 
     DisposableEffect(exoPlayer) {
@@ -246,7 +257,7 @@ fun VideoPlayer(
         onDispose {
             exoPlayer.removeListener(listener)
             // Only release if self-managed; cached players are released by ExoPlayerCache.releaseAll().
-            if (playerCache == null) exoPlayer.release() else exoPlayer.pause()
+            if (playerCache == null || useWsolaAudio) exoPlayer.release() else exoPlayer.pause()
         }
     }
 
