@@ -269,10 +269,8 @@ private fun AnimeWStyleFilterSheet(
                 Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Minimal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(if (episodeMin == 0) "Semua" else episodeMin.toString(), style = MaterialTheme.typography.titleMedium)
-                Text("Maksimal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(if (episodeMax == 200) "Semua" else episodeMax.toString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Text(episodeMin.toString(), style = MaterialTheme.typography.titleMedium)
+                Text(episodeMax.toString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             }
             androidx.compose.material3.RangeSlider(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
@@ -309,9 +307,7 @@ private fun AnimeWStyleFilterSheet(
             Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Minimal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("$scoreMin%", style = MaterialTheme.typography.titleMedium)
-            Text("Maksimal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("$scoreMax%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         }
         androidx.compose.material3.RangeSlider(
@@ -927,14 +923,9 @@ private fun MoreFiltersSheet(
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Minimum",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
                 Text(
                     text = "$minimumScore%",
                     style = MaterialTheme.typography.titleMedium,
