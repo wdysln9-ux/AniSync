@@ -180,7 +180,7 @@ private fun AnimeWStyleFilterSheet(
         )
     }
     FilterSheetScaffold(
-        title = stringResource(R.string.more),
+        title = "Filter",
         onDismiss = onDismiss,
         onReset = { onFiltersChange(SearchFilters()) },
         resetEnabled = filters != SearchFilters(),
@@ -236,6 +236,16 @@ private fun AnimeWStyleFilterSheet(
             },
             valueRange = 1940f..currentYear.toFloat()
         )
+        if (category != ResultCategory.MANGA) {
+            Spacer(Modifier.height(18.dp))
+            SheetSectionLabel("Musim")
+            OptionPillGrid(
+                options = Seasons,
+                label = { it.toLabel().orEmpty() },
+                isSelected = { it == filters.season },
+                onClick = { season -> onFiltersChange(filters.copy(season = season.takeIf { it != filters.season })) }
+            )
+        }
         Spacer(Modifier.height(18.dp))
         SheetSectionLabel("Genre")
         val visibleGenres = if (showAdultContent) genres else genres.filterNot { it in ADULT_GENRES }
@@ -307,6 +317,33 @@ private fun AnimeWStyleFilterSheet(
             },
             valueRange = 0f..100f,
             steps = 99
+        )
+        if (category != ResultCategory.MANGA) {
+            FilterOptionGroup(
+                label = stringResource(R.string.filter_episodes),
+                summary = filters.episodes.summary() ?: stringResource(R.string.filter_any),
+                expanded = false,
+                onToggle = {}
+            ) {
+                ThresholdBody(filters.episodes, (1..200).toList(), 12, { onFiltersChange(filters.copy(episodes = it)) })
+            }
+        }
+        if (category != ResultCategory.ANIME) {
+            FilterOptionGroup(
+                label = stringResource(R.string.filter_chapters),
+                summary = filters.chapters.summary() ?: stringResource(R.string.filter_any),
+                expanded = false,
+                onToggle = {}
+            ) {
+                ThresholdBody(filters.chapters, (1..1000).toList(), 50, { onFiltersChange(filters.copy(chapters = it)) })
+            }
+        }
+        SheetSectionLabel(stringResource(R.string.filter_adult_content))
+        OptionPillGrid(
+            options = AdultMode.entries,
+            label = { it.label() },
+            isSelected = { it == filters.adultMode },
+            onClick = { onFiltersChange(filters.copy(adultMode = it)) }
         )
     }
 }
