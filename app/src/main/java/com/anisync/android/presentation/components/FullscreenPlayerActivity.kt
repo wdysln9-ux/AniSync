@@ -99,7 +99,7 @@ internal object PlayerPreferences {
     }
 }
 
-internal object FullscreenVideoBridge {
+@OptIn(UnstableApi::class)\ninternal object FullscreenVideoBridge {
     var player: ExoPlayer? = null
     var closeFullscreen: (() -> Unit)? = null
     var onPlaybackEnded: (() -> Unit)? = null
