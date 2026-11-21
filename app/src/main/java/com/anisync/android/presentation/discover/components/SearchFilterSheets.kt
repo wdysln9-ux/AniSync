@@ -263,7 +263,7 @@ private fun AnimeWStyleFilterSheet(
                 else -> 0
             }.coerceIn(0, 200)
             val episodeMax = (filters.episodes.maxValue
-                ?: if (filters.episodes.mode == ComparatorMode.AT_MOST) filters.episodes.value else null
+                ?: (if (filters.episodes.mode == ComparatorMode.AT_MOST) filters.episodes.value else null)
                 ?: 200).coerceIn(episodeMin, 200)
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 24.dp),
@@ -303,7 +303,7 @@ private fun AnimeWStyleFilterSheet(
             else -> 0
         }.coerceIn(0, 100)
         val scoreMax = (filters.score.maxValue
-            ?: if (filters.score.mode == ComparatorMode.AT_MOST) filters.score.value else null
+            ?: (if (filters.score.mode == ComparatorMode.AT_MOST) filters.score.value else null)
             ?: 100).coerceIn(scoreMin, 100)
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 24.dp),
