@@ -26,6 +26,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -131,11 +133,14 @@ private fun YouTubeWebView(
         </html>
     """.trimIndent()
 
+    val webViewState = remember { mutableStateOf<WebView?>(null) }
+
     Box(modifier = modifier.background(Color.Black)) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { context ->
                 WebView(context).apply {
+                    webViewState.value = this
                     setBackgroundColor(AndroidColor.BLACK)
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
@@ -154,13 +159,18 @@ private fun YouTubeWebView(
                     )
                 }
             },
-            update = { webView ->
-                // A new keyed WebView is created for each video id; no external navigation is needed.
-            }
+            update = { _ -> }
         )
     }
 
-    DisposableEffect(Unit) {
-        onDispose { }
+    DisposableEffect(webViewState.value) {
+        val webView = webViewState.value
+        onDispose {
+            webView?.stopLoading()
+            webView?.loadUrl("about:blank")
+            webView?.removeAllViews()
+            webView?.destroy()
+            if (webViewState.value === webView) webViewState.value = null
+        }
     }
 }
