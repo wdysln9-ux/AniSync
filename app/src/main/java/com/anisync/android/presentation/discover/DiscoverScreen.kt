@@ -29,6 +29,8 @@ import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
@@ -959,6 +961,21 @@ private fun DiscoverSearchOverlay(
                     onSearch = { onAction(DiscoverAction.OnSearch(textFieldState.text.toString())) },
                     modifier = fieldCollapse.field.weight(1f)
                 )
+                IconButton(
+                    onClick = {
+                        val next = if (state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID)
+                            com.anisync.android.data.DiscoverViewMode.LIST
+                        else com.anisync.android.data.DiscoverViewMode.GRID
+                        onAction(DiscoverAction.OnViewModeChange(next))
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID)
+                            Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
+                        contentDescription = if (state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID)
+                            "Ubah ke tampilan daftar" else "Ubah ke tampilan grid"
+                    )
+                }
                 if (category.hasMediaFilters()) {
                     IconButton(
                         onClick = {
@@ -1055,16 +1072,7 @@ private fun SearchResultsContent(
                 modifier = Modifier.padding(top = if (category.hasMediaFilters()) 0.dp else 16.dp, bottom = 8.dp),
                 categories = state.railCategories,
                 activeCategory = category,
-                isGrid = isGrid,
-                onCategoryChange = { onAction(DiscoverAction.OnCategoryChange(it)) },
-                onGridChange = { grid ->
-                    onAction(
-                        DiscoverAction.OnViewModeChange(
-                            if (grid) com.anisync.android.data.DiscoverViewMode.GRID
-                            else com.anisync.android.data.DiscoverViewMode.LIST
-                        )
-                    )
-                }
+                onCategoryChange = { onAction(DiscoverAction.OnCategoryChange(it)) }
             )
         }
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
