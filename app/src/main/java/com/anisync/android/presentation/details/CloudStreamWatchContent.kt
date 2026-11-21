@@ -2,10 +2,14 @@ package com.anisync.android.presentation.details
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -300,8 +304,9 @@ internal fun CloudStreamWatchContent(
         val current = episode!!
         val number = (current["episode"] as? Number)?.toInt()
         val meta = number?.let { metadata[it] }
-        AppModalBottomSheet(onDismissRequest = { sheet = false; episode = null }) {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        val episodeSheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
+        AppModalBottomSheet(onDismissRequest = { sheet = false; episode = null }, sheetState = episodeSheetState, containerColor = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Box(Modifier.align(Alignment.CenterHorizontally).size(38.dp, 4.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .45f)))
                 Text("Episode ${number ?: "?"}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Text(mediaTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -309,7 +314,7 @@ internal fun CloudStreamWatchContent(
                 if (selectedStream != null) {
                     val stream = selectedStream!!
                     val url = stream["url"]?.toString()
-                    if (!url.isNullOrBlank()) VideoPlayer(url, headers = (stream["headers"] as? Map<*, *>)?.entries?.associate { it.key.toString() to it.value.toString() }.orEmpty(), modifier = Modifier.fillMaxWidth(), playerCache = null, startMuted = false, loop = false, autoPlay = true)
+                    if (!url.isNullOrBlank()) VideoPlayer(url, headers = (stream["headers"] as? Map<*, *>)?.entries?.associate { it.key.toString() to it.value.toString() }.orEmpty(), modifier = Modifier.fillMaxWidth(), playerCache = null, startMuted = false, loop = false, autoPlay = true, sourceOptions = streams.map { source -> listOfNotNull(source["name"]?.toString(), source["quality"]?.toString()).joinToString(" · ").ifBlank { "Server" } }, onSelectSource = { index -> selectedStream = streams.getOrNull(index) })
                 } else if (resolving) Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 Text("Ringkasan episode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(meta?.summary?.takeIf(String::isNotBlank) ?: "Ringkasan episode belum tersedia dari AniZip.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
