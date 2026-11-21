@@ -139,6 +139,7 @@ import com.anisync.android.presentation.components.alert.rememberRateLimitedRefr
 import com.anisync.android.presentation.components.SegmentedTabGroup
 import com.anisync.android.presentation.components.HeaderLevel
 import com.anisync.android.presentation.components.ImageViewerDialog
+import com.anisync.android.presentation.components.YouTubePlayerDialog
 import com.anisync.android.presentation.components.MediaArtworkThemeOverride
 import com.anisync.android.presentation.components.ReviewCard
 import com.anisync.android.presentation.components.SectionHeader
@@ -993,6 +994,7 @@ fun DetailsPageContent(
 
     // ImageViewerDialog state for cover/banner image; it opens on whichever was tapped.
     var showImageViewer by rememberSaveable { mutableStateOf(false) }
+    var youtubeVideoId by rememberSaveable { mutableStateOf<String?>(null) }
     var showScoreInfo by rememberSaveable { mutableStateOf(false) }
     var viewerIndex by rememberSaveable { mutableIntStateOf(0) }
     var viewerImages by remember(details.id, details.cover.url() ?: details.coverUrl, details.bannerUrl) {
@@ -1132,6 +1134,7 @@ fun DetailsPageContent(
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                     titleLanguage = titleLanguage,
+                    onTrailerClick = { videoId -> youtubeVideoId = videoId },
                     onCoverClick = {
                         viewerIndex = 0
                         showImageViewer = true
@@ -1711,6 +1714,14 @@ fun DetailsPageContent(
         )
     }
 
+    youtubeVideoId?.let { videoId ->
+        YouTubePlayerDialog(
+            videoId = videoId,
+            title = details.getTitle(titleLanguage),
+            onDismiss = { youtubeVideoId = null }
+        )
+    }
+
     val weightedScore = details.score
     if (showScoreInfo && weightedScore != null) {
         ScoreInfoSheet(
@@ -1762,6 +1773,7 @@ fun PageHeaderSection(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     titleLanguage: TitleLanguage,
+    onTrailerClick: (String) -> Unit = {},
     onCoverClick: () -> Unit = {},
     onBannerClick: () -> Unit = {},
     onScoreClick: () -> Unit = {},
@@ -1796,7 +1808,8 @@ fun PageHeaderSection(
             details = details,
             painter = bannerPainter,
             modifier = Modifier.hiddenWhilePulled(),
-            onBannerClick = onBannerClick
+            onBannerClick = onBannerClick,
+            onTrailerClick = { details.trailer?.id?.let(onTrailerClick) }
         )
 
         // Content Row (Cover + Title + Metadata)
@@ -1832,9 +1845,9 @@ private fun HeaderBanner(
     details: MediaDetails,
     painter: Painter,
     modifier: Modifier = Modifier,
-    onBannerClick: (() -> Unit)? = null
+    onBannerClick: (() -> Unit)? = null,
+    onTrailerClick: (() -> Unit)? = null
 ) {
-    val uriHandler = LocalUriHandler.current
     val themeBackground = MaterialTheme.colorScheme.background
     val bannerModel = remember(details) { details.headerBanner }
 
@@ -1874,13 +1887,7 @@ private fun HeaderBanner(
         // float mid-banner, where it read as "play the show" instead of "play the trailer".
         if (details.trailer?.site == "youtube" && details.trailer.id != null) {
             TrailerChip(
-                onClick = {
-                    try {
-                        uriHandler.openUri("https://www.youtube.com/watch?v=${details.trailer.id}")
-                    } catch (_: Exception) {
-                        // Handle no browser installed if necessary
-                    }
-                },
+                onClick = { onTrailerClick?.invoke() },
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(
