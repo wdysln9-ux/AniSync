@@ -209,6 +209,24 @@ class DiscoverRepositoryImpl @Inject constructor(
                 else -> listOf(MediaSort.POPULARITY_DESC) to null
             }
 
+            val upcomingSeason = if (sectionType == "not_yet_released" && type == MediaType.ANIME) {
+                val now = java.time.LocalDate.now()
+                val currentSeason = when (now.monthValue) {
+                    in 1..3 -> com.anisync.android.type.MediaSeason.WINTER
+                    in 4..6 -> com.anisync.android.type.MediaSeason.SPRING
+                    in 7..9 -> com.anisync.android.type.MediaSeason.SUMMER
+                    else -> com.anisync.android.type.MediaSeason.FALL
+                }
+                val nextSeason = when (currentSeason) {
+                    com.anisync.android.type.MediaSeason.WINTER -> com.anisync.android.type.MediaSeason.SPRING
+                    com.anisync.android.type.MediaSeason.SPRING -> com.anisync.android.type.MediaSeason.SUMMER
+                    com.anisync.android.type.MediaSeason.SUMMER -> com.anisync.android.type.MediaSeason.FALL
+                    com.anisync.android.type.MediaSeason.FALL -> com.anisync.android.type.MediaSeason.WINTER
+                }
+                val nextYear = if (currentSeason == com.anisync.android.type.MediaSeason.FALL) now.year + 1 else now.year
+                nextSeason to nextYear
+            } else null
+
             val response = apolloClient.query(
                 GetPaginatedMediaQuery(
                     page = Optional.present(page),
@@ -216,7 +234,9 @@ class DiscoverRepositoryImpl @Inject constructor(
                     sort = Optional.present(sort),
                     type = Optional.present(type),
                     status = status?.let { Optional.present(it) } ?: Optional.absent(),
-                    format = format?.let { Optional.present(it) } ?: Optional.absent()
+                    format = format?.let { Optional.present(it) } ?: Optional.absent(),
+                    season = upcomingSeason?.first?.let { Optional.present(it) } ?: Optional.absent(),
+                    seasonYear = upcomingSeason?.second?.let { Optional.present(it) } ?: Optional.absent()
                 )
             )
             .fetchPolicy(FetchPolicy.NetworkOnly)
