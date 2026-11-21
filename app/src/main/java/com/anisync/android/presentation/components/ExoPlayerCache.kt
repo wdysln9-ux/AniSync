@@ -148,13 +148,13 @@ internal fun buildVideoExoPlayer(
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
-    // Always use Media3's application-side Sonic time-stretching for speed changes.
-    // Do not delegate speed changes to AudioTrack: its supported rates and latency vary
-    // by device, and float output can bypass the processing chain. Keeping pitch at 1.0
-    // in PlaybackParameters preserves the original voice pitch while Sonic changes tempo.
+    // Test Android AudioTrack's playback-parameter path instead of Media3's application-side
+    // Sonic time-stretching. The platform implementation is device-dependent, so compare
+    // speech clarity, artifacts, A/V sync, and stability at 2x, 3x, and 4x on real hardware.
+    // Keep float output disabled so this path uses the normal PCM output chain.
     val renderersFactory = DefaultRenderersFactory(context)
         .setEnableAudioFloatOutput(false)
-        .setEnableAudioOutputPlaybackParameters(false)
+        .setEnableAudioOutputPlaybackParameters(true)
 
     val diskCache = cache ?: SharedVideoDiskCache.get(context)
     return ExoPlayer.Builder(context, renderersFactory)
