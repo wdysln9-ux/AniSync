@@ -19,6 +19,7 @@ import com.anisync.android.domain.SearchFilters
 import com.anisync.android.domain.SearchPage
 import com.anisync.android.domain.SearchRepository
 import com.anisync.android.domain.SearchResult
+import com.anisync.android.domain.SearchSort
 import com.anisync.android.fragment.MediaCardFields
 import com.anisync.android.type.MediaSort
 import com.anisync.android.type.MediaType
