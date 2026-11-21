@@ -26,9 +26,15 @@ query GetMediaBySort($sort: [MediaSort], $type: MediaType, $perPage: Int) {
   }
 }
 
-query GetUpcomingMedia($perPage: Int, $type: MediaType, $status: MediaStatus) {
+query GetUpcomingMedia(
+  $perPage: Int,
+  $type: MediaType,
+  $status: MediaStatus,
+  $season: MediaSeason,
+  $seasonYear: Int
+) {
   Page(perPage: $perPage) {
-    media(status: $status, type: $type, sort: [POPULARITY_DESC]) {
+    media(status: $status, type: $type, season: $season, seasonYear: $seasonYear, sort: [POPULARITY_DESC]) {
       id
         title {
         userPreferred
