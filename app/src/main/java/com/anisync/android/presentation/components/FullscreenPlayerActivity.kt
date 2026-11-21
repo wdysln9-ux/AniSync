@@ -57,6 +57,48 @@ import kotlinx.coroutines.delay
  * its buffered data and current position — is what plays in fullscreen: no re-fetch, no double audio.
  */
 @OptIn(UnstableApi::class)
+/**
+ * Device-wide player preferences. Shared by inline and fullscreen playback, and retained across
+ * activities, episodes and app launches.
+ */
+internal object PlayerPreferences {
+    private const val PREFS = "anisync_player_settings"
+    private const val SPEED = "playback_speed"
+    private const val DISPLAY_MODE = "display_mode"
+    private const val AUTO_NEXT = "auto_next"
+    private const val CINEMATIC_ENABLED = "cinematic_enabled"
+    private const val CINEMATIC_INTENSITY = "cinematic_intensity"
+    private const val STRETCH_SCALE = "stretch_scale"
+
+    private fun prefs(context: android.content.Context) =
+        context.applicationContext.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
+
+    fun playbackSpeed(context: android.content.Context) = prefs(context).getFloat(SPEED, 1f).coerceIn(0.5f, 4f)
+    fun setPlaybackSpeed(context: android.content.Context, value: Float) {
+        prefs(context).edit().putFloat(SPEED, value.coerceIn(0.5f, 4f)).apply()
+    }
+    fun displayMode(context: android.content.Context) = prefs(context).getString(DISPLAY_MODE, "Fit") ?: "Fit"
+    fun setDisplayMode(context: android.content.Context, value: String) {
+        prefs(context).edit().putString(DISPLAY_MODE, value).apply()
+    }
+    fun autoNext(context: android.content.Context) = prefs(context).getBoolean(AUTO_NEXT, true)
+    fun setAutoNext(context: android.content.Context, value: Boolean) {
+        prefs(context).edit().putBoolean(AUTO_NEXT, value).apply()
+    }
+    fun cinematicEnabled(context: android.content.Context) = prefs(context).getBoolean(CINEMATIC_ENABLED, false)
+    fun setCinematicEnabled(context: android.content.Context, value: Boolean) {
+        prefs(context).edit().putBoolean(CINEMATIC_ENABLED, value).apply()
+    }
+    fun cinematicIntensity(context: android.content.Context) = prefs(context).getFloat(CINEMATIC_INTENSITY, 0.35f).coerceIn(0.05f, 0.8f)
+    fun setCinematicIntensity(context: android.content.Context, value: Float) {
+        prefs(context).edit().putFloat(CINEMATIC_INTENSITY, value.coerceIn(0.05f, 0.8f)).apply()
+    }
+    fun stretchScale(context: android.content.Context) = prefs(context).getFloat(STRETCH_SCALE, 1f).coerceIn(0.45f, 2.5f)
+    fun setStretchScale(context: android.content.Context, value: Float) {
+        prefs(context).edit().putFloat(STRETCH_SCALE, value.coerceIn(0.45f, 2.5f)).apply()
+    }
+}
+
 internal object FullscreenVideoBridge {
     var player: ExoPlayer? = null
     var closeFullscreen: (() -> Unit)? = null
@@ -165,11 +207,11 @@ private fun FullscreenVideoContent(
         mutableStateOf(mapPlaybackState(player.playbackState, PlayerState.Loading))
     }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var stretchX by remember { mutableFloatStateOf(1f) }
+    var stretchX by remember { mutableFloatStateOf(PlayerPreferences.stretchScale(context)) }
     var isStretching by remember { mutableStateOf(false) }
     var snappedRatio by remember { mutableStateOf<Float?>(null) }
-    var cinematicIntensity by remember { mutableFloatStateOf(FullscreenVideoBridge.cinematicIntensity.floatValue) }
-    var displayMode by remember { mutableStateOf("Fit") }
+    var cinematicIntensity by remember { mutableFloatStateOf(if (PlayerPreferences.cinematicEnabled(context)) PlayerPreferences.cinematicIntensity(context) else 0f) }
+    var displayMode by remember { mutableStateOf(PlayerPreferences.displayMode(context)) }
     // Seeded from the launch extra, then corrected off the player itself, so the fitted box tracks
     // the real picture even when the inline player never reported a size before the handoff.
     var aspect by remember {
@@ -261,7 +303,7 @@ private fun FullscreenVideoContent(
                                     next = (nearest / aspect).coerceIn(0.45f, 2.5f)
                                     snappedRatio = nearest
                                 } else snappedRatio = null
-                                stretchX = next
+                                stretchX = next\n                                PlayerPreferences.setStretchScale(context, next)
                             }
                             fingers.forEach { it.consume() }
                         }
@@ -369,9 +411,9 @@ private fun FullscreenVideoContent(
                     cinematicIntensity = intensity
                     FullscreenVideoBridge.cinematicIntensity.floatValue = intensity
                 },
-                onResetStretch = { stretchX = 1f },
+                onResetStretch = { stretchX = 1f; PlayerPreferences.setStretchScale(context, 1f) },
                 displayMode = displayMode,
-                onDisplayModeChange = { displayMode = it },
+                onDisplayModeChange = { displayMode = it; PlayerPreferences.setDisplayMode(context, it) },
                 onToggleFullscreen = onClose,
                 onBack = onClose
             )
