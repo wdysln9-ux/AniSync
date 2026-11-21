@@ -341,17 +341,19 @@ internal fun CloudStreamWatchContent(
         val number = (current["episode"] as? Number)?.toInt()
         val meta = number?.let { metadata[it] }
         ThemeSheet(onDismiss = { sheet = false; episode = null }) {
-            Text("Episode ${number ?: "?"}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Text(mediaTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(meta?.title ?: current["name"]?.toString().orEmpty(), style = MaterialTheme.typography.titleMedium)
+            // Keep the exact OP/ED ThemeDetail sequence: player first, then identity, then details.
             if (selectedStream != null) {
                 val stream = selectedStream!!
                 val url = stream["url"]?.toString()
                 if (!url.isNullOrBlank()) VideoPlayer(url, headers = (stream["headers"] as? Map<*, *>)?.entries?.associate { it.key.toString() to it.value.toString() }.orEmpty(), modifier = Modifier.fillMaxWidth(), playerCache = null, startMuted = false, loop = false, autoPlay = true, sourceOptions = streams.map { source -> listOfNotNull(source["name"]?.toString(), source["quality"]?.toString()).joinToString(" · ").ifBlank { "Server" } }, onSelectSource = { index -> selectedStream = streams.getOrNull(index) }, onAutoNextChange = { autoNextEnabled = it }, autoEnterFullscreen = autoNextFullscreen, onFullscreenEntered = { autoNextFullscreen = false }, onPlaybackEnded = { if (autoNextEnabled) { autoNextFullscreen = false; val index = episodes.indexOfFirst { it === current || it == current }; episodes.getOrNull(index + 1)?.let { next -> autoNextFullscreen = true; playEpisode(next) } } })
-            } else if (resolving) Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            } else if (resolving) {
+                Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            }
+            Text("Episode ${number ?: "?"}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Text(mediaTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(meta?.title ?: current["name"]?.toString().orEmpty(), style = MaterialTheme.typography.titleMedium)
             Text("Ringkasan episode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(meta?.summary?.takeIf(String::isNotBlank) ?: "Ringkasan episode belum tersedia dari AniZip.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            HorizontalDivider()
             Text("Video", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             if (streams.isEmpty() && !resolving) Text("Belum ada sumber video yang tersedia.", style = MaterialTheme.typography.bodySmall)
             streams.forEach { source ->
