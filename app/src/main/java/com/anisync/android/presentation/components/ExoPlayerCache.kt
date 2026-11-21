@@ -136,13 +136,15 @@ internal fun buildVideoExoPlayer(
 ): ExoPlayer {
     val loadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
-            30_000,       // Keep a useful forward buffer before playback is considered healthy.
-            90 * 60_000,  // Allow long-form episodes to continue loading well ahead.
-            2_000,
-            5_000
+            30_000,       // Start/continue with a meaningful 30-second forward buffer.
+            15 * 60_000,  // Allow up to 15 minutes ahead for long-form episodes on slow networks.
+            5_000,        // Avoid declaring playback ready with only a couple of seconds.
+            10_000        // Rebuffer with a larger safety margin than the old 5-second setting.
         )
-        // Let Media3 size its in-memory sample queues for the selected tracks. The durable
-        // downloaded bytes are stored by SharedVideoDiskCache below, not in a tiny 4 MB cap.
+        // Keep several minutes behind the playhead available for backward seeking.
+        .setBackBuffer(4 * 60_000, true)
+        // The disk cache holds downloaded segments; prioritize time so buffering is not
+        // prematurely constrained by a small sample-queue byte threshold.
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
