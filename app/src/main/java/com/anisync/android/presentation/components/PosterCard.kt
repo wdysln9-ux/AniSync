@@ -161,13 +161,21 @@ fun PosterCard(
                 )
 
                 // Top corner: this card prints its title over the bottom of the poster.
+                val hasScoreBadge = (item.averageScore ?: 0.0) > 0.0
+                val listIndicatorCorner = if (hasScoreBadge && scoreAlignment == Alignment.TopStart) {
+                    ListIndicatorCorner.TopEnd
+                } else {
+                    ListIndicatorCorner.TopStart
+                }
                 LocalLibraryStatuses.current[item.mediaId]?.let { status ->
                     ListIndicator(
                         status = status,
                         type = item.type,
                         style = ListIndicatorStyle.Corner,
-                        corner = ListIndicatorCorner.TopStart,
-                        modifier = Modifier.align(Alignment.TopStart)
+                        corner = listIndicatorCorner,
+                        modifier = Modifier.align(
+                            if (listIndicatorCorner == ListIndicatorCorner.TopEnd) Alignment.TopEnd else Alignment.TopStart
+                        )
                     )
                 }
 
