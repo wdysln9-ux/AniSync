@@ -159,6 +159,7 @@ class DiscoverRepositoryImpl @Inject constructor(
                 com.anisync.android.type.MediaSeason.SPRING -> com.anisync.android.type.MediaSeason.SUMMER
                 com.anisync.android.type.MediaSeason.SUMMER -> com.anisync.android.type.MediaSeason.FALL
                 com.anisync.android.type.MediaSeason.FALL -> com.anisync.android.type.MediaSeason.WINTER
+                else -> com.anisync.android.type.MediaSeason.SPRING
             }
             val nextYear = if (currentSeason == com.anisync.android.type.MediaSeason.FALL) now.year + 1 else now.year
             val response = apolloClient.query(
@@ -222,6 +223,7 @@ class DiscoverRepositoryImpl @Inject constructor(
                     com.anisync.android.type.MediaSeason.SPRING -> com.anisync.android.type.MediaSeason.SUMMER
                     com.anisync.android.type.MediaSeason.SUMMER -> com.anisync.android.type.MediaSeason.FALL
                     com.anisync.android.type.MediaSeason.FALL -> com.anisync.android.type.MediaSeason.WINTER
+                    else -> com.anisync.android.type.MediaSeason.SPRING
                 }
                 val nextYear = if (currentSeason == com.anisync.android.type.MediaSeason.FALL) now.year + 1 else now.year
                 nextSeason to nextYear
