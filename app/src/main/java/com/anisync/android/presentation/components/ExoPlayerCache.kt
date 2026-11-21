@@ -148,11 +148,13 @@ internal fun buildVideoExoPlayer(
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
-    // CloudStream uses the tuned WSOLA chain; other embedded video players retain
-    // Media3's default Sonic processor and renderer configuration.
-    // Use Media3's native Sonic processor for CloudStream too. The custom WSOLA chain
-    // accumulates latency at 2x–4x and causes audible audio/video desynchronization.
+    // Always use Media3's application-side Sonic time-stretching for speed changes.
+    // Do not delegate speed changes to AudioTrack: its supported rates and latency vary
+    // by device, and float output can bypass the processing chain. Keeping pitch at 1.0
+    // in PlaybackParameters preserves the original voice pitch while Sonic changes tempo.
     val renderersFactory = DefaultRenderersFactory(context)
+        .setEnableAudioFloatOutput(false)
+        .setEnableAudioOutputPlaybackParameters(false)
 
     val diskCache = cache ?: SharedVideoDiskCache.get(context)
     return ExoPlayer.Builder(context, renderersFactory)
