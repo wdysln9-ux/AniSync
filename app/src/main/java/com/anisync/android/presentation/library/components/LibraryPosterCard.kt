@@ -99,9 +99,7 @@ fun LibraryPosterCard(
     showListIndicator: Boolean = false,
     /** Off wherever the view already states the priority, which is the Priority sort's headers. */
     showPriority: Boolean = false,
-    onIncrement: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
-    onLongPress: (() -> Unit)? = null,
     selectionMode: Boolean = false,
     selected: Boolean = false,
     sharedTransitionScope: SharedTransitionScope? = null,
@@ -117,7 +115,7 @@ fun LibraryPosterCard(
     val hasProgress = entry.progress > 0 && (total == null || entry.progress < total)
 
     val cardShape = ExpressiveShapes.mediaCover
-    val clickModifier = if (onLongPress != null) {
+    val clickModifier = if (onEdit != null) {
         Modifier.bouncyCombinedClickable(
             onClick = onClick,
             onLongClick = {
@@ -126,7 +124,7 @@ fun LibraryPosterCard(
             },
             role = Role.Button,
             onClickLabel = stringResource(R.string.a11y_action_open_details, title),
-            onLongClickLabel = stringResource(R.string.a11y_action_select_entry),
+            onLongClickLabel = stringResource(R.string.a11y_action_edit_entry),
             clipShape = cardShape
         )
     } else {
@@ -298,8 +296,7 @@ private fun PosterArt(
             )
         }
 
-        // The bottom-start corner is the only one the action and the indicator leave free, and a
-        // grid with no airing date is a grid you have to open a card to read.
+        // The bottom-start corner is reserved for the remaining count or next-airing time.
         if (!selectionMode) {
             PosterStateChip(
                 entry = entry,
@@ -310,8 +307,11 @@ private fun PosterArt(
                     .widthIn(max = chipMaxWidth)
             )
         }
-
-
+        if (selectionMode) {
+            Box(modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp)) {
+                PosterSelectionCheck(selected)
+            }
+        }
     }
 }
 
