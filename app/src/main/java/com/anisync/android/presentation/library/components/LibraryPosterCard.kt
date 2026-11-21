@@ -519,7 +519,7 @@ internal fun PosterStateChip(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(Color.Black.copy(alpha = 0.55f))
+            .background(Color.Black.copy(alpha = backgroundAlpha))
             .padding(horizontal = 6.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
