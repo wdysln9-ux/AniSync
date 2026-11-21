@@ -155,6 +155,7 @@ private fun FullscreenVideoContent(
     var isPlaying by remember { mutableStateOf(player.isPlaying) }
     var positionMs by remember { mutableLongStateOf(player.currentPosition.coerceAtLeast(0)) }
     var durationMs by remember { mutableLongStateOf(player.duration.coerceAtLeast(0)) }
+    var bufferedPositionMs by remember { mutableLongStateOf(player.bufferedPosition.coerceAtLeast(0)) }
     var isScrubbing by remember { mutableStateOf(false) }
     var playerState by remember {
         mutableStateOf(mapPlaybackState(player.playbackState, PlayerState.Loading))
