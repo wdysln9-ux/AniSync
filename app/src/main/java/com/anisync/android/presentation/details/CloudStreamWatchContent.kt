@@ -2,14 +2,10 @@ package com.anisync.android.presentation.details
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.anisync.android.cloudstream.CloudStreamRuntime
 import com.anisync.android.presentation.components.VideoPlayer
-import com.anisync.android.presentation.components.AppModalBottomSheet
+import com.anisync.android.presentation.details.components.ThemeSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -343,31 +339,27 @@ internal fun CloudStreamWatchContent(
         val current = episode!!
         val number = (current["episode"] as? Number)?.toInt()
         val meta = number?.let { metadata[it] }
-        val episodeSheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-        AppModalBottomSheet(onDismissRequest = { sheet = false; episode = null }, sheetState = episodeSheetState, containerColor = MaterialTheme.colorScheme.surface) {
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(Modifier.align(Alignment.CenterHorizontally).size(38.dp, 4.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .45f)))
-                Text("Episode ${number ?: "?"}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                Text(mediaTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text(meta?.title ?: current["name"]?.toString().orEmpty(), style = MaterialTheme.typography.titleMedium)
-                if (selectedStream != null) {
-                    val stream = selectedStream!!
-                    val url = stream["url"]?.toString()
-                    if (!url.isNullOrBlank()) VideoPlayer(url, headers = (stream["headers"] as? Map<*, *>)?.entries?.associate { it.key.toString() to it.value.toString() }.orEmpty(), modifier = Modifier.fillMaxWidth(), playerCache = null, startMuted = false, loop = false, autoPlay = true, sourceOptions = streams.map { source -> listOfNotNull(source["name"]?.toString(), source["quality"]?.toString()).joinToString(" · ").ifBlank { "Server" } }, onSelectSource = { index -> selectedStream = streams.getOrNull(index) }, onAutoNextChange = { autoNextEnabled = it }, onPlaybackEnded = { if (autoNextEnabled) { val index = episodes.indexOfFirst { it === current || it == current }; episodes.getOrNull(index + 1)?.let(::playEpisode) } })
-                } else if (resolving) Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                Text("Ringkasan episode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(meta?.summary?.takeIf(String::isNotBlank) ?: "Ringkasan episode belum tersedia dari AniZip.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                HorizontalDivider()
-                Text("Video", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                if (streams.isEmpty() && !resolving) Text("Belum ada sumber video yang tersedia.", style = MaterialTheme.typography.bodySmall)
-                streams.forEach { source ->
-                    val name = source["name"]?.toString() ?: "Server"
-                    val quality = source["quality"]?.toString()
-                    TextButton(onClick = { selectedStream = source }) { Text("${if (selectedStream === source) "✓ " else ""}${name}${if (!quality.isNullOrBlank()) " · $quality" else ""}") }
-                }
-                if (subtitles.isNotEmpty()) Text("Subtitle tersedia: " + subtitles.mapNotNull { it["lang"]?.toString() }.distinct().joinToString(), style = MaterialTheme.typography.bodySmall)
-                Text("Data judul dari AniList, metadata episode dari AniZip, dan video dari provider CloudStream.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        ThemeSheet(onDismiss = { sheet = false; episode = null }) {
+            Text("Episode ${number ?: "?"}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Text(mediaTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(meta?.title ?: current["name"]?.toString().orEmpty(), style = MaterialTheme.typography.titleMedium)
+            if (selectedStream != null) {
+                val stream = selectedStream!!
+                val url = stream["url"]?.toString()
+                if (!url.isNullOrBlank()) VideoPlayer(url, headers = (stream["headers"] as? Map<*, *>)?.entries?.associate { it.key.toString() to it.value.toString() }.orEmpty(), modifier = Modifier.fillMaxWidth(), playerCache = null, startMuted = false, loop = false, autoPlay = true, sourceOptions = streams.map { source -> listOfNotNull(source["name"]?.toString(), source["quality"]?.toString()).joinToString(" · ").ifBlank { "Server" } }, onSelectSource = { index -> selectedStream = streams.getOrNull(index) }, onAutoNextChange = { autoNextEnabled = it }, onPlaybackEnded = { if (autoNextEnabled) { val index = episodes.indexOfFirst { it === current || it == current }; episodes.getOrNull(index + 1)?.let(::playEpisode) } })
+            } else if (resolving) Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            Text("Ringkasan episode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(meta?.summary?.takeIf(String::isNotBlank) ?: "Ringkasan episode belum tersedia dari AniZip.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            HorizontalDivider()
+            Text("Video", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            if (streams.isEmpty() && !resolving) Text("Belum ada sumber video yang tersedia.", style = MaterialTheme.typography.bodySmall)
+            streams.forEach { source ->
+                val name = source["name"]?.toString() ?: "Server"
+                val quality = source["quality"]?.toString()
+                TextButton(onClick = { selectedStream = source }) { Text("${if (selectedStream === source) "✓ " else ""}${name}${if (!quality.isNullOrBlank()) " · $quality" else ""}") }
             }
+            if (subtitles.isNotEmpty()) Text("Subtitle tersedia: " + subtitles.mapNotNull { it["lang"]?.toString() }.distinct().joinToString(), style = MaterialTheme.typography.bodySmall)
+            Text("Data judul dari AniList, metadata episode dari AniZip, dan video dari provider CloudStream.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
