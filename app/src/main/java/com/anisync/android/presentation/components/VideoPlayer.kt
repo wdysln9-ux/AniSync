@@ -341,6 +341,7 @@ fun VideoPlayer(
     val onPlayPause: () -> Unit = { if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play() }
     val onToggleMute: () -> Unit = {
         isMuted = !isMuted
+        PlayerPreferences.setMuted(context, isMuted)
         exoPlayer.volume = if (isMuted) 0f else 1f
     }
     val onSeek: (Float) -> Unit = { fraction ->
