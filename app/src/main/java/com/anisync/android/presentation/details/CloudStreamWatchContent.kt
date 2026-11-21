@@ -218,7 +218,17 @@ internal fun CloudStreamWatchContent(
             val number = (chosen["episode"] as? Number)?.toInt()
             val cacheKey = "$mediaId:${number ?: chosen["data"] ?: chosen["name"]}"
             val cachedStreams = CloudStreamWatchCache.streams[cacheKey]
-            if (cachedStreams != null) { streams = cachedStreams.first; subtitles = cachedStreams.second; selectedStream = cachedStreams.first.firstOrNull(); resolving = false; return@launch }
+            if (cachedStreams != null) {
+                streams = cachedStreams.first
+                subtitles = cachedStreams.second
+                selectedStream = cachedStreams.first.firstOrNull()
+                resolving = false
+                val currentIndex = episodes.indexOfFirst { it === chosen || it == chosen }
+                episodes.getOrNull(currentIndex + 1)?.let { nextEpisode ->
+                    launch { preloadStream = resolvePreloadSource(nextEpisode) }
+                }
+                return@launch
+            }
             val candidates = listOfNotNull(selected) + hits.filter { it != selected }
             var success = false
             for (hit in candidates) {
