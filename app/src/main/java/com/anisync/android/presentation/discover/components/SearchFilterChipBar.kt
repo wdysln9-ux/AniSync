@@ -19,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.anisync.android.domain.AdultMode
 import com.anisync.android.domain.ComparatorMode
 import com.anisync.android.domain.IntComparatorFilter
 import com.anisync.android.domain.IntRangeFilter
@@ -100,19 +99,8 @@ fun SearchFilterChipBar(
             }
             add(label to filters.copy(episodes = IntComparatorFilter()))
         }
-        filters.chapters.takeIf { it.isActive }?.let { value ->
-            val amount = value.value ?: return@let
-            val label = when (value.mode) {
-                ComparatorMode.AT_LEAST -> "Chapter ≥ $amount"
-                ComparatorMode.AT_MOST -> "Chapter ≤ $amount"
-                ComparatorMode.EXACTLY -> "Chapter = $amount"
-                ComparatorMode.ANY -> "Chapter $amount"
-            }
-            add(label to filters.copy(chapters = IntComparatorFilter()))
-        }
-        if (filters.adultMode != AdultMode.ANY) {
-            add((if (filters.adultMode == AdultMode.HIDE) "Sembunyikan dewasa" else "Dewasa saja") to
-                filters.copy(adultMode = AdultMode.ANY))
+        if (filters.hideMyAnime) {
+            add("Hide My Anime" to filters.copy(hideMyAnime = false))
         }
         if (filters.sort != SearchSort()) {
             add("Urutan: ${filters.sort.column.label()}" to filters.copy(sort = SearchSort()))
