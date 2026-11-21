@@ -464,9 +464,12 @@ class SearchRepositoryImpl @Inject constructor(
         } else Optional.absent()
 
     private fun com.anisync.android.domain.IntComparatorFilter.lesser(): Optional<Int?> =
-        if (mode == com.anisync.android.domain.ComparatorMode.AT_MOST && value != null) {
-            Optional.present(value + 1)
-        } else Optional.absent()
+        when {
+            maxValue != null -> Optional.present(maxValue + 1)
+            mode == com.anisync.android.domain.ComparatorMode.AT_MOST && value != null ->
+                Optional.present(value + 1)
+            else -> Optional.absent()
+        }
 }
 
 /** A moderator still serving. AniList's website shows their role where a donator badge would go. */
