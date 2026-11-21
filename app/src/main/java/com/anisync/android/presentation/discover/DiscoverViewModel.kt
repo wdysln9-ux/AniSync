@@ -645,7 +645,7 @@ class DiscoverViewModel @Inject constructor(
                 DiscoverSection.TRENDING ->
                     loadEntries(mediaType, { discoverRepository.getTrending(it) }) { f, v -> f.copy(trending = v) }
                 DiscoverSection.POPULAR ->
-                    loadEntries(mediaType, { discoverRepository.getPopular(it) }) { f, v -> f.copy(popular = v) }
+                    loadEntries(mediaType, { discoverRepository.getRecommendations(it) }) { f, v -> f.copy(popular = v) }
                 DiscoverSection.NOT_YET_RELEASED ->
                     loadEntries(mediaType, { discoverRepository.getNotYetReleased(it) }) { f, v -> f.copy(notYetReleased = v) }
                 DiscoverSection.NEWLY_ADDED ->
