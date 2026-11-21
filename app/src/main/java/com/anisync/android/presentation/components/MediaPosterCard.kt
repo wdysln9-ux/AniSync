@@ -3,7 +3,6 @@ package com.anisync.android.presentation.components
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +49,7 @@ import com.anisync.android.presentation.util.AppMotion
 import com.anisync.android.presentation.util.LocalLibraryStatuses
 import com.anisync.android.presentation.util.TransitionKeys
 import com.anisync.android.presentation.util.LocalLibraryEntryEditor
+import com.anisync.android.presentation.util.bouncyCombinedClickable
 import com.anisync.android.presentation.util.toLabel
 import com.anisync.android.ui.theme.StarGold
 import com.anisync.android.type.MediaType
@@ -168,13 +168,15 @@ fun MediaPosterCard(
     }
 
     Column(
-        modifier = modifier.combinedClickable(
+        modifier = modifier.bouncyCombinedClickable(
             onClick = onClick,
             onLongClick = if (item.type == MediaType.ANIME) {
                 { onEditEntry(item) }
             } else null,
             role = Role.Button,
-            onClickLabel = stringResource(R.string.a11y_action_open_details, title)
+            onClickLabel = stringResource(R.string.a11y_action_open_details, title),
+            onLongClickLabel = stringResource(R.string.a11y_action_edit_entry),
+            clipShape = CoverShape
         ),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
