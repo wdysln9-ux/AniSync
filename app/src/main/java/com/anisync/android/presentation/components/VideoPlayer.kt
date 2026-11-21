@@ -188,7 +188,7 @@ fun VideoPlayer(
     // and the lifecycle observer stops pausing, so the same instance keeps playing over there.
     var handedOff by remember { mutableStateOf(false) }
     val isHandedOff by rememberUpdatedState(handedOff)
-    var cinematicOverlayIntensity by remember { mutableFloatStateOf(0f) }
+    var cinematicOverlayIntensity by remember { mutableFloatStateOf(if (PlayerPreferences.cinematicEnabled(context)) PlayerPreferences.cinematicIntensity(context) else 0f) }
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
 
     // Cached player survives scrolling; self-managed one is built+released here. Both go through
