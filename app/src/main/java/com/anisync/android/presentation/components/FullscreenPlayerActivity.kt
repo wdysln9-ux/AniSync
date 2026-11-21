@@ -396,6 +396,7 @@ private fun FullscreenVideoContent(
                 onPlayPause = { if (player.isPlaying) player.pause() else player.play() },
                 onToggleMute = {
                     isMuted = !isMuted
+                    PlayerPreferences.setMuted(context, isMuted)
                     player.volume = if (isMuted) 0f else 1f
                 },
                 onSeek = { fraction ->
@@ -417,6 +418,8 @@ private fun FullscreenVideoContent(
                 onSelectSource = {},
                 onCinematicLightingChange = { intensity ->
                     cinematicIntensity = intensity
+                    PlayerPreferences.setCinematicEnabled(context, intensity > 0f)
+                    if (intensity > 0f) PlayerPreferences.setCinematicIntensity(context, intensity)
                     FullscreenVideoBridge.cinematicIntensity.floatValue = intensity
                 },
                 onResetStretch = { stretchX = 1f; PlayerPreferences.setStretchScale(context, 1f) },
