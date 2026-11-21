@@ -63,7 +63,7 @@ import kotlinx.coroutines.delay
  */
 internal object PlayerPreferences {
     private const val PREFS = "anisync_player_settings"
-    private const val SPEED = "playback_speed"
+    private const val SPEED = "playback_speed"\n    private const val MUTED = "muted"
     private const val DISPLAY_MODE = "display_mode"
     private const val AUTO_NEXT = "auto_next"
     private const val CINEMATIC_ENABLED = "cinematic_enabled"
@@ -73,7 +73,7 @@ internal object PlayerPreferences {
     private fun prefs(context: android.content.Context) =
         context.applicationContext.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
 
-    fun playbackSpeed(context: android.content.Context) = prefs(context).getFloat(SPEED, 1f).coerceIn(0.5f, 4f)
+    fun isMuted(context: android.content.Context, defaultValue: Boolean = true) = prefs(context).getBoolean(MUTED, defaultValue)\n    fun setMuted(context: android.content.Context, value: Boolean) {\n        prefs(context).edit().putBoolean(MUTED, value).apply()\n    }\n    fun playbackSpeed(context: android.content.Context) = prefs(context).getFloat(SPEED, 1f).coerceIn(0.5f, 4f)
     fun setPlaybackSpeed(context: android.content.Context, value: Float) {
         prefs(context).edit().putFloat(SPEED, value.coerceIn(0.5f, 4f)).apply()
     }
