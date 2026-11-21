@@ -15,7 +15,7 @@ class DisplaySizeTest {
 
     @Test
     fun `percentage values load and stay in supported range`() {
-        assertEquals(0.1f, DisplaySize.valueOf("10").scale)
+        assertEquals(0.3f, DisplaySize.valueOf("30").scale)
         assertEquals(2f, DisplaySize.valueOf("200").scale)
         assertTrue(DisplaySize(1.5f).scale in DisplaySize.MIN_SCALE..DisplaySize.MAX_SCALE)
     }
