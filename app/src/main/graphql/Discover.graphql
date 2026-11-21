@@ -26,9 +26,43 @@ query GetMediaBySort($sort: [MediaSort], $type: MediaType, $perPage: Int) {
   }
 }
 
-query GetUpcomingMedia($perPage: Int, $type: MediaType, $status: MediaStatus) {
+query GetRecommendations($page: Int, $perPage: Int) {
+  Page(page: $page, perPage: $perPage) {
+    recommendations(sort: [RATING_DESC]) {
+      mediaRecommendation {
+        id
+        title {
+          userPreferred
+          romaji
+          english
+          native
+        }
+        coverImage {
+          medium
+          large
+          extraLarge
+        }
+        episodes
+        chapters
+        volumes
+        type
+        format
+        averageScore: weightedScore
+        seasonYear
+      }
+    }
+  }
+}
+
+query GetUpcomingMedia(
+  $perPage: Int,
+  $type: MediaType,
+  $status: MediaStatus,
+  $season: MediaSeason,
+  $seasonYear: Int
+) {
   Page(perPage: $perPage) {
-    media(status: $status, type: $type, sort: [POPULARITY_DESC]) {
+    media(status: $status, type: $type, season: $season, seasonYear: $seasonYear, sort: [POPULARITY_DESC]) {
       id
         title {
         userPreferred
@@ -59,7 +93,9 @@ query GetPaginatedMedia(
   $sort: [MediaSort],
   $type: MediaType,
   $status: MediaStatus,
-  $format: MediaFormat
+  $format: MediaFormat,
+  $season: MediaSeason,
+  $seasonYear: Int
 ) {
   Page(page: $page, perPage: $perPage) {
     pageInfo {
@@ -68,7 +104,7 @@ query GetPaginatedMedia(
       lastPage
       total
     }
-    media(sort: $sort, type: $type, status: $status, format: $format) {
+    media(sort: $sort, type: $type, status: $status, format: $format, season: $season, seasonYear: $seasonYear) {
       id
       title {
         userPreferred

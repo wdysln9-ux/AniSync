@@ -487,7 +487,7 @@ class DiscoverViewModel @Inject constructor(
                     loadEntries(mediaType, { discoverRepository.getTrending(it) }) { f, v -> f.copy(trending = v) }
                 })
                 add(launch {
-                    loadEntries(mediaType, { discoverRepository.getPopular(it) }) { f, v -> f.copy(popular = v) }
+                    loadEntries(mediaType, { discoverRepository.getRecommendations(it) }) { f, v -> f.copy(popular = v) }
                 })
                 add(launch {
                     loadEntries(mediaType, { discoverRepository.getNotYetReleased(it) }) { f, v -> f.copy(notYetReleased = v) }
@@ -576,6 +576,10 @@ class DiscoverViewModel @Inject constructor(
         val tabCategory =
             if (_uiState.value.mediaType == MediaType.ANIME) ResultCategory.ANIME else ResultCategory.MANGA
         when (chip) {
+            BrowseChip.RECOMMENDATIONS -> openPresetSearch(
+                SearchFilters(sort = SearchSort(SearchSortColumn.RANDOM)),
+                ResultCategory.ANIME
+            )
             BrowseChip.SEASONAL -> {
                 val now = Calendar.getInstance()
                 openPresetSearch(
@@ -641,7 +645,7 @@ class DiscoverViewModel @Inject constructor(
                 DiscoverSection.TRENDING ->
                     loadEntries(mediaType, { discoverRepository.getTrending(it) }) { f, v -> f.copy(trending = v) }
                 DiscoverSection.POPULAR ->
-                    loadEntries(mediaType, { discoverRepository.getPopular(it) }) { f, v -> f.copy(popular = v) }
+                    loadEntries(mediaType, { discoverRepository.getRecommendations(it) }) { f, v -> f.copy(popular = v) }
                 DiscoverSection.NOT_YET_RELEASED ->
                     loadEntries(mediaType, { discoverRepository.getNotYetReleased(it) }) { f, v -> f.copy(notYetReleased = v) }
                 DiscoverSection.NEWLY_ADDED ->

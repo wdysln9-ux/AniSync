@@ -12,9 +12,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -22,11 +24,16 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.anisync.android.ui.theme.StarGold
+import java.util.Locale
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -45,8 +52,10 @@ import com.anisync.android.presentation.util.AppMotion
 import com.anisync.android.presentation.util.LocalLibraryStatuses
 import com.anisync.android.presentation.components.ListIndicatorCorner
 import com.anisync.android.presentation.util.TransitionKeys
-import com.anisync.android.presentation.util.bouncyClickable
+import com.anisync.android.presentation.util.LocalLibraryEntryEditor
+import com.anisync.android.presentation.util.bouncyCombinedClickable
 import com.anisync.android.util.getTitle
+import com.anisync.android.type.MediaType
 
 /**
  * A shared media card component that displays a poster image with a gradient overlay and title.
@@ -74,12 +83,15 @@ fun PosterCard(
     modifier: Modifier = Modifier,
     transitionPrefix: String = TransitionKeys.POSTER,
     aspectRatio: Float = 0.7f,
-    shape: Shape = ExpressiveShapes.mediaCover
+    shape: Shape = ExpressiveShapes.mediaCover,
+    scoreAlignment: Alignment = Alignment.TopStart,
+    showScoreBadge: Boolean = false
 ) {
     // Use memoized motion specs from AppMotion
     val spatialSpec = AppMotion.rememberSpatialSpec()
     val effectsSpec = AppMotion.rememberEffectsSpec()
     val title = item.getTitle(titleLanguage)
+    val onEditEntry = LocalLibraryEntryEditor.current
     
     // Use TransitionKeys for consistent key generation
     val coverKey = TransitionKeys.cover(transitionPrefix, item.mediaId)
@@ -96,10 +108,15 @@ fun PosterCard(
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             modifier = modifier
                 .fillMaxWidth()
-                .bouncyClickable(
+                .bouncyCombinedClickable(
                     onClick = onClick,
+                    onLongClick = if (item.type == MediaType.ANIME) {
+                        { onEditEntry(item) }
+                    } else null,
                     role = Role.Button,
-                    onClickLabel = stringResource(R.string.a11y_action_open_details, title)
+                    onClickLabel = stringResource(R.string.a11y_action_open_details, title),
+                    onLongClickLabel = stringResource(R.string.a11y_action_edit_entry),
+                    clipShape = shape
                 )
                 .sharedBounds(
                     sharedContentState = rememberSharedContentState(key = coverKey),
@@ -147,14 +164,49 @@ fun PosterCard(
                 )
 
                 // Top corner: this card prints its title over the bottom of the poster.
+                val hasScoreBadge = item.averageScore?.toDouble()?.let { it > 0.0 } == true
+                val listIndicatorCorner = if (showScoreBadge && hasScoreBadge && scoreAlignment == Alignment.TopStart) {
+                    ListIndicatorCorner.BottomEnd
+                } else {
+                    ListIndicatorCorner.TopStart
+                }
                 LocalLibraryStatuses.current[item.mediaId]?.let { status ->
                     ListIndicator(
                         status = status,
                         type = item.type,
                         style = ListIndicatorStyle.Corner,
-                        corner = ListIndicatorCorner.TopStart,
-                        modifier = Modifier.align(Alignment.TopStart)
+                        corner = listIndicatorCorner,
+                        modifier = Modifier.align(
+                            if (listIndicatorCorner == ListIndicatorCorner.BottomEnd) Alignment.BottomEnd else Alignment.TopStart
+                        )
                     )
+                }
+
+                if (showScoreBadge) item.averageScore?.takeIf { it > 0.0 }?.let { score ->
+                    Surface(
+                        modifier = Modifier.align(scoreAlignment).padding(8.dp),
+                        color = Color.Black.copy(alpha = 0.42f),
+                        shape = RoundedCornerShape(50)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            androidx.compose.material3.Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = StarGold,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = String.format(Locale.US, "%.1f", score / 10.0),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
+                        }
+                    }
                 }
 
                 // Title at bottom

@@ -1,124 +1,146 @@
 package com.anisync.android.presentation.discover.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.anisync.android.R
-import com.anisync.android.domain.AdultMode
+import com.anisync.android.domain.ComparatorMode
+import com.anisync.android.domain.IntComparatorFilter
 import com.anisync.android.domain.IntRangeFilter
-import com.anisync.android.domain.ResultCategory
+import com.anisync.android.domain.OriginCountry
 import com.anisync.android.domain.SearchFilters
 import com.anisync.android.domain.SearchSort
-import com.anisync.android.presentation.components.filtersheet.ClearFiltersChip
-import com.anisync.android.presentation.components.filtersheet.FilterBarChip
-import com.anisync.android.presentation.components.filtersheet.airingStatusTitle
-import com.anisync.android.presentation.components.filtersheet.countChipLabel
-import com.anisync.android.presentation.components.filtersheet.pickChipLabel
 import com.anisync.android.presentation.util.toLabel
 
-/** Which sheet the Discover filter bar has open. */
-enum class FilterId { SORT, GENRES, TAGS, FORMAT, STATUS, YEAR, MORE }
-
 /**
- * The filter bar over Discover search: Clear once anything is filtered, then Sort, Genres, Tags,
- * Format, Airing status, Year and More. A closed list names its pick on the chip, genres and tags
- * say how many are picked.
+ * AnimeW-style active-filter chips: one removable chip per selected value.
+ * This is deliberately independent from the Discover filter-sheet chip controls.
  */
 @Composable
 fun SearchFilterChipBar(
     filters: SearchFilters,
-    category: ResultCategory,
-    onChipTap: (FilterId) -> Unit,
-    onClear: () -> Unit,
+    onFiltersChange: (SearchFilters) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val chips = buildList {
+        filters.genresIncluded.forEach { value ->
+            add(value to filters.copy(genresIncluded = filters.genresIncluded - value))
+        }
+        filters.genresExcluded.forEach { value ->
+            add("− $value" to filters.copy(genresExcluded = filters.genresExcluded - value))
+        }
+        filters.tagsIncluded.forEach { value ->
+            add(value to filters.copy(tagsIncluded = filters.tagsIncluded - value))
+        }
+        filters.tagsExcluded.forEach { value ->
+            add("− $value" to filters.copy(tagsExcluded = filters.tagsExcluded - value))
+        }
+        if (filters.yearRange.isActive) {
+            val label = when {
+                filters.yearRange.min != null && filters.yearRange.max != null ->
+                    "${filters.yearRange.min}–${filters.yearRange.max}"
+                filters.yearRange.min != null -> "${filters.yearRange.min}+"
+                else -> "≤${filters.yearRange.max}"
+            }
+            add(label to filters.copy(yearRange = IntRangeFilter()))
+        }
+        filters.season?.let { add(it.toLabel().orEmpty() to filters.copy(season = null)) }
+        filters.formats.forEach { value ->
+            add(value.toLabel().orEmpty() to filters.copy(formats = filters.formats - value))
+        }
+        filters.statuses.forEach { value ->
+            add(value.toLabel().orEmpty() to filters.copy(statuses = filters.statuses - value))
+        }
+        filters.sources.forEach { value ->
+            add(value.name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() } to
+                filters.copy(sources = filters.sources - value))
+        }
+        filters.country?.let { country ->
+            val label = when (country) {
+                OriginCountry.JAPAN -> "Jepang"
+                OriginCountry.SOUTH_KOREA -> "Korea Selatan"
+                OriginCountry.CHINA -> "China"
+                OriginCountry.TAIWAN -> "Taiwan"
+            }
+            add(label to filters.copy(country = null))
+        }
+        filters.score.takeIf { it.isActive }?.let { value ->
+            val amount = value.value ?: return@let
+            val label = when (value.mode) {
+                ComparatorMode.AT_LEAST -> "Skor ≥ $amount"
+                ComparatorMode.AT_MOST -> "Skor ≤ $amount"
+                ComparatorMode.EXACTLY -> "Skor = $amount"
+                ComparatorMode.ANY -> "Skor $amount"
+            }
+            add(label to filters.copy(score = IntComparatorFilter()))
+        }
+        filters.episodes.takeIf { it.isActive }?.let { value ->
+            val amount = value.value ?: return@let
+            val label = when (value.mode) {
+                ComparatorMode.AT_LEAST -> "Episode ≥ $amount"
+                ComparatorMode.AT_MOST -> "Episode ≤ $amount"
+                ComparatorMode.EXACTLY -> "Episode = $amount"
+                ComparatorMode.ANY -> "Episode $amount"
+            }
+            add(label to filters.copy(episodes = IntComparatorFilter()))
+        }
+        if (filters.hideMyAnime) {
+            add("Hide My Anime" to filters.copy(hideMyAnime = false))
+        }
+        if (filters.sort != SearchSort()) {
+            add("Urutan: ${filters.sort.column.label()}" to filters.copy(sort = SearchSort()))
+        }
+    }
+
+    if (chips.isEmpty()) return
     Row(
         modifier = modifier
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 16.dp, vertical = 5.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        if (filters.hasNarrowingFilters) ClearFiltersChip(onClick = onClear)
-        FilterBarChip(
-            label = stringResource(R.string.library_filter_chip_sort, filters.sort.column.label()),
-            active = filters.sort != SearchSort(),
-            onClick = { onChipTap(FilterId.SORT) }
-        )
-        val genres = filters.genresIncluded.size + filters.genresExcluded.size
-        FilterBarChip(
-            label = countChipLabel(stringResource(R.string.filter_genres), genres),
-            active = genres > 0,
-            onClick = { onChipTap(FilterId.GENRES) }
-        )
-        val tags = filters.tagsIncluded.size + filters.tagsExcluded.size
-        FilterBarChip(
-            label = countChipLabel(stringResource(R.string.library_filter_tags), tags),
-            active = tags > 0,
-            onClick = { onChipTap(FilterId.TAGS) }
-        )
-        FilterBarChip(
-            label = pickChipLabel(
-                stringResource(R.string.library_filter_format),
-                filters.formats.map { it.toLabel() }
-            ),
-            active = filters.formats.isNotEmpty(),
-            onClick = { onChipTap(FilterId.FORMAT) }
-        )
-        FilterBarChip(
-            label = pickChipLabel(
-                airingStatusTitle(manga = category == ResultCategory.MANGA),
-                filters.statuses.mapNotNull { status -> status.toLabel().takeIf { it.isNotEmpty() } }
-            ),
-            active = filters.statuses.isNotEmpty(),
-            onClick = { onChipTap(FilterId.STATUS) }
-        )
-        val year = yearAndSeasonValue(filters)
-        FilterBarChip(
-            label = if (year == null) {
-                stringResource(R.string.filter_year)
-            } else {
-                stringResource(R.string.filter_chip_value, stringResource(R.string.filter_year), year)
-            },
-            active = year != null,
-            onClick = { onChipTap(FilterId.YEAR) }
-        )
-        val more = filters.moreCount()
-        FilterBarChip(
-            label = countChipLabel(stringResource(R.string.more), more),
-            active = more > 0,
-            onClick = { onChipTap(FilterId.MORE) }
-        )
+        chips.forEach { (label, remainingFilters) ->
+            Surface(
+                modifier = Modifier.clickable { onFiltersChange(remainingFilters) },
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
+                    )
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Hapus filter $label",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
     }
 }
-
-/** "Fall 2024", "2020–2024", "2020+". Null when neither a season nor a year is set. */
-@Composable
-private fun yearAndSeasonValue(filters: SearchFilters): String? {
-    val season = filters.season?.toLabel()
-    val years = filters.yearRange.label()
-    return listOfNotNull(season, years).joinToString(" ").ifEmpty { null }
-}
-
-internal fun IntRangeFilter.label(): String? = when {
-    min != null && max != null && min == max -> "$min"
-    min != null && max != null -> "$min–$max"
-    min != null -> "$min+"
-    max != null -> "≤$max"
-    else -> null
-}
-
-/** The filters the More sheet holds, for its chip's count. */
-private fun SearchFilters.moreCount(): Int = listOf(
-    sources.isNotEmpty(),
-    country != null,
-    score.isActive,
-    episodes.isActive,
-    chapters.isActive,
-    adultMode != AdultMode.ANY
-).count { it }

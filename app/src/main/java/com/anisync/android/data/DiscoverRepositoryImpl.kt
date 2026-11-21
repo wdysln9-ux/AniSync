@@ -1,6 +1,7 @@
 package com.anisync.android.data
 
 import com.anisync.android.GetMediaBySortQuery
+import com.anisync.android.GetRecommendationsQuery
 import com.anisync.android.GetPaginatedMediaQuery
 import com.anisync.android.GetUpcomingMediaQuery
 import com.anisync.android.data.util.dataOrThrow
@@ -30,8 +31,52 @@ class DiscoverRepositoryImpl @Inject constructor(
         return fetchMedia(listOf(MediaSort.TRENDING_DESC), type)
     }
 
-    override suspend fun getPopular(type: MediaType): Result<List<LibraryEntry>> {
-        return fetchMedia(listOf(MediaSort.POPULARITY_DESC), type)
+    override suspend fun getRecommendations(type: MediaType): Result<List<LibraryEntry>> {
+        return safeApiCall {
+            val response = apolloClient.query(
+                GetRecommendationsQuery(
+                    page = Optional.present(1),
+                    perPage = Optional.present(25)
+                )
+            )
+                .fetchPolicy(FetchPolicy.NetworkOnly)
+                .doNotStore(true)
+                .execute()
+
+            response.dataOrThrow().Page?.recommendations
+                ?.filterNotNull()
+                ?.mapNotNull { recommendation ->
+                    val media = recommendation.mediaRecommendation ?: return@mapNotNull null
+                    if (media.type != type) return@mapNotNull null
+                    LibraryEntry(
+                        id = 0,
+                        mediaId = media.id ?: 0,
+                        titleRomaji = media.title?.romaji,
+                        titleEnglish = media.title?.english,
+                        titleNative = media.title?.native,
+                        titleUserPreferred = media.title?.userPreferred ?: "Unknown",
+                        coverUrl = media.coverImage?.extraLarge,
+                        cover = com.anisync.android.domain.CoverImage.of(
+                            media.coverImage?.medium,
+                            media.coverImage?.large,
+                            media.coverImage?.extraLarge
+                        ),
+                        progress = 0,
+                        totalEpisodes = media.episodes,
+                        totalChapters = media.chapters,
+                        totalVolumes = media.volumes,
+                        type = media.type,
+                        format = media.format,
+                        status = LibraryStatus.UNKNOWN,
+                        mediaStatus = null,
+                        averageScore = media.averageScore,
+                        seasonYear = media.seasonYear
+                    )
+                }
+                .distinctBy { it.mediaId }
+                .take(10)
+                .orEmpty()
+        }
     }
 
     override suspend fun getNewlyAdded(type: MediaType): Result<List<LibraryEntry>> {
@@ -99,7 +144,9 @@ class DiscoverRepositoryImpl @Inject constructor(
                 GetUpcomingMediaQuery(
                     perPage = Optional.present(10),
                     type = Optional.present(type),
-                    status = Optional.present(MediaStatus.NOT_YET_RELEASED)
+                    status = Optional.present(MediaStatus.NOT_YET_RELEASED),
+                    season = Optional.absent(),
+                    seasonYear = Optional.absent()
                 )
             )
             .fetchPolicy(FetchPolicy.NetworkOnly)
@@ -119,7 +166,9 @@ class DiscoverRepositoryImpl @Inject constructor(
                 GetUpcomingMediaQuery(
                     perPage = Optional.present(20),
                     type = Optional.present(type),
-                    status = Optional.present(MediaStatus.NOT_YET_RELEASED)
+                    status = Optional.present(MediaStatus.NOT_YET_RELEASED),
+                    season = Optional.absent(),
+                    seasonYear = Optional.absent()
                 )
             )
             .fetchPolicy(FetchPolicy.NetworkOnly)
@@ -143,11 +192,28 @@ class DiscoverRepositoryImpl @Inject constructor(
      */
     override suspend fun getNotYetReleased(type: MediaType): Result<List<LibraryEntry>> {
         return safeApiCall {
+            val now = java.time.LocalDate.now()
+            val currentSeason = when (now.monthValue) {
+                in 1..3 -> com.anisync.android.type.MediaSeason.WINTER
+                in 4..6 -> com.anisync.android.type.MediaSeason.SPRING
+                in 7..9 -> com.anisync.android.type.MediaSeason.SUMMER
+                else -> com.anisync.android.type.MediaSeason.FALL
+            }
+            val nextSeason = when (currentSeason) {
+                com.anisync.android.type.MediaSeason.WINTER -> com.anisync.android.type.MediaSeason.SPRING
+                com.anisync.android.type.MediaSeason.SPRING -> com.anisync.android.type.MediaSeason.SUMMER
+                com.anisync.android.type.MediaSeason.SUMMER -> com.anisync.android.type.MediaSeason.FALL
+                com.anisync.android.type.MediaSeason.FALL -> com.anisync.android.type.MediaSeason.WINTER
+                else -> com.anisync.android.type.MediaSeason.SPRING
+            }
+            val nextYear = if (currentSeason == com.anisync.android.type.MediaSeason.FALL) now.year + 1 else now.year
             val response = apolloClient.query(
                 GetUpcomingMediaQuery(
-                    perPage = Optional.present(20),
+                    perPage = Optional.present(10),
                     type = Optional.present(type),
-                    status = Optional.present(MediaStatus.NOT_YET_RELEASED)
+                    status = Optional.present(MediaStatus.NOT_YET_RELEASED),
+                    season = if (type == MediaType.ANIME) Optional.present(nextSeason) else Optional.absent(),
+                    seasonYear = if (type == MediaType.ANIME) Optional.present(nextYear) else Optional.absent()
                 )
             )
                 .fetchPolicy(FetchPolicy.NetworkOnly)
@@ -155,8 +221,7 @@ class DiscoverRepositoryImpl @Inject constructor(
                 .execute()
 
             response.dataOrThrow().Page?.media?.filterNotNull()
-                ?.take(10)
-                ?.map { media -> media.toLibraryEntry(if (media.season != null) "UPCOMING" else "TBA") }
+                ?.map { media -> media.toLibraryEntry("UPCOMING") }
                 .orEmpty()
         }
     }
@@ -190,6 +255,25 @@ class DiscoverRepositoryImpl @Inject constructor(
                 else -> listOf(MediaSort.POPULARITY_DESC) to null
             }
 
+            val upcomingSeason = if (sectionType == "not_yet_released" && type == MediaType.ANIME) {
+                val now = java.time.LocalDate.now()
+                val currentSeason = when (now.monthValue) {
+                    in 1..3 -> com.anisync.android.type.MediaSeason.WINTER
+                    in 4..6 -> com.anisync.android.type.MediaSeason.SPRING
+                    in 7..9 -> com.anisync.android.type.MediaSeason.SUMMER
+                    else -> com.anisync.android.type.MediaSeason.FALL
+                }
+                val nextSeason = when (currentSeason) {
+                    com.anisync.android.type.MediaSeason.WINTER -> com.anisync.android.type.MediaSeason.SPRING
+                    com.anisync.android.type.MediaSeason.SPRING -> com.anisync.android.type.MediaSeason.SUMMER
+                    com.anisync.android.type.MediaSeason.SUMMER -> com.anisync.android.type.MediaSeason.FALL
+                    com.anisync.android.type.MediaSeason.FALL -> com.anisync.android.type.MediaSeason.WINTER
+                    else -> com.anisync.android.type.MediaSeason.SPRING
+                }
+                val nextYear = if (currentSeason == com.anisync.android.type.MediaSeason.FALL) now.year + 1 else now.year
+                nextSeason to nextYear
+            } else null
+
             val response = apolloClient.query(
                 GetPaginatedMediaQuery(
                     page = Optional.present(page),
@@ -197,7 +281,9 @@ class DiscoverRepositoryImpl @Inject constructor(
                     sort = Optional.present(sort),
                     type = Optional.present(type),
                     status = status?.let { Optional.present(it) } ?: Optional.absent(),
-                    format = format?.let { Optional.present(it) } ?: Optional.absent()
+                    format = format?.let { Optional.present(it) } ?: Optional.absent(),
+                    season = upcomingSeason?.first?.let { Optional.present(it) } ?: Optional.absent(),
+                    seasonYear = upcomingSeason?.second?.let { Optional.present(it) } ?: Optional.absent()
                 )
             )
             .fetchPolicy(FetchPolicy.NetworkOnly)

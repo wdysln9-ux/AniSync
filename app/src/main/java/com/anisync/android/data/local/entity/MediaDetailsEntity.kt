@@ -20,6 +20,8 @@ import com.anisync.android.type.MediaType
 @Entity(tableName = "media_details")
 data class MediaDetailsEntity(
     @PrimaryKey val id: Int,
+    @ColumnInfo(defaultValue = "NULL")
+    val idMal: Int? = null,
     val titleRomaji: String?,
     val titleEnglish: String?,
     val titleNative: String?,

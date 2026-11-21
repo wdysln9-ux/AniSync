@@ -86,10 +86,14 @@ fun TagPickerSheet(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
-        IncludeExcludeHint(
-            counts = selectionSummary(included.size, excluded.size),
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 8.dp)
-        )
+        selectionSummary(included.size, excluded.size)?.let { summary ->
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 8.dp)
+            )
+        }
 
         LazyColumn(modifier = Modifier.fillMaxWidth()) {
             grouped.forEach { (category, categoryTags) ->

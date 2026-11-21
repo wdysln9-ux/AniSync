@@ -202,7 +202,7 @@
     <string name="discover_section_trending">Trending now</string>
     <string name="discover_section_airing_today">Airing today</string>
     <string name="discover_section_releasing_now">Releasing now</string>
-    <string name="discover_section_popular">All-time popular</string>
+    <string name="discover_section_popular">Recommendations</string>
     <string name="discover_section_not_yet_released">Not yet released</string>
     <string name="discover_section_newly_added">New to AniList</string>
     <string name="discover_section_reviews">Recent reviews</string>
@@ -213,6 +213,7 @@
     <string name="discover_tba_marker">TBA</string>
     <string name="discover_search_placeholder_anime">Search anime, characters, studios</string>
     <string name="discover_search_placeholder_manga">Search manga, characters, staff</string>
+    <string name="discover_browse_recommendations">Recommendations</string>
     <string name="discover_browse_seasonal">Seasonal</string>
     <string name="discover_browse_schedule">Schedule</string>
     <string name="discover_browse_studios">Studios</string>
@@ -683,6 +684,7 @@
     <string name="details_tab_staff">Staff</string>
     <string name="details_tab_stats">Stats</string>
     <string name="details_tab_social">Social</string>
+    <string name="details_tab_watch">Watch</string>
     <!-- Media details tracking card -->
     <string name="details_add_to_list">Add to list</string>
     <string name="details_quick_plan">Plan</string>
@@ -2410,6 +2412,7 @@
     <string name="country_china">China</string>
     <string name="country_taiwan">Taiwan</string>
     <string name="search_sort_best_match">Best match</string>
+    <string name="search_sort_random">Acak</string>
     <string name="search_sort_popularity">Popularity</string>
     <string name="search_sort_score">Score</string>
     <string name="search_sort_trending">Trending</string>

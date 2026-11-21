@@ -43,6 +43,12 @@ class SearchSortMappingTest {
     }
 
     @Test
+    fun `random sort uses a broad API ordering before local shuffle`() {
+        assertFalse(SearchSortColumn.RANDOM.hasDirection)
+        assertEquals(MediaSort.POPULARITY_DESC, SearchSort(SearchSortColumn.RANDOM).on(MediaType.ANIME))
+    }
+
+    @Test
     fun `best match needs a query and falls back to the default without one`() {
         val sort = SearchSort(SearchSortColumn.BEST_MATCH)
         assertFalse(SearchSortColumn.BEST_MATCH.hasDirection)

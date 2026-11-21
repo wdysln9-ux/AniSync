@@ -22,9 +22,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
@@ -84,9 +82,8 @@ private val ActionSize = 48.dp
  * The browsing card: a clean cover with the title and one line of state underneath.
  *
  * Text stays off the artwork for the same reason `MediaPosterCard` keeps it off — a long title and
- * a score both stay readable, and the cover keeps its own contrast. What this variant adds over
- * that one is the quick-progress button, because a grid of a list you are actively watching still
- * has to let you mark an episode without opening anything.
+ * a score both stay readable, and the cover keeps its own contrast. Long-pressing the card opens the
+ * shared entry editor; the poster itself stays free of quick-action buttons.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -101,9 +98,7 @@ fun LibraryPosterCard(
     showListIndicator: Boolean = false,
     /** Off wherever the view already states the priority, which is the Priority sort's headers. */
     showPriority: Boolean = false,
-    onIncrement: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
-    onLongPress: (() -> Unit)? = null,
     selectionMode: Boolean = false,
     selected: Boolean = false,
     sharedTransitionScope: SharedTransitionScope? = null,
@@ -119,16 +114,16 @@ fun LibraryPosterCard(
     val hasProgress = entry.progress > 0 && (total == null || entry.progress < total)
 
     val cardShape = ExpressiveShapes.mediaCover
-    val clickModifier = if (onLongPress != null) {
+    val clickModifier = if (onEdit != null) {
         Modifier.bouncyCombinedClickable(
             onClick = onClick,
             onLongClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onLongPress()
+                onEdit()
             },
             role = Role.Button,
             onClickLabel = stringResource(R.string.a11y_action_open_details, title),
-            onLongClickLabel = stringResource(R.string.a11y_action_select_entry),
+            onLongClickLabel = stringResource(R.string.a11y_action_edit_entry),
             clipShape = cardShape
         )
     } else {
@@ -187,8 +182,6 @@ fun LibraryPosterCard(
                 scoreFormat = scoreFormat,
                 showListIndicator = showListIndicator,
                 showPriority = showPriority,
-                onIncrement = onIncrement,
-                onEdit = onEdit,
                 selectionMode = selectionMode,
                 selected = selected,
                 sharedTransitionScope = sharedTransitionScope,
@@ -221,8 +214,6 @@ private fun PosterArt(
     scoreFormat: ScoreFormat,
     showListIndicator: Boolean,
     showPriority: Boolean,
-    onIncrement: (() -> Unit)?,
-    onEdit: (() -> Unit)?,
     selectionMode: Boolean,
     selected: Boolean,
     sharedTransitionScope: SharedTransitionScope?,
@@ -256,8 +247,9 @@ private fun PosterArt(
             .then(coverModifier)
             .clip(shape)
     ) {
-        // 10dp inset either side, the 48dp action, and an 8dp gap the chip must never cross.
-        val chipMaxWidth = (maxWidth - ActionSize - 28.dp).coerceAtLeast(0.dp)
+        // Leave room for the selection check only while selecting; otherwise the chip can use
+        // the full width between its 10dp side insets.
+        val chipMaxWidth = (maxWidth - if (selectionMode) ActionSize + 28.dp else 20.dp).coerceAtLeast(0.dp)
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(entry.cover.url() ?: entry.coverUrl)
@@ -270,8 +262,8 @@ private fun PosterArt(
             modifier = Modifier.fillMaxSize()
         )
 
-        // The indicator takes the top-start corner here, because the bottom-end one is spent on
-        // the action — the same swap `PosterCard` makes when a title occupies the bottom edge.
+        // Keep list membership in the top-start corner; the bottom corners stay clear for the
+        // remaining-count chip and selection state.
         if (showListIndicator) {
             ListIndicator(
                 status = entry.status,
@@ -304,8 +296,7 @@ private fun PosterArt(
             )
         }
 
-        // The bottom-start corner is the only one the action and the indicator leave free, and a
-        // grid with no airing date is a grid you have to open a card to read.
+        // The bottom-start corner is reserved for the remaining count or next-airing time.
         if (!selectionMode) {
             PosterStateChip(
                 entry = entry,
@@ -316,30 +307,9 @@ private fun PosterArt(
                     .widthIn(max = chipMaxWidth)
             )
         }
-
-        when {
-            selectionMode -> Box(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp)
-            ) {
-                PosterSelectionCheck(selected = selected)
-            }
-
-            onIncrement == null && onEdit != null -> Box(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp)
-            ) {
-                PosterEditButton(onEdit = onEdit)
-            }
-
-            onIncrement != null -> Box(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp)
-            ) {
-                PosterIncrementButton(
-                    nextEpisode = entry.progress + 1,
-                    ready = aired != null && entry.progress < aired &&
-                        entry.status == LibraryStatus.CURRENT,
-                    onIncrement = onIncrement,
-                    onEdit = onEdit
-                )
+        if (selectionMode) {
+            Box(modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp)) {
+                PosterSelectionCheck(selected)
             }
         }
     }
@@ -451,94 +421,6 @@ internal fun PosterValueText(text: String) {
         color = MaterialTheme.colorScheme.onSurface,
         maxLines = 1
     )
-}
-
-@Composable
-private fun PosterIncrementButton(
-    nextEpisode: Int,
-    ready: Boolean,
-    onIncrement: () -> Unit,
-    onEdit: (() -> Unit)?
-) {
-    val haptic = rememberHapticFeedback()
-    val shape = RoundedCornerShape(16.dp)
-    Box {
-        Surface(
-            shape = shape,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier
-                .size(ActionSize)
-                .bouncyCombinedClickable(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onIncrement()
-                    },
-                    onLongClick = onEdit?.let {
-                        {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            it()
-                        }
-                    },
-                    role = Role.Button,
-                    onClickLabel = stringResource(R.string.a11y_action_mark_episode, nextEpisode),
-                    onLongClickLabel = stringResource(R.string.a11y_action_edit_entry),
-                    clipShape = shape
-                )
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-        }
-        // Which of these can I advance right now, without reading a word.
-        if (ready) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 0.dp)
-                    .size(12.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                    .padding(2.dp)
-                    .clip(CircleShape)
-                    .background(listIndicatorColor(ListIndicatorKind.WATCHING).content)
-            )
-        }
-    }
-}
-
-@Composable
-private fun PosterEditButton(onEdit: () -> Unit) {
-    val haptic = rememberHapticFeedback()
-    val shape = RoundedCornerShape(16.dp)
-    Surface(
-        shape = shape,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        modifier = Modifier
-            .size(ActionSize)
-            .bouncyClickable(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onEdit()
-                },
-                role = Role.Button,
-                onClickLabel = stringResource(R.string.a11y_action_edit_entry),
-                clipShape = shape
-            )
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(22.dp)
-            )
-        }
-    }
 }
 
 @Composable

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -21,6 +22,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,7 +39,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.anisync.android.R
 import com.anisync.android.domain.ADULT_GENRES
-import com.anisync.android.domain.AdultMode
 import com.anisync.android.domain.ComparatorMode
 import com.anisync.android.domain.IntComparatorFilter
 import com.anisync.android.domain.IntRangeFilter
@@ -49,14 +51,13 @@ import com.anisync.android.domain.SearchSortColumn
 import com.anisync.android.presentation.components.filtersheet.FilterOptionGroup
 import com.anisync.android.presentation.components.filtersheet.FilterSheetScaffold
 import com.anisync.android.presentation.components.filtersheet.IncludeExcludeChip
-import com.anisync.android.presentation.components.filtersheet.IncludeExcludeHint
 import com.anisync.android.presentation.components.filtersheet.OptionPillGrid
 import com.anisync.android.presentation.components.filtersheet.SegmentedChoice
 import com.anisync.android.presentation.components.filtersheet.SheetFooterButton
 import com.anisync.android.presentation.components.filtersheet.SheetSectionLabel
-import com.anisync.android.presentation.components.filtersheet.SortSheet
 import com.anisync.android.presentation.components.filtersheet.TagChoice
 import com.anisync.android.presentation.components.filtersheet.TagPickerSheet
+import com.anisync.android.presentation.components.filtersheet.SortSheet
 import com.anisync.android.presentation.components.filtersheet.TriState
 import com.anisync.android.presentation.components.filtersheet.airingStatusTitle
 import com.anisync.android.presentation.util.pluralStringResourceOrDefault
@@ -66,6 +67,10 @@ import com.anisync.android.type.MediaSeason
 import com.anisync.android.type.MediaSource
 import com.anisync.android.type.MediaStatus
 import java.util.Calendar
+
+enum class FilterId {
+    ALL, SORT, GENRES, TAGS, FORMAT, STATUS, YEAR, MORE
+}
 
 /**
  * Every sheet the Discover filter bar opens. Edits apply live, and each filter sheet closes on a
@@ -91,6 +96,17 @@ fun SearchFilterSheetHost(
         )
     }
     when (openedFilter) {
+        FilterId.ALL -> AnimeWStyleFilterSheet(
+            filters = filters,
+            category = category,
+            hasQuery = hasQuery,
+            matchingTitles = matchingTitles,
+            genres = genres,
+            tags = tags,
+            showAdultContent = showAdultContent,
+            onFiltersChange = onFiltersChange,
+            onDismiss = onDismiss
+        )
         FilterId.SORT -> SearchSortSheet(filters, category, hasQuery, onFiltersChange, onDismiss)
         FilterId.GENRES -> GenresSheet(filters, genres, showAdultContent, onFiltersChange, onDismiss, footer)
         FilterId.TAGS -> {
@@ -145,6 +161,299 @@ fun SearchFilterSheetHost(
     }
 }
 
+
+/** One consolidated Discover filter panel styled after AnimeW's single-sheet layout. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AnimeWStyleFilterSheet(
+    filters: SearchFilters,
+    category: ResultCategory,
+    hasQuery: Boolean,
+    matchingTitles: Int,
+    genres: List<String>,
+    tags: List<MediaTag>,
+    showAdultContent: Boolean,
+    onFiltersChange: (SearchFilters) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val currentYear = remember { Calendar.getInstance().get(Calendar.YEAR) }
+    val footer: @Composable () -> Unit = {
+        SheetFooterButton(
+            text = pluralStringResourceOrDefault(R.plurals.library_show_results, matchingTitles, matchingTitles),
+            onClick = onDismiss
+        )
+    }
+    FilterSheetScaffold(
+        title = "Filter",
+        onDismiss = onDismiss,
+        onReset = { onFiltersChange(SearchFilters()) },
+        resetEnabled = filters != SearchFilters(),
+        footer = footer
+    ) {
+        SheetSectionLabel("Urutkan")
+        FilterChoiceChipGroup(
+            options = sortColumns(category, hasQuery),
+            label = { it.label() },
+            isSelected = { it == filters.sort.column.on(category) },
+            onClick = { onFiltersChange(filters.copy(sort = SearchSort(it, filters.sort.descending))) }
+        )
+        Spacer(Modifier.height(18.dp))
+        SheetSectionLabel("Tipe")
+        FilterChoiceChipGroup(
+            options = formatOptions(category),
+            label = { it.toLabel() },
+            isSelected = { it in filters.formats },
+            onClick = { onFiltersChange(filters.copy(formats = filters.formats.toggle(it))) }
+        )
+        Spacer(Modifier.height(18.dp))
+        SheetSectionLabel(airingStatusTitle(manga = category == ResultCategory.MANGA))
+        FilterChoiceChipGroup(
+            options = StatusOptions,
+            label = { it.toLabel() },
+            isSelected = { it in filters.statuses },
+            onClick = { onFiltersChange(filters.copy(statuses = filters.statuses.toggle(it))) }
+        )
+        Spacer(Modifier.height(18.dp))
+        SheetSectionLabel("Negara")
+        FilterChoiceChipGroup(
+            options = listOf(OriginCountry.JAPAN, OriginCountry.CHINA, OriginCountry.SOUTH_KOREA, OriginCountry.TAIWAN),
+            label = { it.toLabel() },
+            isSelected = { it == filters.country },
+            onClick = { onFiltersChange(filters.copy(country = it.takeIf { it != filters.country })) }
+        )
+        Spacer(Modifier.height(18.dp))
+        SheetSectionLabel("Tahun Rilis")
+        val startYear = (filters.yearRange.min ?: 1990).coerceIn(1990, currentYear)
+        val endYear = (filters.yearRange.max ?: currentYear).coerceIn(startYear, currentYear)
+        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(startYear.toString(), style = MaterialTheme.typography.titleMedium)
+            Text(endYear.toString(), style = MaterialTheme.typography.titleMedium)
+        }
+        androidx.compose.material3.RangeSlider(
+            value = startYear.toFloat()..endYear.toFloat(),
+            onValueChange = { range ->
+                val from = range.start.toInt()
+                val to = range.endInclusive.toInt()
+                onFiltersChange(filters.copy(yearRange = if (from == 1990 && to == currentYear) IntRangeFilter() else IntRangeFilter(from, to)))
+            },
+            valueRange = 1990f..currentYear.toFloat()
+        )
+        var showOlderYearChips by rememberSaveable { mutableStateOf((filters.yearRange.min ?: currentYear) < 2012) }
+        val yearChips = if (showOlderYearChips) (1990..currentYear).toList().reversed()
+            else (2012..currentYear).toList().reversed()
+        Spacer(Modifier.height(10.dp))
+        FilterChoiceChipGroup(
+            options = yearChips,
+            label = { it.toString() },
+            isSelected = { it == filters.yearRange.min && it == filters.yearRange.max },
+            onClick = { year ->
+                onFiltersChange(
+                    filters.copy(
+                        yearRange = if (filters.yearRange.min == year && filters.yearRange.max == year) {
+                            IntRangeFilter()
+                        } else IntRangeFilter(year, year)
+                    )
+                )
+            }
+        )
+        if (currentYear > 2012) {
+            Surface(
+                onClick = { showOlderYearChips = !showOlderYearChips },
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 24.dp, top = 8.dp)
+            ) {
+                Text(
+                    if (showOlderYearChips) "Lebih sedikit" else "Selengkapnya (+22)",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+        }
+        if (category != ResultCategory.MANGA) {
+            SheetSectionLabel(stringResource(R.string.filter_episodes))
+            val episodeCount = filters.episodes.value ?: 0
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Minimal episode", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (episodeCount == 0) "Semua" else episodeCount.toString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            }
+            Slider(
+                value = episodeCount.toFloat(),
+                onValueChange = { value ->
+                    val picked = value.toInt()
+                    onFiltersChange(filters.copy(episodes = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
+                },
+                valueRange = 0f..200f,
+                steps = 199
+            )
+        }
+        SheetSectionLabel("Skor minimum")
+        val score = if (filters.score.mode == ComparatorMode.AT_LEAST) filters.score.value ?: 0 else 0
+        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Minimum", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("$score%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        }
+        Slider(
+            value = score.toFloat(),
+            onValueChange = { value ->
+                val picked = value.toInt()
+                onFiltersChange(filters.copy(score = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
+            },
+            valueRange = 0f..100f,
+            steps = 0
+        )
+        if (category != ResultCategory.MANGA) {
+            Spacer(Modifier.height(18.dp))
+            SheetSectionLabel("Musim")
+            FilterChoiceChipGroup(
+                options = Seasons,
+                label = { it.toLabel().orEmpty() },
+                isSelected = { it == filters.season },
+                onClick = { season -> onFiltersChange(filters.copy(season = season.takeIf { it != filters.season })) }
+            )
+        }
+        Spacer(Modifier.height(18.dp))
+        SheetSectionLabel("Genre")
+        val visibleGenres = if (showAdultContent) genres else genres.filterNot { it in ADULT_GENRES }
+        Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                visibleGenres.forEach { genre ->
+                    IncludeExcludeChip(
+                        label = genre,
+                        state = when (genre) {
+                            in filters.genresIncluded -> TriState.INCLUDED
+                            in filters.genresExcluded -> TriState.EXCLUDED
+                            else -> TriState.OFF
+                        },
+                        onStateChange = { selected ->
+                            onFiltersChange(filters.copy(
+                                genresIncluded = filters.genresIncluded.with(genre, selected == TriState.INCLUDED),
+                                genresExcluded = filters.genresExcluded.with(genre, selected == TriState.EXCLUDED)
+                            ))
+                        }
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(18.dp))
+        SheetSectionLabel("Tags")
+        Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            var showAllTags by rememberSaveable { mutableStateOf(false) }
+            val visibleTags = if (showAllTags) tags else tags.take(16)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                visibleTags.forEach { tag ->
+                    IncludeExcludeChip(
+                        label = tag.name,
+                        state = when (tag.name) {
+                            in filters.tagsIncluded -> TriState.INCLUDED
+                            in filters.tagsExcluded -> TriState.EXCLUDED
+                            else -> TriState.OFF
+                        },
+                        onStateChange = { selected ->
+                            onFiltersChange(filters.copy(
+                                tagsIncluded = filters.tagsIncluded.with(tag.name, selected == TriState.INCLUDED),
+                                tagsExcluded = filters.tagsExcluded.with(tag.name, selected == TriState.EXCLUDED)
+                            ))
+                        }
+                    )
+                }
+                if (tags.size > 16) {
+                    Surface(
+                        onClick = { showAllTags = !showAllTags },
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest
+                    ) {
+                        Text(
+                            if (showAllTags) "Tampilkan lebih sedikit" else "Selengkapnya (+${tags.size - 16})",
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        SheetSectionLabel("Persentase minimum tag")
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Minimum", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("${filters.minimumTagRank}%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        }
+        Slider(
+            value = filters.minimumTagRank.toFloat(),
+            onValueChange = { value -> onFiltersChange(filters.copy(minimumTagRank = value.toInt())) },
+            valueRange = 0f..100f,
+            steps = 0
+        )
+        Spacer(Modifier.height(18.dp))
+        SheetSectionLabel(stringResource(R.string.filter_source))
+        OptionPillGrid(
+            options = SourceOptions,
+            label = { it.toLabel().orEmpty() },
+            isSelected = { it in filters.sources },
+            onClick = { onFiltersChange(filters.copy(sources = filters.sources.toggle(it))) },
+            role = Role.Checkbox
+        )
+        Spacer(Modifier.height(18.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Hide My Anime", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Sembunyikan anime yang sudah ada di daftar AniList kamu",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = filters.hideMyAnime,
+                onCheckedChange = { onFiltersChange(filters.copy(hideMyAnime = it)) }
+            )
+        }
+    }
+}
+
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun <T> FilterChoiceChipGroup(
+    options: List<T>,
+    label: @Composable (T) -> String,
+    isSelected: (T) -> Boolean,
+    onClick: (T) -> Unit
+) {
+    FlowRow(
+        modifier = Modifier.padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        options.forEach { option ->
+            val selected = isSelected(option)
+            Surface(
+                onClick = { onClick(option) },
+                shape = CircleShape,
+                color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+            ) {
+                Text(
+                    text = label(option),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+        }
+    }
+}
+
 // =============================================================================
 // SORT
 // =============================================================================
@@ -178,6 +487,7 @@ private fun SearchSortSheet(
  */
 internal fun sortColumns(category: ResultCategory, hasQuery: Boolean): List<SearchSortColumn> = buildList {
     if (hasQuery) add(SearchSortColumn.BEST_MATCH)
+    add(SearchSortColumn.RANDOM)
     addAll(
         listOf(
             SearchSortColumn.POPULARITY,
@@ -215,6 +525,7 @@ internal fun SearchSortColumn.on(category: ResultCategory): SearchSortColumn = w
 internal fun SearchSortColumn.label(): String = stringResource(
     when (this) {
         SearchSortColumn.BEST_MATCH -> R.string.search_sort_best_match
+        SearchSortColumn.RANDOM -> R.string.search_sort_random
         SearchSortColumn.POPULARITY -> R.string.search_sort_popularity
         SearchSortColumn.SCORE -> R.string.search_sort_score
         SearchSortColumn.TRENDING -> R.string.search_sort_trending
@@ -259,7 +570,6 @@ private fun GenresSheet(
             modifier = Modifier.padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            IncludeExcludeHint(counts = null)
             if (visibleGenres.isEmpty()) {
                 Text(
                     text = stringResource(R.string.filter_loading_genres),
@@ -300,8 +610,8 @@ private fun GenresSheet(
 // =============================================================================
 
 private val AnimeFormats = listOf(
-    MediaFormat.TV, MediaFormat.TV_SHORT, MediaFormat.MOVIE,
-    MediaFormat.SPECIAL, MediaFormat.OVA, MediaFormat.ONA, MediaFormat.MUSIC
+    MediaFormat.TV, MediaFormat.MOVIE, MediaFormat.ONA, MediaFormat.OVA,
+    MediaFormat.TV_SHORT, MediaFormat.SPECIAL, MediaFormat.MUSIC
 )
 private val MangaFormats = listOf(MediaFormat.MANGA, MediaFormat.NOVEL, MediaFormat.ONE_SHOT)
 
@@ -346,10 +656,14 @@ private fun YearAndSeasonSheet(
         scrollableBody = false,
         footer = footer
     ) {
+        SheetSectionLabel(stringResource(R.string.filter_year))
+        Spacer(Modifier.height(10.dp))
+        YearPickerBody(filters, onFiltersChange)
         if (showSeason) {
+            Spacer(Modifier.height(10.dp))
             SheetSectionLabel(stringResource(R.string.filter_season))
             Spacer(Modifier.height(10.dp))
-            OptionPillGrid(
+            FilterChoiceChipGroup(
                 options = Seasons,
                 label = { it.toLabel().orEmpty() },
                 isSelected = { it == filters.season },
@@ -357,11 +671,7 @@ private fun YearAndSeasonSheet(
                     onFiltersChange(filters.copy(season = season.takeIf { it != filters.season }))
                 }
             )
-            Spacer(Modifier.height(10.dp))
         }
-        SheetSectionLabel(stringResource(R.string.filter_year))
-        Spacer(Modifier.height(10.dp))
-        YearPickerBody(filters, onFiltersChange)
     }
 }
 
@@ -384,8 +694,12 @@ private fun YearPickerBody(
 ) {
     val currentYear = remember { Calendar.getInstance().get(Calendar.YEAR) }
     val maxYear = currentYear + 1
-    val minYear = 1940
-    val years = remember(maxYear) { (minYear..maxYear).toList().reversed() }
+    val minYear = 1990
+    var showOlderYears by rememberSaveable { mutableStateOf((filters.yearRange.min ?: currentYear) < 2012) }
+    val years = remember(maxYear, showOlderYears) {
+        if (showOlderYears) (minYear..maxYear).toList().reversed()
+        else (2012..maxYear).toList().reversed()
+    }
 
     val from = filters.yearRange.min
     val to = filters.yearRange.max
@@ -444,6 +758,20 @@ private fun YearPickerBody(
                     inRange = from != null && to != null && from != to && year > from && year < to,
                     isToday = year == currentYear && !isEndpoint,
                     onClick = { onYearTap(year) }
+                )
+            }
+        }
+        if (!showOlderYears && currentYear > 2012) {
+            Surface(
+                onClick = { showOlderYears = true },
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                modifier = Modifier.padding(top = 10.dp)
+            ) {
+                Text(
+                    "Selengkapnya (+22)",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelMedium
                 )
             }
         }
@@ -516,37 +844,26 @@ private fun MoreFiltersSheet(
                     country = null,
                     score = IntComparatorFilter(),
                     episodes = IntComparatorFilter(),
-                    chapters = IntComparatorFilter(),
-                    adultMode = AdultMode.ANY
+                    hideMyAnime = false
                 )
             )
         },
         resetEnabled = filters.sources.isNotEmpty() || filters.country != null ||
-            filters.score.isActive || filters.episodes.isActive || filters.chapters.isActive ||
-            filters.adultMode != AdultMode.ANY,
+            filters.score.isActive || filters.episodes.isActive || filters.hideMyAnime,
         footer = footer
     ) {
-        val sourceLabels = filters.sources.mapNotNull { it.toLabel() }
-        FilterOptionGroup(
-            label = stringResource(R.string.filter_source),
-            summary = when (sourceLabels.size) {
-                0 -> any
-                1 -> sourceLabels.first()
-                else -> stringResource(R.string.filter_value_more, sourceLabels.first(), sourceLabels.size - 1)
-            },
-            expanded = expanded == "source",
-            onToggle = { toggle("source") }
-        ) {
-            OptionPillGrid(
-                options = SourceOptions,
-                label = { it.toLabel().orEmpty() },
-                isSelected = { it in filters.sources },
-                onClick = { source -> onFiltersChange(filters.copy(sources = filters.sources.toggle(source))) },
-                horizontalPadding = 0.dp,
-                idleColor = groupPill,
-                role = Role.Checkbox
-            )
-        }
+        SheetSectionLabel(stringResource(R.string.filter_source))
+        Spacer(Modifier.height(10.dp))
+        OptionPillGrid(
+            options = SourceOptions,
+            label = { it.toLabel().orEmpty() },
+            isSelected = { it in filters.sources },
+            onClick = { source -> onFiltersChange(filters.copy(sources = filters.sources.toggle(source))) },
+            horizontalPadding = 0.dp,
+            idleColor = groupPill,
+            role = Role.Checkbox
+        )
+        Spacer(Modifier.height(18.dp))
 
         FilterOptionGroup(
             label = stringResource(R.string.filter_country),
@@ -566,18 +883,42 @@ private fun MoreFiltersSheet(
             )
         }
 
-        FilterOptionGroup(
-            label = stringResource(R.string.filter_mean_score),
-            summary = filters.score.summary(suffix = "%") ?: any,
-            expanded = expanded == "score",
-            onToggle = { toggle("score") }
-        ) {
-            ThresholdBody(
-                filter = filters.score,
-                values = (0..100 step 5).toList(),
-                defaultValue = 75,
-                suffix = "%",
-                onChange = { onFiltersChange(filters.copy(score = it)) }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SheetSectionLabel(stringResource(R.string.filter_mean_score))
+            val minimumScore = if (filters.score.mode == ComparatorMode.AT_LEAST) {
+                filters.score.value ?: 0
+            } else {
+                0
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Minimum",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "$minimumScore%",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Slider(
+                value = minimumScore.toFloat(),
+                onValueChange = { value ->
+                    val score = value.toInt()
+                    onFiltersChange(
+                        filters.copy(
+                            score = if (score == 0) IntComparatorFilter()
+                            else IntComparatorFilter(ComparatorMode.AT_LEAST, score)
+                        )
+                    )
+                },
+                valueRange = 0f..100f,
+                steps = 99
             )
         }
 
@@ -597,37 +938,7 @@ private fun MoreFiltersSheet(
             }
         }
 
-        if (category != ResultCategory.ANIME) {
-            FilterOptionGroup(
-                label = stringResource(R.string.filter_chapters),
-                summary = filters.chapters.summary() ?: any,
-                expanded = expanded == "chapters",
-                onToggle = { toggle("chapters") }
-            ) {
-                ThresholdBody(
-                    filter = filters.chapters,
-                    values = (1..1000).toList(),
-                    defaultValue = 50,
-                    onChange = { onFiltersChange(filters.copy(chapters = it)) }
-                )
-            }
-        }
 
-        FilterOptionGroup(
-            label = stringResource(R.string.filter_adult_content),
-            summary = filters.adultMode.label(),
-            expanded = expanded == "adult",
-            onToggle = { toggle("adult") }
-        ) {
-            OptionPillGrid(
-                options = AdultMode.entries,
-                label = { it.label() },
-                isSelected = { it == filters.adultMode },
-                onClick = { onFiltersChange(filters.copy(adultMode = it)) },
-                horizontalPadding = 0.dp,
-                idleColor = groupPill
-            )
-        }
     }
 }
 
@@ -700,15 +1011,6 @@ private fun IntComparatorFilter.summary(suffix: String = ""): String? {
         ComparatorMode.EXACTLY -> stringResource(R.string.filter_exactly_value, shown)
     }
 }
-
-@Composable
-private fun AdultMode.label(): String = stringResource(
-    when (this) {
-        AdultMode.ANY -> R.string.filter_any
-        AdultMode.HIDE -> R.string.filter_adult_hide
-        AdultMode.ONLY -> R.string.filter_adult_only
-    }
-)
 
 private fun <T> Set<T>.toggle(item: T): Set<T> = if (item in this) this - item else this + item
 

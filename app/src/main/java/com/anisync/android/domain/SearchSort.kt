@@ -11,6 +11,7 @@ import androidx.compose.runtime.Immutable
  */
 enum class SearchSortColumn(val naturallyDescending: Boolean) {
     BEST_MATCH(true),
+    RANDOM(false),
     POPULARITY(true),
     SCORE(true),
     TRENDING(true),

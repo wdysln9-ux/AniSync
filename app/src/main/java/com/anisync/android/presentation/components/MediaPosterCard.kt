@@ -18,8 +18,10 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -46,9 +48,11 @@ import com.anisync.android.domain.url
 import com.anisync.android.presentation.util.AppMotion
 import com.anisync.android.presentation.util.LocalLibraryStatuses
 import com.anisync.android.presentation.util.TransitionKeys
-import com.anisync.android.presentation.util.bouncyClickable
+import com.anisync.android.presentation.util.LocalLibraryEntryEditor
+import com.anisync.android.presentation.util.bouncyCombinedClickable
 import com.anisync.android.presentation.util.toLabel
 import com.anisync.android.ui.theme.StarGold
+import com.anisync.android.type.MediaType
 import com.anisync.android.util.getTitle
 import java.util.Locale
 
@@ -122,6 +126,7 @@ fun MediaPosterCard(
     meta: (@Composable RowScope.() -> Unit)? = null
 ) {
     val title = item.getTitle(titleLanguage)
+    val onEditEntry = LocalLibraryEntryEditor.current
     val spatialSpec = if (sharedTransitionScope != null) AppMotion.rememberSpatialSpec() else null
 
     val coverData = item.cover.url() ?: item.coverUrl
@@ -163,10 +168,15 @@ fun MediaPosterCard(
     }
 
     Column(
-        modifier = modifier.bouncyClickable(
+        modifier = modifier.bouncyCombinedClickable(
             onClick = onClick,
+            onLongClick = if (item.type == MediaType.ANIME) {
+                { onEditEntry(item) }
+            } else null,
             role = Role.Button,
-            onClickLabel = stringResource(R.string.a11y_action_open_details, title)
+            onClickLabel = stringResource(R.string.a11y_action_open_details, title),
+            onLongClickLabel = stringResource(R.string.a11y_action_edit_entry),
+            clipShape = CoverShape
         ),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -228,26 +238,7 @@ fun MediaPosterCard(
             ) {
                 item.format?.let { format -> MediaPosterCardDefaults.MetaText(format.toLabel()) }
 
-                item.averageScore?.let { score ->
-                    if (item.format != null) {
-                        Text(
-                            text = "·",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontSize = 13.sp,
 
-                            lineHeight = MetaLineHeight,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        tint = StarGold,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    MediaPosterCardDefaults.MetaText(String.format(Locale.US, "%.1f", score / 10.0), emphasized = true)
-                }
             }
         }
     }

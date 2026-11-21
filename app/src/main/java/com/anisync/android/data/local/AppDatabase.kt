@@ -22,6 +22,9 @@ import com.anisync.android.data.local.entity.UserProfileEntity
  *
  * Version History:
  * ─────────────────────────────────────────────────────────────────────────────
+ * v31 (Nov 2026):
+ *   - Added idMal to media_details for AniZip episode metadata.
+ *
  * v30 (Nov 2026):
  *   - Added recaps table for monthly and yearly recaps:
  *     • ownerId, periodKey, kind, builtAt, isFinal, settingsKey, seenAt, payload
@@ -141,7 +144,7 @@ import com.anisync.android.data.local.entity.UserProfileEntity
         MediaTagsEntity::class,
         RecapEntity::class
     ],
-    version = 30,
+    version = 31,
     exportSchema = true,
     autoMigrations = [
         androidx.room.AutoMigration(from = 2, to = 3),
@@ -169,7 +172,8 @@ import com.anisync.android.data.local.entity.UserProfileEntity
         androidx.room.AutoMigration(from = 26, to = 27),
         androidx.room.AutoMigration(from = 27, to = 28),
         androidx.room.AutoMigration(from = 28, to = 29),
-        androidx.room.AutoMigration(from = 29, to = 30)
+        androidx.room.AutoMigration(from = 29, to = 30),
+        androidx.room.AutoMigration(from = 30, to = 31)
     ]
 )
 @TypeConverters(Converters::class)

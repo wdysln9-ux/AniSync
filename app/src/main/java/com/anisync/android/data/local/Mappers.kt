@@ -97,6 +97,7 @@ fun LibraryEntry.toEntity(mediaType: MediaType): LibraryEntryEntity = LibraryEnt
 
 fun MediaDetailsEntity.toDomain(): MediaDetails = MediaDetails(
     id = id,
+    idMal = idMal,
     titleRomaji = titleRomaji,
     titleEnglish = titleEnglish,
     titleNative = titleNative,
@@ -163,6 +164,7 @@ fun MediaDetailsEntity.toDomain(): MediaDetails = MediaDetails(
 
 fun MediaDetails.toEntity(): MediaDetailsEntity = MediaDetailsEntity(
     id = id,
+    idMal = idMal,
     titleRomaji = titleRomaji,
     titleEnglish = titleEnglish,
     titleNative = titleNative,
