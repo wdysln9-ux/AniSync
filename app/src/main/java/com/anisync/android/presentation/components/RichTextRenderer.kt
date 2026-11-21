@@ -1487,7 +1487,7 @@ private fun RichTextTextKind.withHeadingLineHeight(base: TextStyle): TextStyle =
 private fun youtubeVideoIdFromUrl(value: String): String? {
     val url = value.trim()
     val isYouTube = Regex(
-        """^(?:https?://)?(?:(?:www|m)\\.)?(?:youtube\\.com|youtube-nocookie\\.com|youtu\\.be)(?:/|$)""",
+        """^(?:https?://)?(?:(?:www|m)\.)?(?:youtube\.com|youtube-nocookie\.com|youtu\.be)(?:/|$)""",
         RegexOption.IGNORE_CASE
     ).containsMatchIn(url)
     if (!isYouTube) return null
