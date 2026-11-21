@@ -169,7 +169,7 @@ private fun FullscreenVideoContent(
     var isStretching by remember { mutableStateOf(false) }
     var snappedRatio by remember { mutableStateOf<Float?>(null) }
     var cinematicIntensity by remember { mutableFloatStateOf(FullscreenVideoBridge.cinematicIntensity.floatValue) }
-    var displayMode by remember { mutableStateOf("Isi layar") }
+    var displayMode by remember { mutableStateOf("Fit") }
     // Seeded from the launch extra, then corrected off the player itself, so the fitted box tracks
     // the real picture even when the inline player never reported a size before the handoff.
     var aspect by remember {
