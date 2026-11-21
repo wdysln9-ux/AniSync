@@ -946,42 +946,31 @@ internal fun VideoControlsOverlay(
                             .height(if (wide) 40.dp else 32.dp),
                         contentAlignment = Alignment.Center
                     ) {
+                        // Keep the stock Material slider untouched; draw only the extra buffered
+                        // segment over its inactive track, without replacing its thumb or colors.
+                        Slider(
+                            state = seekState,
+                            onValueChange = { poke(); onSeek(it) },
+                            onValueChangeFinished = onSeekFinished,
+                            modifier = Modifier.fillMaxSize()
+                        )
                         androidx.compose.foundation.Canvas(
                             modifier = Modifier.fillMaxWidth().height(4.dp)
                         ) {
-                            val trackY = size.height / 2f
-                            drawLine(
-                                color = Color.White.copy(alpha = 0.30f),
-                                start = androidx.compose.ui.geometry.Offset(0f, trackY),
-                                end = androidx.compose.ui.geometry.Offset(size.width, trackY),
-                                strokeWidth = 4.dp.toPx(),
-                                cap = androidx.compose.ui.graphics.StrokeCap.Round
-                            )
-                            drawLine(
-                                color = Color.White.copy(alpha = 0.55f),
-                                start = androidx.compose.ui.geometry.Offset(0f, trackY),
-                                end = androidx.compose.ui.geometry.Offset(size.width * bufferedFraction, trackY),
-                                strokeWidth = 4.dp.toPx(),
-                                cap = androidx.compose.ui.graphics.StrokeCap.Butt
-                            )
+                            if (bufferedFraction > fraction) {
+                                val startX = (size.width * fraction + 7.dp.toPx()).coerceAtMost(size.width)
+                                val endX = size.width * bufferedFraction
+                                if (endX > startX) {
+                                    drawLine(
+                                        color = Color.White.copy(alpha = 0.55f),
+                                        start = androidx.compose.ui.geometry.Offset(startX, size.height / 2f),
+                                        end = androidx.compose.ui.geometry.Offset(endX, size.height / 2f),
+                                        strokeWidth = 4.dp.toPx(),
+                                        cap = androidx.compose.ui.graphics.StrokeCap.Round
+                                    )
+                                }
+                            }
                         }
-                        Slider(
-                        state = seekState,
-                        onValueChange = { poke(); onSeek(it) },
-                        onValueChangeFinished = onSeekFinished,
-                        thumb = {
-                            SliderDefaults.Thumb(
-                                interactionSource = remember { MutableInteractionSource() },
-                                thumbSize = if (wide) DpSize(16.dp, 16.dp) else DpSize(12.dp, 12.dp),
-                                colors = SliderDefaults.colors(thumbColor = MaterialTheme.colorScheme.primary)
-                            )
-                        },
-                        colors = SliderDefaults.colors(
-                            activeTrackColor = MaterialTheme.colorScheme.primary,
-                            inactiveTrackColor = Color.Transparent
-                        ),
-                        modifier = Modifier.fillMaxSize()
-                    )
                     }
 
                     Text(
