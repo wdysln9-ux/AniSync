@@ -676,6 +676,8 @@ internal fun VideoControlsOverlay(
     // Bumped on every interaction to restart the auto-hide countdown.
     var interactions by remember { mutableIntStateOf(0) }
     var seekFeedback by remember { mutableStateOf<String?>(null) }
+    var seekFeedbackForward by remember { mutableStateOf(true) }
+    var accumulatedSeekMs by remember { mutableLongStateOf(0L) }
     var quickSettingsExpanded by remember { mutableStateOf(false) }
     var playerSettingsExpanded by remember { mutableStateOf(false) }
     var selectedSpeed by remember { mutableFloatStateOf(PlayerPreferences.playbackSpeed(context)) }
@@ -700,7 +702,7 @@ internal fun VideoControlsOverlay(
     }
 
     val poke: () -> Unit = { interactions++ }
-    LaunchedEffect(seekFeedback) { if (seekFeedback != null) { delay(650); seekFeedback = null } }
+    LaunchedEffect(seekFeedback) { if (seekFeedback != null) { delay(850); seekFeedback = null; accumulatedSeekMs = 0L } }
     val fraction = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
     val bufferedFraction = if (durationMs > 0) (bufferedPositionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 
@@ -725,18 +727,58 @@ internal fun VideoControlsOverlay(
         val timeStyle = if (wide) MaterialTheme.typography.titleSmall
         else MaterialTheme.typography.labelSmall
 
-        // Tap layer: toggles control visibility (sits below the controls, which consume their own taps).
+        // Single tap reveals/hides controls. Double tap: left/right seeks cumulatively,
+        // while the centre pauses or resumes instead of seeking.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
-                    detectTapGestures(onTap = { controlsVisible = !controlsVisible }, onDoubleTap = { offset -> controlsVisible = true; poke(); val forward = offset.x >= size.width / 2f; onSeekBy(if (forward) 10_000L else -10_000L); seekFeedback = if (forward) "+10 detik" else "-10 detik" })
+                    detectTapGestures(
+                        onTap = { controlsVisible = !controlsVisible },
+                        onDoubleTap = { offset ->
+                            controlsVisible = true
+                            poke()
+                            val xFraction = offset.x / size.width.toFloat()
+                            when {
+                                xFraction < 0.35f || xFraction > 0.65f -> {
+                                    val forward = xFraction > 0.65f
+                                    val step = if (forward) 10_000L else -10_000L
+                                    accumulatedSeekMs = if (seekFeedback != null && seekFeedbackForward == forward) {
+                                        accumulatedSeekMs + step
+                                    } else {
+                                        step
+                                    }
+                                    seekFeedbackForward = forward
+                                    onSeekBy(step)
+                                    val seconds = kotlin.math.abs(accumulatedSeekMs / 1000L)
+                                    seekFeedback = (if (forward) "+" else "-") + "$seconds detik"
+                                }
+                                else -> {
+                                    accumulatedSeekMs = 0L
+                                    seekFeedback = null
+                                    onPlayPause()
+                                }
+                            }
+                        }
+                    )
                 }
         )
 
-        AnimatedVisibility(visible = seekFeedback != null, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.align(Alignment.Center)) {
+        AnimatedVisibility(
+            visible = seekFeedback != null,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(if (seekFeedbackForward) Alignment.CenterEnd else Alignment.CenterStart)
+                .padding(horizontal = edgePadding)
+        ) {
             Surface(shape = RoundedCornerShape(24.dp), color = Color.Black.copy(alpha = 0.72f), contentColor = Color.White) {
-                Text(text = seekFeedback.orEmpty(), modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = seekFeedback.orEmpty(),
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
         AnimatedVisibility(
