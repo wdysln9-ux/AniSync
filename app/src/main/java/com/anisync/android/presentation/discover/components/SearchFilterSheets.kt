@@ -193,7 +193,7 @@ private fun AnimeWStyleFilterSheet(
         footer = footer
     ) {
         SheetSectionLabel("Urutkan")
-        OptionPillGrid(
+        FilterChoiceChipGroup(
             options = sortColumns(category, hasQuery),
             label = { it.label() },
             isSelected = { it == filters.sort.column.on(category) },
@@ -201,25 +201,23 @@ private fun AnimeWStyleFilterSheet(
         )
         Spacer(Modifier.height(18.dp))
         SheetSectionLabel("Tipe")
-        OptionPillGrid(
+        FilterChoiceChipGroup(
             options = formatOptions(category),
             label = { it.toLabel() },
             isSelected = { it in filters.formats },
-            onClick = { onFiltersChange(filters.copy(formats = filters.formats.toggle(it))) },
-            role = Role.Checkbox
+            onClick = { onFiltersChange(filters.copy(formats = filters.formats.toggle(it))) }
         )
         Spacer(Modifier.height(18.dp))
         SheetSectionLabel(airingStatusTitle(manga = category == ResultCategory.MANGA))
-        OptionPillGrid(
+        FilterChoiceChipGroup(
             options = StatusOptions,
             label = { it.toLabel() },
             isSelected = { it in filters.statuses },
-            onClick = { onFiltersChange(filters.copy(statuses = filters.statuses.toggle(it))) },
-            role = Role.Checkbox
+            onClick = { onFiltersChange(filters.copy(statuses = filters.statuses.toggle(it))) }
         )
         Spacer(Modifier.height(18.dp))
         SheetSectionLabel("Negara")
-        OptionPillGrid(
+        FilterChoiceChipGroup(
             options = OriginCountry.entries,
             label = { it.toLabel() },
             isSelected = { it == filters.country },
@@ -245,7 +243,7 @@ private fun AnimeWStyleFilterSheet(
         if (category != ResultCategory.MANGA) {
             Spacer(Modifier.height(18.dp))
             SheetSectionLabel("Musim")
-            OptionPillGrid(
+            FilterChoiceChipGroup(
                 options = Seasons,
                 label = { it.toLabel().orEmpty() },
                 isSelected = { it == filters.season },
@@ -381,6 +379,37 @@ private fun AnimeWStyleFilterSheet(
     }
 }
 
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun <T> FilterChoiceChipGroup(
+    options: List<T>,
+    label: @Composable (T) -> String,
+    isSelected: (T) -> Boolean,
+    onClick: (T) -> Unit
+) {
+    FlowRow(
+        modifier = Modifier.padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        options.forEach { option ->
+            val selected = isSelected(option)
+            Surface(
+                onClick = { onClick(option) },
+                shape = CircleShape,
+                color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+            ) {
+                Text(
+                    text = label(option),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+        }
+    }
+}
 
 // =============================================================================
 // SORT
