@@ -170,7 +170,6 @@ private fun YouTubeWebView(
             webView?.loadUrl("about:blank")
             webView?.removeAllViews()
             webView?.destroy()
-            if (webViewState.value === webView) webViewState.value = null
         }
     }
 }
