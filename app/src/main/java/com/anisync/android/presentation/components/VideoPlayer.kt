@@ -182,6 +182,7 @@ fun VideoPlayer(
     // True while the player has been handed to the fullscreen activity; the inline surface detaches
     // and the lifecycle observer stops pausing, so the same instance keeps playing over there.
     var handedOff by remember { mutableStateOf(false) }
+    val isHandedOff by rememberUpdatedState(handedOff)
     var cinematicOverlayIntensity by remember { mutableFloatStateOf(0f) }
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
 
@@ -208,7 +209,7 @@ fun VideoPlayer(
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED && !handedOff) currentOnPlaybackEnded()
+                if (playbackState == Player.STATE_ENDED && !isHandedOff) currentOnPlaybackEnded()
                 if (playbackState == Player.STATE_READY) {
                     val d = exoPlayer.duration
                     if (d > 0) durationMs = d
@@ -288,10 +289,6 @@ fun VideoPlayer(
         }
     }
 
-    LaunchedEffect(playerState, autoEnterFullscreen, handedOff) {
-        if (autoEnterFullscreen && playerState == PlayerState.Ready && !handedOff) onEnterFullscreen()
-    }
-
     val onPlayPause: () -> Unit = { if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play() }
     val onToggleMute: () -> Unit = {
         isMuted = !isMuted
@@ -321,6 +318,10 @@ fun VideoPlayer(
             Intent(context, FullscreenPlayerActivity::class.java)
                 .putExtra(FullscreenPlayerActivity.EXTRA_ASPECT, videoAspectRatio)
         )
+    }
+
+    LaunchedEffect(playerState, autoEnterFullscreen, handedOff) {
+        if (autoEnterFullscreen && playerState == PlayerState.Ready && !handedOff) onEnterFullscreen()
     }
 
     // Keep the source's real aspect ratio: the frame always takes the full available width,
