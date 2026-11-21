@@ -236,7 +236,7 @@ fun LookAndFeelScreen(
                             valueRange = DisplaySize.MIN_SCALE..DisplaySize.MAX_SCALE
                         ),
                         onValueChange = { value ->
-                            val percent = (value * 100f).roundToInt().coerceIn(10, 200)
+                            val percent = (value * 100f).roundToInt().coerceIn(30, 200)
                             displaySizeAnchorY = displaySizeTilesY
                             viewModel.onAction(SettingsAction.SetDisplaySize(DisplaySize(percent / 100f)))
                         },
@@ -247,7 +247,7 @@ fun LookAndFeelScreen(
                         )
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("10%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("30%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("200%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
