@@ -41,6 +41,7 @@
     <string name="status_rereading">Membaca ulang</string>
     <string name="discover_spotlight_rank">#1</string>
     <string name="discover_airing_now">TAYANG</string>
+    <string name="discover_browse_recommendations">Rekomendasi</string>
     <string name="discover_browse_seasonal">Musiman</string>
     <string name="discover_browse_studios">Studio</string>
     <string name="discover_browse_genres">Genre</string>
