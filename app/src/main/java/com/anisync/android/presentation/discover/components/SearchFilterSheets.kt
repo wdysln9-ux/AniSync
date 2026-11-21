@@ -623,13 +623,11 @@ private fun YearPickerBody(
 ) {
     val currentYear = remember { Calendar.getInstance().get(Calendar.YEAR) }
     val maxYear = currentYear + 1
-    val minYear = 1940
-    var showOlderYears by rememberSaveable { mutableStateOf(false) }
+    val minYear = 1990
+    var showOlderYears by rememberSaveable { mutableStateOf((filters.yearRange.min ?: currentYear) < 2012) }
     val years = remember(maxYear, showOlderYears) {
-        (if (showOlderYears) minYear else 2012..maxYear).let { range ->
-            if (showOlderYears) (minYear..maxYear).toList().reversed()
-            else (2012..maxYear).toList().reversed()
-        }
+        if (showOlderYears) (minYear..maxYear).toList().reversed()
+        else (2012..maxYear).toList().reversed()
     }
 
     val from = filters.yearRange.min
