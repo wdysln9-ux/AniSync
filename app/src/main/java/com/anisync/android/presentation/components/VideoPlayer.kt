@@ -162,7 +162,8 @@ fun VideoPlayer(
     sourceOptions: List<String> = emptyList(),
     onSelectSource: (Int) -> Unit = {},
     onPlaybackEnded: () -> Unit = {},
-    onAutoNextChange: (Boolean) -> Unit = {}
+    onAutoNextChange: (Boolean) -> Unit = {},
+    onCinematicLightingChange: (Float) -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -178,6 +179,7 @@ fun VideoPlayer(
     // True while the player has been handed to the fullscreen activity; the inline surface detaches
     // and the lifecycle observer stops pausing, so the same instance keeps playing over there.
     var handedOff by remember { mutableStateOf(false) }
+    var cinematicOverlayIntensity by remember { mutableFloatStateOf(0f) }
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
 
     // Cached player survives scrolling; self-managed one is built+released here. Both go through
@@ -325,6 +327,9 @@ fun VideoPlayer(
             if (artwork != null) {
                 Box(Modifier.fillMaxSize()) { artwork() }
             }
+            if (cinematicOverlayIntensity > 0f) {
+                Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0xFFFFD6A0).copy(alpha = cinematicOverlayIntensity * 0.22f), Color.Transparent))))
+            }
         }
 
         PlayerStatusVisuals(
@@ -356,6 +361,7 @@ fun VideoPlayer(
                 sourceOptions = sourceOptions,
                 onSelectSource = onSelectSource,
                 onAutoNextChange = onAutoNextChange,
+                onCinematicLightingChange = { cinematicOverlayIntensity = it; onCinematicLightingChange(it) },
                 onToggleFullscreen = onEnterFullscreen,
                 onBack = null
             )
@@ -581,6 +587,7 @@ internal fun VideoControlsOverlay(
     sourceOptions: List<String>,
     onSelectSource: (Int) -> Unit,
     onAutoNextChange: (Boolean) -> Unit = {},
+    onCinematicLightingChange: (Float) -> Unit = {},
     onToggleFullscreen: () -> Unit,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier
@@ -711,10 +718,10 @@ internal fun VideoControlsOverlay(
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                     Text("Aktifkan pencahayaan")
-                                    androidx.compose.material3.Switch(checked = cinematicEnabled, onCheckedChange = { cinematicEnabled = it })
+                                    androidx.compose.material3.Switch(checked = cinematicEnabled, onCheckedChange = { enabled -> cinematicEnabled = enabled; onCinematicLightingChange(if (enabled) cinematicIntensity else 0f) })
                                 }
                                 Text("Intensitas cahaya")
-                                Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
+                                Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it; if (cinematicEnabled) onCinematicLightingChange(it) }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
                                 Text("Atur kekuatan efek pencahayaan di sekitar pemutar.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         },
