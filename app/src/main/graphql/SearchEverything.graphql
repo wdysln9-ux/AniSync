@@ -36,7 +36,8 @@ query SearchEverything(
   $chapters_greater: Int,
   $chapters_lesser: Int,
   $countryOfOrigin: CountryCode,
-  $isAdult: Boolean
+  $isAdult: Boolean,
+  $animeOnList: Boolean
 ) {
   anime: Page(page: $page, perPage: $perPage) @include(if: $wantAnime) {
     pageInfo {
@@ -69,7 +70,8 @@ query SearchEverything(
       chapters_greater: $chapters_greater,
       chapters_lesser: $chapters_lesser,
       countryOfOrigin: $countryOfOrigin,
-      isAdult: $isAdult
+      isAdult: $isAdult,
+      onList: $animeOnList
     ) {
       ...MediaCardFields
     }
