@@ -113,10 +113,10 @@ fun DiscoverResultPoster(
                 }
                 Row(
                     modifier = Modifier
-                        .align(Alignment.TopStart)
+                        .align(Alignment.TopEnd)
                         .padding(8.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color.Black.copy(alpha = 0.5f))
+                        .background(Color.Black.copy(alpha = 0.6f))
                         .padding(horizontal = 6.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(3.dp)
@@ -144,15 +144,16 @@ fun DiscoverResultPoster(
                         .align(Alignment.BottomStart)
                         .padding(8.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color.Black.copy(alpha = 0.5f))
+                        .background(Color.Black.copy(alpha = 0.6f))
                         .padding(horizontal = 6.dp, vertical = 4.dp)
                 )
             }
-            // Keep the airing countdown in the upper-right corner of the poster.
+            // Keep the next-episode countdown in the upper-left corner, opposite the score.
             PosterStateChip(
                 entry = entry,
                 aired = null,
-                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+                backgroundAlpha = 0.6f
             )
             if (listStatus != null) {
                 ListIndicator(
