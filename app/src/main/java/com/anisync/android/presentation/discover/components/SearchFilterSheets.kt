@@ -256,7 +256,7 @@ private fun AnimeWStyleFilterSheet(
                 )
             }
         )
-        if (!showOlderYearChips && currentYear > 2012) {
+        if (currentYear > 2012) {
             Surface(
                 onClick = { showOlderYearChips = !showOlderYearChips },
                 shape = CircleShape,
