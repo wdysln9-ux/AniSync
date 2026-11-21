@@ -17,7 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.anisync.android.cloudstream.CloudStreamRuntime
-import com.anisync.android.presentation.components.VideoPlayer
+import com.anisync.android.presentation.components.CloudStreamMpvPlayer
 import com.anisync.android.presentation.details.components.ThemeSheet
 import com.anisync.android.presentation.details.components.SheetLabel
 import com.anisync.android.presentation.details.components.SourceChip
@@ -348,15 +348,14 @@ internal fun CloudStreamWatchContent(
                 val stream = selectedStream!!
                 val url = stream["url"]?.toString()
                 if (!url.isNullOrBlank()) {
-                    VideoPlayer(
+                    CloudStreamMpvPlayer(
                         url = url,
+                        subtitles = subtitles,
                         headers = (stream["headers"] as? Map<*, *>)?.entries?.associate {
                             it.key.toString() to it.value.toString()
                         }.orEmpty(),
                         modifier = Modifier.fillMaxWidth(),
-                        playerCache = null,
                         startMuted = false,
-                        loop = false,
                         autoPlay = true,
                         onAutoNextChange = { autoNextEnabled = it },
                         autoEnterFullscreen = autoNextFullscreen,
