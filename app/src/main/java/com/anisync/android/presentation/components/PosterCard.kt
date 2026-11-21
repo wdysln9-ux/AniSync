@@ -22,11 +22,16 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.anisync.android.ui.theme.StarGold
+import java.util.Locale
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -74,7 +79,8 @@ fun PosterCard(
     modifier: Modifier = Modifier,
     transitionPrefix: String = TransitionKeys.POSTER,
     aspectRatio: Float = 0.7f,
-    shape: Shape = ExpressiveShapes.mediaCover
+    shape: Shape = ExpressiveShapes.mediaCover,
+    scoreAlignment: Alignment = Alignment.TopStart
 ) {
     // Use memoized motion specs from AppMotion
     val spatialSpec = AppMotion.rememberSpatialSpec()
@@ -155,6 +161,33 @@ fun PosterCard(
                         corner = ListIndicatorCorner.TopStart,
                         modifier = Modifier.align(Alignment.TopStart)
                     )
+                }
+
+                item.averageScore?.takeIf { it > 0.0 }?.let { score ->
+                    Surface(
+                        modifier = Modifier.align(scoreAlignment).padding(8.dp),
+                        color = Color.Black.copy(alpha = 0.42f),
+                        shape = RoundedCornerShape(50)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            androidx.compose.material3.Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = StarGold,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = String.format(Locale.US, "%.1f", score / 10.0),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
+                        }
+                    }
                 }
 
                 // Title at bottom
