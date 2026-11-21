@@ -622,6 +622,7 @@ internal fun VideoControlsOverlay(
     onSelectSource: (Int) -> Unit,
     onAutoNextChange: (Boolean) -> Unit = {},
     onCinematicLightingChange: (Float) -> Unit = {},
+    onResetStretch: () -> Unit = {},
     onToggleFullscreen: () -> Unit,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier
@@ -801,6 +802,7 @@ internal fun VideoControlsOverlay(
                                     valueRange = 0.05f..0.8f,
                                     enabled = cinematicEnabled
                                 )
+                                TextButton(onClick = { onResetStretch(); poke() }) { Text("Reset Stretch") }
                                 Text(
                                     "Cubit layar dengan dua jari untuk mengatur lebar video. Garis rasio dan snap akan muncul selama pengaturan.",
                                     style = MaterialTheme.typography.bodySmall,

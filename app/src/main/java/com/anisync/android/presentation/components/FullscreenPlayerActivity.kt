@@ -358,6 +358,7 @@ private fun FullscreenVideoContent(
                     cinematicIntensity = intensity
                     FullscreenVideoBridge.cinematicIntensity.floatValue = intensity
                 },
+                onResetStretch = { stretchX = 1f },
                 onToggleFullscreen = onClose,
                 onBack = onClose
             )
