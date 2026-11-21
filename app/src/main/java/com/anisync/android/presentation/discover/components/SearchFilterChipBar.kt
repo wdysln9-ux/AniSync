@@ -59,7 +59,16 @@ fun SearchFilterChipBar(
             }
             add(label to filters.copy(yearRange = IntRangeFilter()))
         }
-        filters.season?.let { add(it.toLabel().orEmpty() to filters.copy(season = null)) }
+        filters.season?.let { season ->
+            val label = when (season) {
+                com.anisync.android.type.MediaSeason.WINTER -> "Winter"
+                com.anisync.android.type.MediaSeason.SPRING -> "Spring"
+                com.anisync.android.type.MediaSeason.SUMMER -> "Summer"
+                com.anisync.android.type.MediaSeason.FALL -> "Fall"
+                else -> season.toLabel().orEmpty()
+            }
+            add(label to filters.copy(season = null))
+        }
         filters.formats.forEach { value ->
             add(value.toLabel().orEmpty() to filters.copy(formats = filters.formats - value))
         }
