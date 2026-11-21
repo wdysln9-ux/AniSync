@@ -51,7 +51,6 @@ import com.anisync.android.domain.SearchSortColumn
 import com.anisync.android.presentation.components.filtersheet.FilterOptionGroup
 import com.anisync.android.presentation.components.filtersheet.FilterSheetScaffold
 import com.anisync.android.presentation.components.filtersheet.IncludeExcludeChip
-import com.anisync.android.presentation.components.filtersheet.IncludeExcludeHint
 import com.anisync.android.presentation.components.filtersheet.OptionPillGrid
 import com.anisync.android.presentation.components.filtersheet.SegmentedChoice
 import com.anisync.android.presentation.components.filtersheet.SheetFooterButton
@@ -217,7 +216,7 @@ private fun AnimeWStyleFilterSheet(
         Spacer(Modifier.height(18.dp))
         SheetSectionLabel("Negara")
         FilterChoiceChipGroup(
-            options = OriginCountry.entries,
+            options = listOf(OriginCountry.JAPAN, OriginCountry.CHINA, OriginCountry.SOUTH_KOREA, OriginCountry.TAIWAN),
             label = { it.toLabel() },
             isSelected = { it == filters.country },
             onClick = { onFiltersChange(filters.copy(country = it.takeIf { it != filters.country })) }
@@ -259,13 +258,14 @@ private fun AnimeWStyleFilterSheet(
         )
         if (!showOlderYearChips && currentYear > 2012) {
             Surface(
-                onClick = { showOlderYearChips = true },
+                onClick = { showOlderYearChips = !showOlderYearChips },
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 24.dp, top = 8.dp)
             ) {
                 Text(
-                    "Selengkapnya (+22)",
+                    if (showOlderYearChips) "Lebih sedikit" else "Selengkapnya (+22)",
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                     style = MaterialTheme.typography.labelMedium
                 )
@@ -304,26 +304,8 @@ private fun AnimeWStyleFilterSheet(
                 onFiltersChange(filters.copy(score = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
             },
             valueRange = 0f..100f,
-            steps = 99
+            steps = 0
         )
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("Hide My Anime", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "Sembunyikan anime yang sudah ada di daftar AniList kamu",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = filters.hideMyAnime,
-                onCheckedChange = { onFiltersChange(filters.copy(hideMyAnime = it)) }
-            )
-        }
         if (category != ResultCategory.MANGA) {
             Spacer(Modifier.height(18.dp))
             SheetSectionLabel("Musim")
@@ -338,7 +320,6 @@ private fun AnimeWStyleFilterSheet(
         SheetSectionLabel("Genre")
         val visibleGenres = if (showAdultContent) genres else genres.filterNot { it in ADULT_GENRES }
         Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            IncludeExcludeHint(counts = null)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 visibleGenres.forEach { genre ->
                     IncludeExcludeChip(
@@ -361,7 +342,6 @@ private fun AnimeWStyleFilterSheet(
         Spacer(Modifier.height(18.dp))
         SheetSectionLabel("Tags")
         Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            IncludeExcludeHint(counts = null)
             var showAllTags by rememberSaveable { mutableStateOf(false) }
             val visibleTags = if (showAllTags) tags else tags.take(16)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -396,8 +376,23 @@ private fun AnimeWStyleFilterSheet(
                 }
             }
         }
+        Spacer(Modifier.height(8.dp))
+        SheetSectionLabel("Persentase minimum tag")
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Minimum", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("${filters.minimumTagRank}%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        }
+        Slider(
+            value = filters.minimumTagRank.toFloat(),
+            onValueChange = { value -> onFiltersChange(filters.copy(minimumTagRank = value.toInt())) },
+            valueRange = 0f..100f,
+            steps = 0
+        )
         Spacer(Modifier.height(18.dp))
-        SheetSectionLabel("Source")
+        SheetSectionLabel(stringResource(R.string.filter_source))
         OptionPillGrid(
             options = SourceOptions,
             label = { it.toLabel().orEmpty() },
@@ -406,7 +401,24 @@ private fun AnimeWStyleFilterSheet(
             role = Role.Checkbox
         )
         Spacer(Modifier.height(18.dp))
-
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Hide My Anime", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Sembunyikan anime yang sudah ada di daftar AniList kamu",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = filters.hideMyAnime,
+                onCheckedChange = { onFiltersChange(filters.copy(hideMyAnime = it)) }
+            )
+        }
     }
 }
 
@@ -558,7 +570,6 @@ private fun GenresSheet(
             modifier = Modifier.padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            IncludeExcludeHint(counts = null)
             if (visibleGenres.isEmpty()) {
                 Text(
                     text = stringResource(R.string.filter_loading_genres),
@@ -599,8 +610,8 @@ private fun GenresSheet(
 // =============================================================================
 
 private val AnimeFormats = listOf(
-    MediaFormat.TV, MediaFormat.TV_SHORT, MediaFormat.MOVIE,
-    MediaFormat.SPECIAL, MediaFormat.OVA, MediaFormat.ONA, MediaFormat.MUSIC
+    MediaFormat.TV, MediaFormat.MOVIE, MediaFormat.ONA, MediaFormat.OVA,
+    MediaFormat.TV_SHORT, MediaFormat.SPECIAL, MediaFormat.MUSIC
 )
 private val MangaFormats = listOf(MediaFormat.MANGA, MediaFormat.NOVEL, MediaFormat.ONE_SHOT)
 

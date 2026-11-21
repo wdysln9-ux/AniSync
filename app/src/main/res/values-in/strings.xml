@@ -1384,7 +1384,7 @@
     <string name="library_episode_count">%1$d eps</string>
     <string name="library_chapter_count">%1$d bab</string>
     <string name="library_sort_by_label">Urutkan berdasarkan</string>
-    <string name="library_filter_airing_status">Status tayang</string>
+    <string name="library_filter_airing_status">Status</string>
     <string name="library_filter_format">Format</string>
     <string name="library_episodes_behind_short">Sisa %1$d</string>
     <string name="library_progress_out">%1$d / %2$d tayang</string>
@@ -1752,7 +1752,7 @@
     <string name="filter_chip_value">%1$s · %2$s</string>
     <string name="filter_chip_value_more">%1$s · %2$s +%3$d</string>
     <string name="filter_value_more">%1$s +%2$d</string>
-    <string name="filter_publishing_status">Status publikasi</string>
+    <string name="filter_publishing_status">Status</string>
     <string name="filter_year_and_season">Tahun dan musim</string>
     <string name="filter_more_title">Filter lainnya</string>
     <string name="filter_source">Sumber</string>

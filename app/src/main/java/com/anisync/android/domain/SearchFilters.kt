@@ -17,8 +17,8 @@ val ADULT_GENRES = setOf("Hentai")
  */
 enum class OriginCountry(val code: String) {
     JAPAN("JP"),
-    SOUTH_KOREA("KR"),
     CHINA("CN"),
+    SOUTH_KOREA("KR"),
     TAIWAN("TW")
 }
 
@@ -59,6 +59,8 @@ data class SearchFilters(
     val genresExcluded: Set<String> = emptySet(),
     val tagsIncluded: Set<String> = emptySet(),
     val tagsExcluded: Set<String> = emptySet(),
+    /** Minimum AniList tag rank (0–100); zero leaves the threshold disabled. */
+    val minimumTagRank: Int = 0,
     val yearRange: IntRangeFilter = IntRangeFilter(),
     val season: MediaSeason? = null,
     val formats: Set<MediaFormat> = emptySet(),
