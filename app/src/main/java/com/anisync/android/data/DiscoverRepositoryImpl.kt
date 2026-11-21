@@ -62,7 +62,10 @@ class DiscoverRepositoryImpl @Inject constructor(
             val total = firstResponse.dataOrThrow().Page?.pageInfo?.total ?: 0
             val totalPages = ((total + 9) / 10).coerceAtLeast(1)
             val selectedPage = randomPage("recommendations:$type", totalPages)
-            fetchMedia(sort, type, selectedPage).getOrThrow()
+            when (val result = fetchMedia(sort, type, selectedPage)) {
+                is Result.Success -> result.data
+                is Result.Error -> throw Exception(result.message, result.exception)
+            }
         }
     }
 
