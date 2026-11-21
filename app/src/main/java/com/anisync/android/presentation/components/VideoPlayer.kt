@@ -99,6 +99,7 @@ import androidx.media3.ui.compose.ContentFrame
 import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import com.anisync.android.R
 import com.anisync.android.presentation.util.shimmerEffect
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 
 /** Visual state of the video player. Shared with [FullscreenPlayerActivity]. */
@@ -167,7 +168,9 @@ fun VideoPlayer(
     onAutoNextChange: (Boolean) -> Unit = {},
     autoEnterFullscreen: Boolean = false,
     onFullscreenEntered: () -> Unit = {},
-    onCinematicLightingChange: (Float) -> Unit = {}
+    onCinematicLightingChange: (Float) -> Unit = {},
+    preloadUrl: String? = null,
+    preloadHeaders: Map<String, String> = emptyMap()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -260,6 +263,37 @@ fun VideoPlayer(
             exoPlayer.removeListener(listener)
             // Only release if self-managed; cached players are released by ExoPlayerCache.releaseAll().
             if (playerCache == null || useWsolaAudio) exoPlayer.release() else exoPlayer.pause()
+        }
+    }
+
+    // Prepare the next episode only after the current stream has reached its forward-buffer
+    // target (or the end of a shorter episode). The second player shares the same disk cache,
+    // stays paused, and is released whenever the next URL changes or this player leaves.
+    LaunchedEffect(exoPlayer, preloadUrl, preloadHeaders) {
+        val nextUrl = preloadUrl?.takeIf { it.isNotBlank() && it != url } ?: return@LaunchedEffect
+        var nextPlayer: ExoPlayer? = null
+        try {
+            while (true) {
+                val total = exoPlayer.duration
+                val ahead = exoPlayer.bufferedPosition - exoPlayer.currentPosition
+                val targetReached = total > 0L &&
+                    (exoPlayer.bufferedPosition >= total - 2_000L || ahead >= 15L * 60_000L)
+                if (targetReached) break
+                delay(1_000)
+            }
+            nextPlayer = buildVideoExoPlayer(
+                context.applicationContext,
+                nextUrl,
+                muted = true,
+                loop = false,
+                autoPlay = false,
+                headers = preloadHeaders,
+                useWsolaAudio = useWsolaAudio
+            )
+            // Keep it prepared and paused so its downloaded segments enter the shared disk cache.
+            awaitCancellation()
+        } finally {
+            nextPlayer?.release()
         }
     }
 
