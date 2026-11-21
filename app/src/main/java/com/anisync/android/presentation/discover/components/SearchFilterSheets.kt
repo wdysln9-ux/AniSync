@@ -497,18 +497,13 @@ private fun <T> FilterChoiceChipGroup(
     ) {
         options.forEach { option ->
             val selected = isSelected(option)
-            Surface(
-                onClick = { onClick(option) },
-                shape = CircleShape,
-                color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-            ) {
-                Text(
-                    text = label(option),
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
+            IncludeExcludeChip(
+                label = label(option),
+                state = if (selected) TriState.INCLUDED else TriState.OFF,
+                onStateChange = { next ->
+                    if (next != TriState.EXCLUDED) onClick(option)
+                }
+            )
         }
     }
 }
