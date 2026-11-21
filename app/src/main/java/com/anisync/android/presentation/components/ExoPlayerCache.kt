@@ -150,11 +150,9 @@ internal fun buildVideoExoPlayer(
 
     // CloudStream uses the tuned WSOLA chain; other embedded video players retain
     // Media3's default Sonic processor and renderer configuration.
-    val renderersFactory = if (useWsolaAudio) {
-        WsolaRenderersFactory(context)
-    } else {
-        DefaultRenderersFactory(context)
-    }
+    // Use Media3's native Sonic processor for CloudStream too. The custom WSOLA chain
+    // accumulates latency at 2x–4x and causes audible audio/video desynchronization.
+    val renderersFactory = DefaultRenderersFactory(context)
 
     val diskCache = cache ?: SharedVideoDiskCache.get(context)
     return ExoPlayer.Builder(context, renderersFactory)
