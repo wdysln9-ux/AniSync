@@ -329,8 +329,8 @@ fun VideoPlayer(
 
     DisposableEffect(exoPlayer) {
         FullscreenVideoBridge.onPlaybackEnded = {
-            FullscreenVideoBridge.closeFullscreen?.invoke()
             currentOnPlaybackEnded()
+            FullscreenVideoBridge.closeFullscreen?.invoke()
         }
         onDispose {
             if (FullscreenVideoBridge.onPlaybackEnded != null) FullscreenVideoBridge.onPlaybackEnded = null
@@ -760,7 +760,6 @@ internal fun VideoControlsOverlay(
                         contentColor = Color.White,
                         modifier = Modifier
                             .align(Alignment.TopStart)
-                            .statusBarsPadding()
                             .padding(edgePadding)
                             .size(buttonSize)
                     ) {
@@ -781,7 +780,6 @@ internal fun VideoControlsOverlay(
                     contentColor = Color.White,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .then(if (isFullscreen) Modifier.statusBarsPadding() else Modifier)
                         .padding(edgePadding)
                         .size(buttonSize)
                 ) {
@@ -930,8 +928,7 @@ internal fun VideoControlsOverlay(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .then(if (isFullscreen) Modifier.navigationBarsPadding() else Modifier)
-                        .padding(start = edgePadding, end = edgePadding / 3, bottom = 4.dp),
+                                                .padding(start = edgePadding, end = edgePadding / 3, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -965,7 +962,7 @@ internal fun VideoControlsOverlay(
                                 start = androidx.compose.ui.geometry.Offset(0f, trackY),
                                 end = androidx.compose.ui.geometry.Offset(size.width * bufferedFraction, trackY),
                                 strokeWidth = 4.dp.toPx(),
-                                cap = androidx.compose.ui.graphics.StrokeCap.Round
+                                cap = androidx.compose.ui.graphics.StrokeCap.Butt
                             )
                         }
                         Slider(
