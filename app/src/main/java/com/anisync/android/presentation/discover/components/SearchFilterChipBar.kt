@@ -101,7 +101,7 @@ fun SearchFilterChipBar(
             add(label to filters.copy(score = IntComparatorFilter()))
         }
         filters.episodes.takeIf { it.isActive }?.let { value ->
-            val amount = value.value ?: return@let
+            val amount = value.value ?: 0
             val label = when {
                 value.maxValue != null && amount > 0 -> "Episode $amount–${value.maxValue}"
                 value.maxValue != null -> "Episode ≤ ${value.maxValue}"
