@@ -45,6 +45,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.rounded.BrokenImage
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -591,6 +593,8 @@ internal fun VideoControlsOverlay(
     var selectedSpeed by remember { mutableFloatStateOf(1f) }
     var autoNextEnabled by remember { mutableStateOf(true) }
     var cinematicEnabled by remember { mutableStateOf(false) }
+    var cinematicSettingsExpanded by remember { mutableStateOf(false) }
+    var cinematicIntensity by remember { mutableFloatStateOf(0.35f) }
 
     // Auto-hide while playing; idle countdown restarts whenever an interaction bumps [interactions].
     LaunchedEffect(controlsVisible, isPlaying, isBuffering, interactions) {
@@ -699,6 +703,25 @@ internal fun VideoControlsOverlay(
                         Icon(Icons.Default.Settings, contentDescription = "Pengaturan pemutar", modifier = Modifier.size(buttonIconSize))
                     }
                 }
+                if (cinematicSettingsExpanded) {
+                    AlertDialog(
+                        onDismissRequest = { cinematicSettingsExpanded = false },
+                        title = { Text("Pencahayaan sinematik") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Aktifkan pencahayaan")
+                                    androidx.compose.material3.Switch(checked = cinematicEnabled, onCheckedChange = { cinematicEnabled = it })
+                                }
+                                Text("Intensitas cahaya")
+                                Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
+                                Text("Atur kekuatan efek pencahayaan di sekitar pemutar.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        },
+                        confirmButton = { TextButton(onClick = { cinematicSettingsExpanded = false }) { Text("Selesai") } }
+                    )
+                }
+
                 DropdownMenu(expanded = quickSettingsExpanded, onDismissRequest = { quickSettingsExpanded = false }) {
                     DropdownMenuItem(text = { Text("Kecepatan") }, onClick = {})
                     listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 3f, 4f).forEach { speed ->
@@ -711,7 +734,7 @@ internal fun VideoControlsOverlay(
                         }
                     }
                     DropdownMenuItem(text = { Text("${if (autoNextEnabled) "✓ " else ""}Putar episode berikutnya otomatis") }, onClick = { autoNextEnabled = !autoNextEnabled; onAutoNextChange(autoNextEnabled); poke() })
-                    DropdownMenuItem(text = { Text("${if (cinematicEnabled) "✓ " else ""}Pencahayaan sinematik") }, onClick = { cinematicEnabled = !cinematicEnabled; poke() })
+                    DropdownMenuItem(text = { Text("Pencahayaan sinematik · Pengaturan") }, onClick = { quickSettingsExpanded = false; cinematicSettingsExpanded = true; poke() })
                     DropdownMenuItem(text = { Text("${if (isMuted) "Aktifkan suara" else "Bisukan"}") }, onClick = { onToggleMute(); poke() })
                 }
 
