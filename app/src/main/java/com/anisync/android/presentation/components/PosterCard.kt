@@ -164,7 +164,7 @@ fun PosterCard(
                 )
 
                 // Top corner: this card prints its title over the bottom of the poster.
-                val hasScoreBadge = (item.averageScore ?: 0.0) > 0.0
+                val hasScoreBadge = item.averageScore?.toDouble()?.let { it > 0.0 } == true
                 val listIndicatorCorner = if (showScoreBadge && hasScoreBadge && scoreAlignment == Alignment.TopStart) {
                     ListIndicatorCorner.BottomEnd
                 } else {
@@ -177,7 +177,7 @@ fun PosterCard(
                         style = ListIndicatorStyle.Corner,
                         corner = listIndicatorCorner,
                         modifier = Modifier.align(
-                            if (listIndicatorCorner == ListIndicatorCorner.TopEnd) Alignment.TopEnd else Alignment.TopStart
+                            if (listIndicatorCorner == ListIndicatorCorner.BottomEnd) Alignment.BottomEnd else Alignment.TopStart
                         )
                     )
                 }
