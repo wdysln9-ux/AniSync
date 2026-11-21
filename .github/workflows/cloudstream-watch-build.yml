@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/cloudstream-watch
+      - feature/cloudstream-mpv-player
   workflow_dispatch:
 
 # Build the CloudStream watch sheet and player controls together with the ARM64 release.
