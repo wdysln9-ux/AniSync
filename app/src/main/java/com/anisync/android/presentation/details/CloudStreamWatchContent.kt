@@ -68,6 +68,7 @@ internal fun CloudStreamWatchContent(
     var streams by remember { mutableStateOf<List<Map<String, Any?>>>(emptyList()) }
     var subtitles by remember { mutableStateOf<List<Map<String, Any?>>>(emptyList()) }
     var selectedStream by remember { mutableStateOf<Map<String, Any?>?>(null) }
+    var preloadStream by remember { mutableStateOf<Map<String, Any?>?>(null) }
     var resolving by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Menyiapkan Auto Resolve…") }
     var error by remember { mutableStateOf<String?>(null) }
@@ -176,11 +177,40 @@ internal fun CloudStreamWatchContent(
         if (malId != null && malId > 0) metadata = withContext(Dispatchers.IO) { loadAniZip(malId) }
     }
 
+    suspend fun resolvePreloadSource(chosen: Map<String, Any?>): Map<String, Any?>? {
+        val hit = selected ?: return null
+        val number = (chosen["episode"] as? Number)?.toInt()
+        val detail = anime ?: return null
+        val eps = (detail["episodes"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
+        val match = eps.firstOrNull { item ->
+            val n = (item["episode"] as? Number)?.toInt()
+            if (number != null && n != null) n == number else item["name"]?.toString() == chosen["name"]?.toString()
+        } ?: return null
+        val data = match["data"]?.toString().orEmpty()
+        if (data.isBlank()) return null
+        return try {
+            val first = withContext(Dispatchers.IO) { CloudStreamRuntime.resolve(hit.provider, data, true) }
+            var links = (first["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
+            var done = first["done"] == true
+            val started = System.currentTimeMillis()
+            while (!done && links.isEmpty() && System.currentTimeMillis() - started < 28_000L) {
+                delay(650)
+                val next = withContext(Dispatchers.IO) { CloudStreamRuntime.pollLinks(hit.provider, data) }
+                links = (next["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
+                done = next["done"] == true
+            }
+            links.firstOrNull { !it["url"]?.toString().isNullOrBlank() }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
     fun playEpisode(chosen: Map<String, Any?>) {
         episode = chosen
         streams = emptyList()
         subtitles = emptyList()
         selectedStream = null
+        preloadStream = null
         sheet = true
         resolving = true
         status = "Mencari sumber video…"
@@ -232,6 +262,15 @@ internal fun CloudStreamWatchContent(
             }
             if (!success) error = "Tidak ada provider yang berhasil menyediakan video untuk episode ini."
             resolving = false
+            if (success) {
+                val currentIndex = episodes.indexOfFirst { it === chosen || it == chosen }
+                val nextEpisode = episodes.getOrNull(currentIndex + 1)
+                if (nextEpisode != null) {
+                    launch {
+                        preloadStream = resolvePreloadSource(nextEpisode)
+                    }
+                }
+            }
         }
     }
 
@@ -366,6 +405,10 @@ internal fun CloudStreamWatchContent(
                             onAutoNextChange = { autoNextEnabled = it },
                             autoEnterFullscreen = autoNextFullscreen,
                             onFullscreenEntered = { autoNextFullscreen = false },
+                            preloadUrl = preloadStream?.get("url")?.toString(),
+                            preloadHeaders = (preloadStream?.get("headers") as? Map<*, *>)?.entries?.associate {
+                                it.key.toString() to it.value.toString()
+                            }.orEmpty(),
                             onPlaybackEnded = {
                                 if (autoNextEnabled) {
                                     autoNextFullscreen = false
