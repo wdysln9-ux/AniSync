@@ -11,6 +11,7 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -52,8 +53,9 @@ import com.anisync.android.presentation.util.AppMotion
 import com.anisync.android.presentation.util.LocalLibraryStatuses
 import com.anisync.android.presentation.components.ListIndicatorCorner
 import com.anisync.android.presentation.util.TransitionKeys
-import com.anisync.android.presentation.util.bouncyClickable
+import com.anisync.android.presentation.util.LocalLibraryEntryEditor
 import com.anisync.android.util.getTitle
+import com.anisync.android.type.MediaType
 
 /**
  * A shared media card component that displays a poster image with a gradient overlay and title.
@@ -88,6 +90,7 @@ fun PosterCard(
     val spatialSpec = AppMotion.rememberSpatialSpec()
     val effectsSpec = AppMotion.rememberEffectsSpec()
     val title = item.getTitle(titleLanguage)
+    val onEditEntry = LocalLibraryEntryEditor.current
     
     // Use TransitionKeys for consistent key generation
     val coverKey = TransitionKeys.cover(transitionPrefix, item.mediaId)
@@ -104,8 +107,11 @@ fun PosterCard(
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             modifier = modifier
                 .fillMaxWidth()
-                .bouncyClickable(
+                .combinedClickable(
                     onClick = onClick,
+                    onLongClick = if (item.type == MediaType.ANIME) {
+                        { onEditEntry(item) }
+                    } else null,
                     role = Role.Button,
                     onClickLabel = stringResource(R.string.a11y_action_open_details, title)
                 )
