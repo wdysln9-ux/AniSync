@@ -257,7 +257,7 @@ fun VideoPlayer(
         isPlaying = exoPlayer.isPlaying
         isMuted = exoPlayer.volume == 0f
 
-        exoPlayer.addListener(listener)
+        exoPlayer.setPlaybackParameters(PlaybackParameters(PlayerPreferences.playbackSpeed(context), 1f))\n        exoPlayer.addListener(listener)
 
         onDispose {
             exoPlayer.removeListener(listener)
@@ -669,17 +669,17 @@ internal fun VideoControlsOverlay(
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
-    var controlsVisible by remember { mutableStateOf(true) }
+    val context = LocalContext.current\n    var controlsVisible by remember { mutableStateOf(true) }
     // Bumped on every interaction to restart the auto-hide countdown.
     var interactions by remember { mutableIntStateOf(0) }
     var seekFeedback by remember { mutableStateOf<String?>(null) }
     var quickSettingsExpanded by remember { mutableStateOf(false) }
     var playerSettingsExpanded by remember { mutableStateOf(false) }
-    var selectedSpeed by remember { mutableFloatStateOf(1f) }
-    var autoNextEnabled by remember { mutableStateOf(true) }
-    var cinematicEnabled by remember { mutableStateOf(false) }
+    var selectedSpeed by remember { mutableFloatStateOf(PlayerPreferences.playbackSpeed(context)) }
+    var autoNextEnabled by remember { mutableStateOf(PlayerPreferences.autoNext(context)) }
+    var cinematicEnabled by remember { mutableStateOf(PlayerPreferences.cinematicEnabled(context)) }
     var cinematicSettingsExpanded by remember { mutableStateOf(false) }
-    var cinematicIntensity by remember { mutableFloatStateOf(0.35f) }
+    var cinematicIntensity by remember { mutableFloatStateOf(PlayerPreferences.cinematicIntensity(context)) }
 
     // Auto-hide while playing; idle countdown restarts whenever an interaction bumps [interactions].
     LaunchedEffect(controlsVisible, isPlaying, isBuffering, interactions) {
@@ -804,7 +804,7 @@ internal fun VideoControlsOverlay(
                                 Text("Kecepatan pemutaran · ${selectedSpeed}x")
                                 Slider(
                                     value = selectedSpeed,
-                                    onValueChange = { selectedSpeed = it; onSetPlaybackSpeed(it) },
+                                    onValueChange = { selectedSpeed = it; PlayerPreferences.setPlaybackSpeed(context, it); onSetPlaybackSpeed(it) },
                                     valueRange = 0.5f..4f,
                                     steps = 13
                                 )
@@ -847,7 +847,7 @@ internal fun VideoControlsOverlay(
                                 Text("Intensitas cahaya · ${(cinematicIntensity * 100).toInt()}%")
                                 Slider(
                                     value = cinematicIntensity,
-                                    onValueChange = { cinematicIntensity = it; if (cinematicEnabled) onCinematicLightingChange(it) },
+                                    onValueChange = { cinematicIntensity = it; PlayerPreferences.setCinematicIntensity(context, it); if (cinematicEnabled) onCinematicLightingChange(it) },
                                     valueRange = 0.05f..0.8f,
                                     enabled = cinematicEnabled
                                 )
@@ -873,10 +873,10 @@ internal fun VideoControlsOverlay(
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                     Text("Aktifkan pencahayaan")
-                                    androidx.compose.material3.Switch(checked = cinematicEnabled, onCheckedChange = { enabled -> cinematicEnabled = enabled; onCinematicLightingChange(if (enabled) cinematicIntensity else 0f) })
+                                    androidx.compose.material3.Switch(checked = cinematicEnabled, onCheckedChange = { enabled -> cinematicEnabled = enabled; PlayerPreferences.setCinematicEnabled(context, enabled); onCinematicLightingChange(if (enabled) cinematicIntensity else 0f) })
                                 }
                                 Text("Intensitas cahaya")
-                                Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it; if (cinematicEnabled) onCinematicLightingChange(it) }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
+                                Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it; PlayerPreferences.setCinematicIntensity(context, it); if (cinematicEnabled) onCinematicLightingChange(it) }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
                                 Text("Atur kekuatan efek pencahayaan di sekitar pemutar.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         },
@@ -888,7 +888,7 @@ internal fun VideoControlsOverlay(
                     DropdownMenuItem(text = { Text("Pengaturan lengkap") }, onClick = { quickSettingsExpanded = false; playerSettingsExpanded = true; poke() })
                     DropdownMenuItem(text = { Text("Kecepatan") }, onClick = {})
                     listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 3f, 4f).forEach { speed ->
-                        DropdownMenuItem(text = { Text("${if (selectedSpeed == speed) "✓ " else ""}${speed}x") }, onClick = { selectedSpeed = speed; onSetPlaybackSpeed(speed); poke() })
+                        DropdownMenuItem(text = { Text("${if (selectedSpeed == speed) "✓ " else ""}${speed}x") }, onClick = { selectedSpeed = speed; PlayerPreferences.setPlaybackSpeed(context, speed); onSetPlaybackSpeed(speed); poke() })
                     }
                     if (sourceOptions.isNotEmpty()) {
                         DropdownMenuItem(text = { Text("Ganti sumber") }, onClick = {})
@@ -896,7 +896,7 @@ internal fun VideoControlsOverlay(
                             DropdownMenuItem(text = { Text(label) }, onClick = { onSelectSource(index); quickSettingsExpanded = false; poke() })
                         }
                     }
-                    DropdownMenuItem(text = { Text("${if (autoNextEnabled) "✓ " else ""}Putar episode berikutnya otomatis") }, onClick = { autoNextEnabled = !autoNextEnabled; onAutoNextChange(autoNextEnabled); poke() })
+                    DropdownMenuItem(text = { Text("${if (autoNextEnabled) "✓ " else ""}Putar episode berikutnya otomatis") }, onClick = { autoNextEnabled = !autoNextEnabled; PlayerPreferences.setAutoNext(context, autoNextEnabled); onAutoNextChange(autoNextEnabled); poke() })
                     DropdownMenuItem(text = { Text("Pencahayaan sinematik · Pengaturan") }, onClick = { quickSettingsExpanded = false; cinematicSettingsExpanded = true; poke() })
                     DropdownMenuItem(text = { Text("${if (isMuted) "Aktifkan suara" else "Bisukan"}") }, onClick = { onToggleMute(); poke() })
                 }
