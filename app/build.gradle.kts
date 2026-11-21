@@ -264,6 +264,8 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui.compose)
     implementation(libs.media3.datasource.okhttp)
+    // Native libmpv engine used by the CloudStream player (same playback engine family as AnimeW).
+    implementation("io.github.makd:libmpv:1.2.0")
     implementation(libs.security.crypto)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.work.analytics)
