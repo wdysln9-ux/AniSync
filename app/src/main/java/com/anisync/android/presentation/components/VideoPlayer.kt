@@ -67,6 +67,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -157,7 +158,8 @@ fun VideoPlayer(
     autoPlay: Boolean = false,
     artwork: (@Composable () -> Unit)? = null,
     sourceOptions: List<String> = emptyList(),
-    onSelectSource: (Int) -> Unit = {}
+    onSelectSource: (Int) -> Unit = {},
+    onPlaybackEnded: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -173,6 +175,7 @@ fun VideoPlayer(
     // True while the player has been handed to the fullscreen activity; the inline surface detaches
     // and the lifecycle observer stops pausing, so the same instance keeps playing over there.
     var handedOff by remember { mutableStateOf(false) }
+    val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
 
     // Cached player survives scrolling; self-managed one is built+released here. Both go through
     // buildVideoExoPlayer so the OkHttp/browser-UA data source and eager prepare apply identically.
@@ -197,6 +200,7 @@ fun VideoPlayer(
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) currentOnPlaybackEnded()
                 if (playbackState == Player.STATE_READY) {
                     val d = exoPlayer.duration
                     if (d > 0) durationMs = d
@@ -296,7 +300,9 @@ fun VideoPlayer(
         )
     }
 
-    val displayAspect = videoAspectRatio.coerceIn(MIN_DISPLAY_ASPECT, MAX_DISPLAY_ASPECT)
+    // Keep the source's real aspect ratio: the frame always takes the full available width,
+    // then grows vertically for portrait video instead of cropping it into a fixed 4:5 box.
+    val displayAspect = videoAspectRatio.coerceAtLeast(0.1f)
 
     Box(
         modifier = modifier
