@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
@@ -27,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -47,6 +49,7 @@ import com.anisync.android.presentation.components.ListIndicator
 import com.anisync.android.presentation.components.ListIndicatorStyle
 import com.anisync.android.presentation.library.components.PosterAspect
 import com.anisync.android.presentation.library.components.PosterFacts
+import com.anisync.android.presentation.library.components.PosterStateChip
 import com.anisync.android.presentation.library.components.PosterTitle
 import com.anisync.android.presentation.library.components.PosterValueText
 import com.anisync.android.presentation.util.LocalLibraryStatuses
@@ -110,7 +113,12 @@ fun DiscoverResultPoster(
                     else -> Color(0xFFF44336)
                 }
                 Row(
-                    modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
@@ -133,9 +141,20 @@ fun DiscoverResultPoster(
                     text = "Ep $episodeCount",
                     color = Color.White,
                     style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.align(Alignment.BottomStart).padding(8.dp)
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
                 )
             }
+            // Keep the airing countdown in the upper-right corner of the poster.
+            PosterStateChip(
+                entry = entry,
+                aired = null,
+                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+            )
             if (listStatus != null) {
                 ListIndicator(
                     status = listStatus,
