@@ -6,6 +6,7 @@ on:
       - feature/cloudstream-watch
   workflow_dispatch:
 
+# Build the CloudStream watch sheet and player controls together with the ARM64 release.
 # Keep only the newest build for this branch. A new commit automatically cancels
 # an older run that is still compiling or stuck.
 concurrency:
