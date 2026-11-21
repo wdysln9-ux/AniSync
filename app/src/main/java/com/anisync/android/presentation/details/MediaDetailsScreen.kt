@@ -995,8 +995,17 @@ fun DetailsPageContent(
     var showImageViewer by rememberSaveable { mutableStateOf(false) }
     var showScoreInfo by rememberSaveable { mutableStateOf(false) }
     var viewerIndex by rememberSaveable { mutableIntStateOf(0) }
-    val viewerImages = remember(details.cover.url() ?: details.coverUrl, details.bannerUrl) {
-        listOfNotNull(details.coverUrl, details.bannerUrl)
+    var viewerImages by remember(details.id, details.cover.url() ?: details.coverUrl, details.bannerUrl) {
+        mutableStateOf(listOfNotNull(details.cover.url() ?: details.coverUrl, details.bannerUrl).distinct())
+    }
+
+    // Add AniZip artwork and the TMDB poster after the AniList images are ready.
+    // Provider failures are independent and leave the original gallery untouched.
+    LaunchedEffect(details.id, details.idMal, details.type) {
+        if (details.type == com.anisync.android.type.MediaType.ANIME) {
+            val extraArtwork = loadAdditionalAnimeArtwork(details.id, details.idMal)
+            viewerImages = (viewerImages + extraArtwork).distinct()
+        }
     }
 
     var showAllReviewsSheet by remember { mutableStateOf(false) }
