@@ -684,7 +684,10 @@ internal fun VideoControlsOverlay(
     var cinematicSettingsExpanded by remember { mutableStateOf(false) }
     var cinematicIntensity by remember { mutableFloatStateOf(PlayerPreferences.cinematicIntensity(context)) }
 
-    // Push the saved preference to the host player so auto-next behaves consistently after reopening.\n    LaunchedEffect(Unit) { onAutoNextChange(autoNextEnabled) }\n\n    // Auto-hide while playing; idle countdown restarts whenever an interaction bumps [interactions].
+    // Push the saved preference to the host player so auto-next behaves consistently after reopening.
+    LaunchedEffect(Unit) { onAutoNextChange(autoNextEnabled) }
+
+    // Auto-hide while playing; idle countdown restarts whenever an interaction bumps [interactions].
     LaunchedEffect(controlsVisible, isPlaying, isBuffering, interactions) {
         if (controlsVisible && isPlaying && !isBuffering) {
             delay(CONTROLS_HIDE_DELAY_MS)
