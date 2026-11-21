@@ -99,7 +99,9 @@ class DiscoverRepositoryImpl @Inject constructor(
                 GetUpcomingMediaQuery(
                     perPage = Optional.present(10),
                     type = Optional.present(type),
-                    status = Optional.present(MediaStatus.NOT_YET_RELEASED)
+                    status = Optional.present(MediaStatus.NOT_YET_RELEASED),
+                    season = Optional.absent(),
+                    seasonYear = Optional.absent()
                 )
             )
             .fetchPolicy(FetchPolicy.NetworkOnly)
@@ -169,8 +171,6 @@ class DiscoverRepositoryImpl @Inject constructor(
             }
             val nextYear = if (currentSeason == com.anisync.android.type.MediaSeason.FALL) now.year + 1 else now.year
             response.dataOrThrow().Page?.media?.filterNotNull()
-                ?.filter { it.season == nextSeason && it.seasonYear == nextYear }
-                ?.take(10)
                 ?.map { media -> media.toLibraryEntry("UPCOMING") }
                 .orEmpty()
         }
