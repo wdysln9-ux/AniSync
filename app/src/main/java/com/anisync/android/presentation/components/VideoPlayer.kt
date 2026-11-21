@@ -176,6 +176,7 @@ fun VideoPlayer(
     var isPlaying by remember { mutableStateOf(false) }
     var positionMs by remember { mutableLongStateOf(0L) }
     var durationMs by remember { mutableLongStateOf(0L) }
+    var bufferedPositionMs by remember { mutableLongStateOf(0L) }
     var isScrubbing by remember { mutableStateOf(false) }
     var videoAspectRatio by remember { mutableFloatStateOf(DEFAULT_VIDEO_ASPECT) }
     var playerState by remember { mutableStateOf(PlayerState.Loading) }
@@ -245,6 +246,7 @@ fun VideoPlayer(
         if (exoPlayer.playbackState == Player.STATE_READY) {
             playerState = PlayerState.Ready
             if (exoPlayer.duration > 0) durationMs = exoPlayer.duration
+            bufferedPositionMs = exoPlayer.bufferedPosition.coerceAtLeast(0L)
         }
         if (exoPlayer.videoSize.width > 0 && exoPlayer.videoSize.height > 0) {
             videoAspectRatio = exoPlayer.videoSize.width.toFloat() / exoPlayer.videoSize.height.toFloat()
@@ -265,6 +267,7 @@ fun VideoPlayer(
     LaunchedEffect(isPlaying, isScrubbing) {
         while (isPlaying && !isScrubbing) {
             positionMs = exoPlayer.currentPosition
+            bufferedPositionMs = exoPlayer.bufferedPosition.coerceAtLeast(0L)
             val d = exoPlayer.duration
             if (d > 0) durationMs = d
             delay(250)
@@ -377,6 +380,7 @@ fun VideoPlayer(
                 isMuted = isMuted,
                 positionMs = positionMs,
                 durationMs = durationMs,
+                bufferedPositionMs = bufferedPositionMs,
                 isFullscreen = false,
                 onPlayPause = onPlayPause,
                 onToggleMute = onToggleMute,
@@ -612,6 +616,7 @@ internal fun VideoControlsOverlay(
     isMuted: Boolean,
     positionMs: Long,
     durationMs: Long,
+    bufferedPositionMs: Long = 0L,
     isFullscreen: Boolean,
     onPlayPause: () -> Unit,
     onToggleMute: () -> Unit,
@@ -657,6 +662,7 @@ internal fun VideoControlsOverlay(
     val poke: () -> Unit = { interactions++ }
     LaunchedEffect(seekFeedback) { if (seekFeedback != null) { delay(650); seekFeedback = null } }
     val fraction = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
+    val bufferedFraction = if (durationMs > 0) (bufferedPositionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Controls are laid out against the surface they sit on, not the device: a tablet's
@@ -902,7 +908,33 @@ internal fun VideoControlsOverlay(
 
                     val seekState = remember { SliderState(fraction) }
                     seekState.value = fraction
-                    Slider(
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = if (wide) 12.dp else 8.dp)
+                            .height(if (wide) 40.dp else 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.foundation.Canvas(
+                            modifier = Modifier.fillMaxWidth().height(4.dp)
+                        ) {
+                            val trackY = size.height / 2f
+                            drawLine(
+                                color = Color.White.copy(alpha = 0.30f),
+                                start = androidx.compose.ui.geometry.Offset(0f, trackY),
+                                end = androidx.compose.ui.geometry.Offset(size.width, trackY),
+                                strokeWidth = 4.dp.toPx(),
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+                            drawLine(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
+                                start = androidx.compose.ui.geometry.Offset(0f, trackY),
+                                end = androidx.compose.ui.geometry.Offset(size.width * bufferedFraction, trackY),
+                                strokeWidth = 4.dp.toPx(),
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+                        }
+                        Slider(
                         state = seekState,
                         onValueChange = { poke(); onSeek(it) },
                         onValueChangeFinished = onSeekFinished,
@@ -915,13 +947,11 @@ internal fun VideoControlsOverlay(
                         },
                         colors = SliderDefaults.colors(
                             activeTrackColor = MaterialTheme.colorScheme.primary,
-                            inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                            inactiveTrackColor = Color.Transparent
                         ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = if (wide) 12.dp else 8.dp)
-                            .height(if (wide) 40.dp else 32.dp)
+                        modifier = Modifier.fillMaxSize()
                     )
+                    }
 
                     Text(
                         text = formatTime(durationMs),
