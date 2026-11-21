@@ -1,6 +1,5 @@
 package com.anisync.android.presentation.components.result
 
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -53,6 +52,7 @@ import com.anisync.android.presentation.library.components.PosterValueText
 import com.anisync.android.presentation.util.LocalLibraryStatuses
 import com.anisync.android.presentation.util.TransitionKeys
 import com.anisync.android.presentation.util.LocalLibraryEntryEditor
+import com.anisync.android.presentation.util.bouncyCombinedClickable
 import com.anisync.android.presentation.util.communityScoreLabel
 import com.anisync.android.presentation.util.formatAndYear
 import com.anisync.android.presentation.util.selectedPaneItem
@@ -231,11 +231,13 @@ private fun PosterFrame(
         modifier = modifier
             .fillMaxWidth()
             .selectedPaneItem(selected, shape)
-            .combinedClickable(
+            .bouncyCombinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
                 role = Role.Button,
-                onClickLabel = stringResource(R.string.a11y_action_open_details, title)
+                onClickLabel = stringResource(R.string.a11y_action_open_details, title),
+                onLongClickLabel = stringResource(R.string.a11y_action_edit_entry),
+                clipShape = shape
             )
     ) {
         Column(content = content)
