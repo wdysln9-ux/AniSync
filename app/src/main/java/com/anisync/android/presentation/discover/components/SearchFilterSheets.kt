@@ -272,6 +272,59 @@ private fun AnimeWStyleFilterSheet(
             }
         }
         if (category != ResultCategory.MANGA) {
+            SheetSectionLabel(stringResource(R.string.filter_episodes))
+            val episodeCount = filters.episodes.value ?: 0
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Minimal episode", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (episodeCount == 0) "Semua" else episodeCount.toString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            }
+            Slider(
+                value = episodeCount.toFloat(),
+                onValueChange = { value ->
+                    val picked = value.toInt()
+                    onFiltersChange(filters.copy(episodes = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
+                },
+                valueRange = 0f..200f,
+                steps = 199
+            )
+        }
+        SheetSectionLabel("Skor minimum")
+        val score = if (filters.score.mode == ComparatorMode.AT_LEAST) filters.score.value ?: 0 else 0
+        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Minimum", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("$score%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        }
+        Slider(
+            value = score.toFloat(),
+            onValueChange = { value ->
+                val picked = value.toInt()
+                onFiltersChange(filters.copy(score = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
+            },
+            valueRange = 0f..100f,
+            steps = 99
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Hide My Anime", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Sembunyikan anime yang sudah ada di daftar AniList kamu",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = filters.hideMyAnime,
+                onCheckedChange = { onFiltersChange(filters.copy(hideMyAnime = it)) }
+            )
+        }
+        if (category != ResultCategory.MANGA) {
             Spacer(Modifier.height(18.dp))
             SheetSectionLabel("Musim")
             FilterChoiceChipGroup(
@@ -353,59 +406,7 @@ private fun AnimeWStyleFilterSheet(
             role = Role.Checkbox
         )
         Spacer(Modifier.height(18.dp))
-        if (category != ResultCategory.MANGA) {
-            SheetSectionLabel(stringResource(R.string.filter_episodes))
-            val episodeCount = filters.episodes.value ?: 0
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Minimal episode", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(if (episodeCount == 0) "Semua" else episodeCount.toString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-            }
-            Slider(
-                value = episodeCount.toFloat(),
-                onValueChange = { value ->
-                    val picked = value.toInt()
-                    onFiltersChange(filters.copy(episodes = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
-                },
-                valueRange = 0f..200f,
-                steps = 199
-            )
-        }
-        SheetSectionLabel("Skor minimum")
-        val score = if (filters.score.mode == ComparatorMode.AT_LEAST) filters.score.value ?: 0 else 0
-        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Minimum", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("$score%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-        }
-        Slider(
-            value = score.toFloat(),
-            onValueChange = { value ->
-                val picked = value.toInt()
-                onFiltersChange(filters.copy(score = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
-            },
-            valueRange = 0f..100f,
-            steps = 99
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("Hide My Anime", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "Sembunyikan anime yang sudah ada di daftar AniList kamu",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = filters.hideMyAnime,
-                onCheckedChange = { onFiltersChange(filters.copy(hideMyAnime = it)) }
-            )
-        }
+
     }
 }
 
