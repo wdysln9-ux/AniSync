@@ -27,11 +27,7 @@ import com.anisync.android.R
 enum class TriState { OFF, INCLUDED, EXCLUDED }
 
 /** Where a tap moves a chip: off, included, excluded, then off again. */
-fun TriState.next(): TriState = when (this) {
-    TriState.OFF -> TriState.INCLUDED
-    TriState.INCLUDED -> TriState.EXCLUDED
-    TriState.EXCLUDED -> TriState.OFF
-}
+fun TriState.next(): TriState = if (this == TriState.INCLUDED) TriState.OFF else TriState.INCLUDED
 
 /** Where a long press moves a chip: straight to excluded, or back off when it already is. */
 fun TriState.longPressed(): TriState = if (this == TriState.EXCLUDED) TriState.OFF else TriState.EXCLUDED
@@ -44,7 +40,7 @@ fun TriState.longPressed(): TriState = if (this == TriState.EXCLUDED) TriState.O
  *   - `INCLUDED`: filled tonal with leading check (selected).
  *   - `EXCLUDED`: filled error container with leading minus (selected, negated).
  *
- * Tap cycles `OFF → INCLUDED → EXCLUDED → OFF`. Long-press jumps to `EXCLUDED`
+ * Tap toggles `OFF ↔ INCLUDED`. Long-press jumps to `EXCLUDED`
  * (or clears it when already excluded) — power-user shortcut for the most
  * common targeted action.
  */
