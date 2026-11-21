@@ -21,18 +21,49 @@ import com.apollographql.cache.normalized.FetchPolicy
 import com.apollographql.cache.normalized.doNotStore
 import com.apollographql.cache.normalized.fetchPolicy
 import javax.inject.Inject
+import java.util.concurrent.ConcurrentHashMap
 
 class DiscoverRepositoryImpl @Inject constructor(
     private val apolloClient: ApolloClient
 ) : DiscoverRepository {
+
+    private val randomPageSelections = ConcurrentHashMap<String, MutableSet<Int>>()
+
+    private fun randomPage(key: String, totalPages: Int): Int =
+        synchronized(randomPageSelections) {
+            val pageCount = totalPages.coerceAtLeast(1)
+            val used = randomPageSelections.getOrPut(key) { mutableSetOf() }
+            if (used.size >= pageCount) used.clear()
+            val selected = (1..pageCount).filterNot { it in used }.random()
+            used.add(selected)
+            selected
+        }
 
     override suspend fun getTrending(type: MediaType): Result<List<LibraryEntry>> {
         return fetchMedia(listOf(MediaSort.TRENDING_DESC), type)
     }
 
     override suspend fun getRecommendations(type: MediaType): Result<List<LibraryEntry>> {
-        // Use the same AniList RANDOM sort as the Jelajahi > Rekomendasi search preset.
-        return fetchMedia(listOf(MediaSort.RANDOM), type)
+        // Match Jelajahi > Rekomendasi: pick an unused random page from all popularity results.
+        return safeApiCall {
+            val sort = listOf(MediaSort.POPULARITY_DESC)
+            val firstResponse = apolloClient.query(
+                GetMediaBySortQuery(
+                    page = Optional.present(1),
+                    sort = Optional.present(sort),
+                    type = Optional.present(type),
+                    perPage = Optional.present(10)
+                )
+            )
+                .fetchPolicy(FetchPolicy.NetworkOnly)
+                .doNotStore(true)
+                .execute()
+
+            val total = firstResponse.dataOrThrow().Page?.pageInfo?.total ?: 0
+            val totalPages = ((total + 9) / 10).coerceAtLeast(1)
+            val selectedPage = randomPage("recommendations:$type", totalPages)
+            fetchMedia(sort, type, selectedPage).getOrThrow()
+        }
     }
 
     override suspend fun getNewlyAdded(type: MediaType): Result<List<LibraryEntry>> {
@@ -293,10 +324,11 @@ class DiscoverRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun fetchMedia(sort: List<MediaSort>, type: MediaType): Result<List<LibraryEntry>> {
+    private suspend fun fetchMedia(sort: List<MediaSort>, type: MediaType, page: Int = 1): Result<List<LibraryEntry>> {
         return safeApiCall {
             val response = apolloClient.query(
                 GetMediaBySortQuery(
+                    page = Optional.present(page),
                     sort = Optional.present(sort),
                     type = Optional.present(type),
                     perPage = Optional.present(10)
