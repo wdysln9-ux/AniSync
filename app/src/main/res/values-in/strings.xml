@@ -1385,7 +1385,7 @@
     <string name="library_sort_by_label">Urutkan berdasarkan</string>
     <string name="library_filter_airing_status">Status tayang</string>
     <string name="library_filter_format">Format</string>
-    <string name="library_episodes_behind_short">Tertinggal %1$d</string>
+    <string name="library_episodes_behind_short">Sisa %1$d</string>
     <string name="library_progress_out">%1$d / %2$d tayang</string>
     <string name="library_lists_title">Daftarmu</string>
     <string name="library_lists_caption">Seret untuk mengatur urutan. Sembunyikan daftar supaya hilang dari bilah.</string>
