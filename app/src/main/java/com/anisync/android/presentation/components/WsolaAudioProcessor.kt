@@ -191,7 +191,10 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
 
             val candidate = findBestCandidate(lower, upper)
             for (frame in 0 until hopFrames) {
-                val blend = frame.toFloat() / max(1, hopFrames - 1)
+                val phase = frame.toDouble() / max(1, hopFrames - 1)
+                // Raised-cosine crossfade avoids the abrupt slope change of a
+                // linear overlap, especially noticeable on sustained music.
+                val blend = (0.5 - 0.5 * cos(PI * phase)).toFloat()
                 val inverse = 1f - blend
                 for (channel in 0 until channelCount) {
                     val oldSample = tail[frame * channelCount + channel]
