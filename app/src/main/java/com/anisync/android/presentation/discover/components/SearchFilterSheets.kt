@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -526,27 +527,18 @@ private fun MoreFiltersSheet(
             filters.adultMode != AdultMode.ANY,
         footer = footer
     ) {
-        val sourceLabels = filters.sources.mapNotNull { it.toLabel() }
-        FilterOptionGroup(
-            label = stringResource(R.string.filter_source),
-            summary = when (sourceLabels.size) {
-                0 -> any
-                1 -> sourceLabels.first()
-                else -> stringResource(R.string.filter_value_more, sourceLabels.first(), sourceLabels.size - 1)
-            },
-            expanded = expanded == "source",
-            onToggle = { toggle("source") }
-        ) {
-            OptionPillGrid(
-                options = SourceOptions,
-                label = { it.toLabel().orEmpty() },
-                isSelected = { it in filters.sources },
-                onClick = { source -> onFiltersChange(filters.copy(sources = filters.sources.toggle(source))) },
-                horizontalPadding = 0.dp,
-                idleColor = groupPill,
-                role = Role.Checkbox
-            )
-        }
+        SheetSectionLabel(stringResource(R.string.filter_source))
+        Spacer(Modifier.height(10.dp))
+        OptionPillGrid(
+            options = SourceOptions,
+            label = { it.toLabel().orEmpty() },
+            isSelected = { it in filters.sources },
+            onClick = { source -> onFiltersChange(filters.copy(sources = filters.sources.toggle(source))) },
+            horizontalPadding = 0.dp,
+            idleColor = groupPill,
+            role = Role.Checkbox
+        )
+        Spacer(Modifier.height(18.dp))
 
         FilterOptionGroup(
             label = stringResource(R.string.filter_country),
@@ -566,18 +558,42 @@ private fun MoreFiltersSheet(
             )
         }
 
-        FilterOptionGroup(
-            label = stringResource(R.string.filter_mean_score),
-            summary = filters.score.summary(suffix = "%") ?: any,
-            expanded = expanded == "score",
-            onToggle = { toggle("score") }
-        ) {
-            ThresholdBody(
-                filter = filters.score,
-                values = (0..100 step 5).toList(),
-                defaultValue = 75,
-                suffix = "%",
-                onChange = { onFiltersChange(filters.copy(score = it)) }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SheetSectionLabel(stringResource(R.string.filter_mean_score))
+            val minimumScore = if (filters.score.mode == ComparatorMode.AT_LEAST) {
+                filters.score.value ?: 0
+            } else {
+                0
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.filter_minimum_score),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "$minimumScore%",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Slider(
+                value = minimumScore.toFloat(),
+                onValueChange = { value ->
+                    val score = value.toInt()
+                    onFiltersChange(
+                        filters.copy(
+                            score = if (score == 0) IntComparatorFilter()
+                            else IntComparatorFilter(ComparatorMode.AT_LEAST, score)
+                        )
+                    )
+                },
+                valueRange = 0f..100f,
+                steps = 99
             )
         }
 
