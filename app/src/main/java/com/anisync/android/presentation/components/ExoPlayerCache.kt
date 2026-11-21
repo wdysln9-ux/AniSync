@@ -144,10 +144,13 @@ internal fun buildVideoExoPlayer(
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
-    // Use Media3's built-in Sonic time-stretching for CloudStream as well. The custom WSOLA
-    // processor caused audible granular artifacts (robotic/frozen audio) at higher speeds.
-    // Media3's default audio chain handles playback-speed changes with stable PCM buffering.
-    val renderersFactory = DefaultRenderersFactory(context)
+    // CloudStream uses the tuned WSOLA chain; other embedded video players retain
+    // Media3's default Sonic processor and renderer configuration.
+    val renderersFactory = if (useWsolaAudio) {
+        WsolaRenderersFactory(context)
+    } else {
+        DefaultRenderersFactory(context)
+    }
 
     return ExoPlayer.Builder(context, renderersFactory)
         .setLoadControl(loadControl)
