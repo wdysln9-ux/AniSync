@@ -109,6 +109,7 @@ import com.anisync.android.presentation.discover.components.HorizontalMediaList
 import com.anisync.android.presentation.util.TransitionKeys
 import com.anisync.android.presentation.discover.components.RecentReviewsRow
 import com.anisync.android.presentation.navigation.TwoPaneListDetailScaffold
+import com.anisync.android.presentation.util.LocalLibraryStatuses
 import com.anisync.android.presentation.util.LocalAdaptiveInfo
 import com.anisync.android.presentation.util.LocalMainNavBarInset
 import com.anisync.android.presentation.util.toLabel
@@ -1165,7 +1166,10 @@ private fun SearchResults(
     com.anisync.android.presentation.discover.components.SearchResults(
         activeCategory = state.activeCategory,
         isGrid = isGrid,
-        anime = state.searchAnime,
+        anime = if (state.searchFilters.hideMyAnime) {
+            val myMediaIds = LocalLibraryStatuses.current.keys
+            state.searchAnime.filterNot { it.mediaId in myMediaIds }
+        } else state.searchAnime,
         manga = state.searchManga,
         grouped = state.groupedResults,
         paging = state.searchPaging,
