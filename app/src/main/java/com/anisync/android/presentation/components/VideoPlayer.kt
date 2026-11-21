@@ -1,6 +1,10 @@
 package com.anisync.android.presentation.components
 
 import android.content.Context
+import androidx.compose.material.icons.filled.Brightness6
+import android.provider.Settings
+import android.media.AudioManager
+import android.content.ContextWrapper
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -10,6 +14,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -84,6 +89,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpSize
+import kotlin.math.roundToInt
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -638,6 +644,49 @@ internal fun PlayerStatusVisuals(
     }
 }
 
+@Composable
+private fun LevelGestureHud(
+    label: String,
+    percent: Int,
+    icon: @Composable () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = Color.Black.copy(alpha = 0.78f),
+        contentColor = Color.White,
+        tonalElevation = 6.dp,
+        shadowElevation = 12.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                Modifier.size(38.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.primary
+                ) { icon() }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.78f))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.width(92.dp).height(5.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.2f))) {
+                        Box(
+                            Modifier.fillMaxWidth(percent.coerceIn(0, 100) / 100f)
+                                .height(5.dp).clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    }
+                    Text("$percent%", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
 /**
  * The auto-hiding control surface drawn over the video. Owns its own visibility so the inline and
  * fullscreen instances hide independently. A single tap on empty space toggles the controls; the
@@ -672,6 +721,27 @@ internal fun VideoControlsOverlay(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val hostWindow = remember(context) {
+        var current = context
+        while (current !is android.app.Activity && current is ContextWrapper) current = current.baseContext
+        (current as? android.app.Activity)?.window
+    }
+    val audioManager = remember(context) { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    val originalWindowBrightness = remember(hostWindow) { hostWindow?.attributes?.screenBrightness ?: -1f }
+    var brightnessLevel by remember(hostWindow) {
+        mutableFloatStateOf(
+            if (originalWindowBrightness >= 0f) originalWindowBrightness
+            else (Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128) / 255f)
+        )
+    }
+    var volumeLevel by remember(audioManager) {
+        mutableFloatStateOf(
+            audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() /
+                audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+        )
+    }
+    var levelHud by remember { mutableStateOf<String?>(null) }
+    var levelHudRevision by remember { mutableIntStateOf(0) }
     var controlsVisible by remember { mutableStateOf(true) }
     // Bumped on every interaction to restart the auto-hide countdown.
     var interactions by remember { mutableIntStateOf(0) }
@@ -685,6 +755,23 @@ internal fun VideoControlsOverlay(
     var cinematicEnabled by remember { mutableStateOf(PlayerPreferences.cinematicEnabled(context)) }
     var cinematicSettingsExpanded by remember { mutableStateOf(false) }
     var cinematicIntensity by remember { mutableFloatStateOf(PlayerPreferences.cinematicIntensity(context)) }
+
+    // Restore the window's original brightness when this player surface is disposed.
+    DisposableEffect(hostWindow) {
+        onDispose {
+            hostWindow?.let { window ->
+                window.attributes = window.attributes.apply {
+                    screenBrightness = originalWindowBrightness
+                }
+            }
+        }
+    }
+    LaunchedEffect(levelHud, levelHudRevision) {
+        if (levelHud != null) {
+            delay(1100)
+            levelHud = null
+        }
+    }
 
     // Push the saved preference to the host player so auto-next behaves consistently after reopening.
     LaunchedEffect(Unit) { onAutoNextChange(autoNextEnabled) }
@@ -763,6 +850,70 @@ internal fun VideoControlsOverlay(
                     )
                 }
         )
+
+        // Vertical swipe zones: left adjusts screen brightness, right adjusts media volume.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .pointerInput(hostWindow, audioManager) {
+                    var brightnessGesture = false
+                    detectVerticalDragGestures(
+                        onDragStart = { offset ->
+                            brightnessGesture = offset.x < size.width / 2f
+                            levelHud = if (brightnessGesture) "brightness" else "volume"
+                            controlsVisible = true
+                            poke()
+                        },
+                        onVerticalDrag = { change, dragAmount ->
+                            change.consume()
+                            val delta = -dragAmount / size.height.coerceAtLeast(1).toFloat() * 1.6f
+                            if (brightnessGesture) {
+                                brightnessLevel = (brightnessLevel + delta).coerceIn(0.01f, 1f)
+                                hostWindow?.let { window ->
+                                    window.attributes = window.attributes.apply {
+                                        screenBrightness = brightnessLevel
+                                    }
+                                }
+                            } else {
+                                val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+                                val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                                val next = (current + delta * maxVolume).roundToInt().coerceIn(0, maxVolume)
+                                if (next != current) {
+                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, next, 0)
+                                    volumeLevel = next.toFloat() / maxVolume
+                                }
+                            }
+                            levelHudRevision++
+                            poke()
+                        }
+                    )
+                }
+        )
+
+        AnimatedVisibility(
+            visible = levelHud == "brightness",
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopStart).padding(start = edgePadding, top = edgePadding)
+        ) {
+            LevelGestureHud(
+                label = "Kecerahan",
+                percent = (brightnessLevel * 100).roundToInt(),
+                icon = { Icon(Icons.Filled.Brightness6, contentDescription = null) }
+            )
+        }
+        AnimatedVisibility(
+            visible = levelHud == "volume",
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopEnd).padding(end = edgePadding, top = edgePadding)
+        ) {
+            LevelGestureHud(
+                label = "Volume",
+                percent = (volumeLevel * 100).roundToInt(),
+                icon = { Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null) }
+            )
+        }
 
         AnimatedVisibility(
             visible = seekFeedback != null,
