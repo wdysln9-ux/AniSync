@@ -323,22 +323,22 @@ private fun AnimeWStyleFilterSheet(
         Spacer(Modifier.height(18.dp))
         if (category != ResultCategory.MANGA) {
             SheetSectionLabel(stringResource(R.string.filter_episodes))
-            val episodeCount = filters.episodes.value ?: 1
+            val episodeCount = filters.episodes.value ?: 0
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Minimal episode", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("$episodeCount", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Text(if (episodeCount == 0) "Semua" else episodeCount.toString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             }
             Slider(
                 value = episodeCount.toFloat(),
                 onValueChange = { value ->
-                    val picked = value.toInt().coerceAtLeast(1)
-                    onFiltersChange(filters.copy(episodes = IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
+                    val picked = value.toInt()
+                    onFiltersChange(filters.copy(episodes = if (picked == 0) IntComparatorFilter() else IntComparatorFilter(ComparatorMode.AT_LEAST, picked)))
                 },
-                valueRange = 1f..200f,
-                steps = 198
+                valueRange = 0f..200f,
+                steps = 199
             )
         }
         SheetSectionLabel("Skor minimum")
