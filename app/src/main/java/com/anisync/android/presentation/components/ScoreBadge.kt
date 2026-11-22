@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.anisync.android.presentation.components.communityScoreTint
 
 /**
  * A badge component that displays a score with semantic color coding.
@@ -38,12 +39,8 @@ fun ScoreBadge(
     score: Int,
     modifier: Modifier = Modifier
 ) {
-    // Semantic colors based on score using M3 tokens
-    val (containerColor, contentColor) = when {
-        score >= 75 -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-        score >= 60 -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        else -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-    }
+    val contentColor = communityScoreTint(score.toDouble())
+    val containerColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.62f)
 
     Surface(
         color = containerColor,
