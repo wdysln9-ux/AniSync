@@ -2316,7 +2316,7 @@ private fun MetadataTags(details: MediaDetails, onFilterClick: (com.anisync.andr
     val parts = buildList {
         details.format?.let { raw ->
             com.anisync.android.type.MediaFormat.entries.firstOrNull { it.name == raw }?.let { format ->
-                add(MetadataPart(raw.formatAsTitle(), com.anisync.android.domain.SearchFilters(formats = setOf(format))))
+                add(MetadataPart(raw.formatAsTitle() ?: raw, com.anisync.android.domain.SearchFilters(formats = setOf(format))))
             }
         }
         details.seasonYear?.let { year ->
