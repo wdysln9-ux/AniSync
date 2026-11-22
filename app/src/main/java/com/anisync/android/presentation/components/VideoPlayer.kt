@@ -160,7 +160,6 @@ private val WIDE_CONTROLS_MIN_WIDTH = 600.dp
  * Defaults to [LocalExoPlayerCache]. When `null`, the player is self-managed and released on dispose.
  * @param artwork Drawn in place of the picture, for a source that has none such as an audio file.
  */
-@kotlin.OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @ExperimentalMaterial3Api
 @OptIn(UnstableApi::class, ExperimentalMaterial3Api::class)
 @Composable
