@@ -882,7 +882,7 @@ private fun DiscoverSection.skeletonCardWidth(): Dp = when (this) {
 /** Which paginated grid a rail's See all opens. */
 private fun DiscoverSection.gridSectionType(): String = when (this) {
     DiscoverSection.TRENDING -> "trending"
-    DiscoverSection.POPULAR -> "popular"
+    DiscoverSection.POPULAR -> "latest"
     DiscoverSection.NOT_YET_RELEASED -> "not_yet_released"
     DiscoverSection.NEWLY_ADDED -> "newly_added"
     DiscoverSection.RELEASING_NOW -> "releasing"
