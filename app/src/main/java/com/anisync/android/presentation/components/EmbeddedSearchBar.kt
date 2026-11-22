@@ -39,9 +39,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.toRect
@@ -155,9 +152,6 @@ fun EmbeddedFullScreenSearchBar(
 
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
-    val focusRequester = remember { FocusRequester() }
-    val opening = remember { state.isAnimating }
-    var fieldFocused by rememberSaveable { mutableStateOf(false) }
     var firstBackEvent by remember { mutableStateOf<BackEventCompat?>(null) }
     var lastBackEvent by remember { mutableStateOf<BackEventCompat?>(null) }
 
@@ -178,9 +172,9 @@ fun EmbeddedFullScreenSearchBar(
     }
 
     LaunchedEffect(Unit) {
-        if (opening || fieldFocused) focusRequester.requestFocus()
         // A configuration change mid animation restores the bar part way open, with nothing left
-        // to finish the move.
+        // to finish the move. Do not request field focus here: opening search should not summon
+        // the keyboard until the user taps the input.
         if (!state.isAnimating && state.progress < 1f) state.animateToExpanded()
     }
     LaunchedEffect(state.targetValue) {
@@ -239,8 +233,7 @@ fun EmbeddedFullScreenSearchBar(
             ) {
                 Box(
                     modifier = Modifier
-                        .focusRequester(focusRequester)
-                        .onFocusChanged { fieldFocused = it.hasFocus },
+                        ,
                     propagateMinConstraints = true
                 ) {
                     inputField()
