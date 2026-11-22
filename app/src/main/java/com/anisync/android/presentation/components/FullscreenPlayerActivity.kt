@@ -259,6 +259,15 @@ private fun FullscreenVideoContent(
                 isPlaying = isPlayingNow
             }
 
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                playbackEndHandled = false
+                positionMs = 0L
+                durationMs = 0L
+                bufferedPositionMs = 0L
+                errorMessage = null
+                playerState = PlayerState.Loading
+            }
+
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_ENDED && !playbackEndHandled) {
                     playbackEndHandled = true
