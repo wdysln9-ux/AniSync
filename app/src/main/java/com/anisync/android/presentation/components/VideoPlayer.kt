@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.material.icons.filled.Brightness6
 import android.provider.Settings as AndroidSettings
 import android.media.AudioManager
+import android.view.TextureView
 import android.content.ContextWrapper
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -14,6 +15,8 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.blur
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -85,6 +88,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -574,15 +579,59 @@ internal fun PlayerSurface(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Fit
 ) {
-    LaunchedEffect(exoPlayer, active) {
-        if (active && exoPlayer.playbackState == Player.STATE_IDLE) exoPlayer.prepare()
+    val context = LocalContext.current
+    var textureView by remember(exoPlayer) { mutableStateOf<TextureView?>(null) }
+    var backgroundFrame by remember(exoPlayer) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    val cinematicEnabled = PlayerPreferences.cinematicEnabled(context)
+    val cinematicIntensity = FullscreenVideoBridge.cinematicIntensity.floatValue
+    val blur = FullscreenVideoBridge.cinematicBlur.floatValue
+    val brightness = FullscreenVideoBridge.cinematicBrightness.floatValue
+    val vignette = FullscreenVideoBridge.cinematicVignette.floatValue
+    val zoom = FullscreenVideoBridge.cinematicZoom.floatValue
+    LaunchedEffect(exoPlayer, active, textureView) {
+        val view = textureView ?: return@LaunchedEffect
+        if (active) {
+            exoPlayer.setVideoTextureView(view)
+            if (exoPlayer.playbackState == Player.STATE_IDLE) exoPlayer.prepare()
+        } else exoPlayer.clearVideoTextureView(view)
     }
-    ContentFrame(
-        player = if (active) exoPlayer else null,
-        surfaceType = SURFACE_TYPE_TEXTURE_VIEW,
-        contentScale = contentScale,
-        modifier = modifier
-    )
+    DisposableEffect(exoPlayer, textureView) {
+        onDispose { textureView?.let { exoPlayer.clearVideoTextureView(it) } }
+    }
+    LaunchedEffect(textureView, active, cinematicEnabled) {
+        val view = textureView
+        if (view == null || !active || !cinematicEnabled) {
+            backgroundFrame = null
+            return@LaunchedEffect
+        }
+        while (true) {
+            if (view.isAvailable && view.width > 0 && view.height > 0) {
+                val frame = runCatching { view.getBitmap(360, 202) }.getOrNull()
+                if (frame != null) backgroundFrame = frame
+            }
+            delay(160L)
+        }
+    }
+    Box(modifier) {
+        if (cinematicEnabled && cinematicIntensity > 0f) {
+            backgroundFrame?.let { frame ->
+                Image(
+                    bitmap = frame.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                        .graphicsLayer(scaleX = zoom, scaleY = zoom)
+                        .blur(blur.dp)
+                )
+                if (brightness < 0f) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = -brightness * 0.75f)))
+                if (brightness > 0f) Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = brightness * 0.45f)))
+                if (vignette > 0f) Box(Modifier.fillMaxSize().background(
+                    Brush.radialGradient(listOf(Color.Transparent, Color.Black.copy(alpha = vignette * 0.9f)), radius = 900f)
+                ))
+            }
+        }
+        AndroidView(factory = { ctx -> TextureView(ctx).also { textureView = it } }, modifier = Modifier.fillMaxSize())
+    }
 }
 
 /**
