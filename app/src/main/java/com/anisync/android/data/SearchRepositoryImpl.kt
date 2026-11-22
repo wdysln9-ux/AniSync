@@ -168,7 +168,9 @@ class SearchRepositoryImpl @Inject constructor(
                     displayName = c.name?.userPreferred ?: c.name?.full ?: "Unknown",
                     nativeName = c.name?.native,
                     imageUrl = c.image?.medium,
-                    favourites = c.favourites
+                    favourites = c.favourites,
+                    birthdayMonth = c.dateOfBirth?.month,
+                    birthdayDay = c.dateOfBirth?.day
                 )
             } ?: emptyList()
 
@@ -179,7 +181,9 @@ class SearchRepositoryImpl @Inject constructor(
                     nativeName = s.name?.native,
                     imageUrl = s.image?.medium,
                     primaryOccupations = s.primaryOccupations?.filterNotNull() ?: emptyList(),
-                    favourites = s.favourites
+                    favourites = s.favourites,
+                    birthdayMonth = s.dateOfBirth?.month,
+                    birthdayDay = s.dateOfBirth?.day
                 )
             } ?: emptyList()
 
