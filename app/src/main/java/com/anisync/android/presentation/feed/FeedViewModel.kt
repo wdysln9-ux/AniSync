@@ -329,8 +329,13 @@ class FeedViewModel @Inject constructor(
                             replyDrafts = current.replyDrafts + (activityId to ""),
                             submittingReplyIds = current.submittingReplyIds - activityId,
                             items = current.items.map { item ->
-                                if (item.id == activityId) item.copy(replyCount = updatedDetail.replyCount)
-                                else item
+                                if (item.id == activityId) item.copy(
+                                    replyCount = updatedDetail.replyCount,
+                                    replyUserName = result.data.authorName,
+                                    replyUserAvatarUrl = result.data.authorAvatarUrl,
+                                    lastReplyId = result.data.id,
+                                    repliedAt = result.data.createdAt
+                                ) else item
                             }.toPersistentList()
                         )
                     }
