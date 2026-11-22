@@ -116,7 +116,7 @@ fun RichTextInputSheet(
     // half-expanded stop would leave the toolbar and the submit button below the edge.
     val sheetState = rememberBottomSheetState(
         initialValue = SheetValue.Hidden,
-        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.PartiallyExpanded, SheetValue.Expanded),
         confirmValueChange = { targetValue ->
             if (targetValue == SheetValue.Hidden && hasDraftState.value) {
                 showDiscardDialog = true
