@@ -1080,8 +1080,8 @@ private fun SearchResultsContent(
         state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID
     Column(modifier = Modifier.fillMaxSize()) {
         SearchResultsRail(
-                // Without the filter bar above it, the rail keeps the bar's distance from the divider.
-                modifier = Modifier.padding(top = if (category.hasMediaFilters()) 0.dp else 16.dp, bottom = 8.dp),
+                // Keep a consistent breathing space between the search field and category tabs.
+                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
                 categories = state.railCategories,
                 activeCategory = category,
                 onCategoryChange = { onAction(DiscoverAction.OnCategoryChange(it)) }
