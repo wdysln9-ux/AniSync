@@ -422,10 +422,10 @@ internal fun CloudStreamWatchContent(
                             }.orEmpty(),
                             onPlaybackEnded = {
                                 if (autoNextEnabled) {
-                                    autoNextFullscreen = false
+                                    // Keep fullscreen only when the episode that just ended was fullscreen.
+                                    autoNextFullscreen = FullscreenVideoBridge.isFullscreen
                                     val index = episodes.indexOfFirst { it === current || it == current }
                                     episodes.getOrNull(index + 1)?.let { next ->
-                                        autoNextFullscreen = true
                                         playEpisode(next)
                                     }
                                 }
