@@ -75,6 +75,8 @@ class DiscoverViewModel @Inject constructor(
         val filterHash: Int = 0,
         /** Tells the Studios chip apart from a cleared search, which carries the same query and filters. */
         val browsingStudios: Boolean = false,
+        /** A blank-query browse request, fired only while the search overlay is open. */
+        val browsingDefault: Boolean = false,
         /** The search key or a recent search, which skip the pause that waits for typing to stop. */
         val submitted: Boolean = false
     ) {
@@ -213,7 +215,14 @@ class DiscoverViewModel @Inject constructor(
 
     private fun onCategoryChange(category: ResultCategory) {
         val currentState = _uiState.value
-        _uiState.update { currentState.copy(activeCategory = category) }
+        _uiState.update {
+            currentState.copy(
+                activeCategory = category,
+                viewMode = if (category == ResultCategory.ANIME || category == ResultCategory.MANGA)
+                    com.anisync.android.data.DiscoverViewMode.GRID
+                else currentState.viewMode
+            )
+        }
     }
 
     private fun onMediaTypeChange(type: MediaType) {
@@ -240,12 +249,26 @@ class DiscoverViewModel @Inject constructor(
     private fun onSearchQueryChange(query: String) {
         val currentState = _uiState.value
         _uiState.update { currentState.copy(searchQuery = query) }
-        searchTrigger.value = SearchTriggerState(query, currentState.searchFilters.hashCode())
+        searchTrigger.value = SearchTriggerState(
+            query = query,
+            filterHash = currentState.searchFilters.hashCode(),
+            browsingDefault = query.isBlank() && currentState.isSearchActive &&
+                !currentState.searchFilters.hasActiveFilters
+        )
     }
 
     private fun onSearchActiveChange(active: Boolean) {
         val currentState = _uiState.value
         _uiState.update { currentState.copy(isSearchActive = active) }
+        if (active && currentState.searchQuery.isBlank() && !currentState.searchFilters.hasActiveFilters) {
+            searchTrigger.value = SearchTriggerState(
+                query = "",
+                filterHash = currentState.searchFilters.hashCode(),
+                browsingDefault = true
+            )
+        } else if (!active) {
+            lastRunTrigger = SearchTriggerState()
+        }
     }
 
     private fun onSearch(query: String) {
@@ -294,6 +317,7 @@ class DiscoverViewModel @Inject constructor(
                 query = query,
                 filters = filters,
                 page = nextPage,
+                perPage = 50,
                 wantAnime = wantAnime,
                 wantManga = wantManga,
                 wantEntities = wantEntities,
@@ -329,8 +353,10 @@ class DiscoverViewModel @Inject constructor(
                             searchAnime = (st.searchAnime + data.anime).distinctBy { it.mediaId },
                             searchManga = (st.searchManga + data.manga).distinctBy { it.mediaId },
                             groupedResults = grouped.copy(
-                                characters = (grouped.characters + appended.characters).distinctBy { it.id },
-                                staff = (grouped.staff + appended.staff).distinctBy { it.id },
+                                characters = (grouped.characters + appended.characters).distinctBy { it.id }
+                                    .sortedByUpcomingBirthday(),
+                                staff = (grouped.staff + appended.staff).distinctBy { it.id }
+                                    .sortedByUpcomingBirthday(),
                                 users = (grouped.users + appended.users).distinctBy { it.id },
                                 studios = (grouped.studios + appended.studios).distinctBy { it.id }
                             ),
@@ -402,18 +428,24 @@ class DiscoverViewModel @Inject constructor(
 
                     _uiState.update { currentState.copy(isSearching = true) }
 
-                    // Every category rides the one SearchEverything request, so the rail can
-                    // show what each holds. Characters, staff, users and studios are found by
-                    // name alone, so they wait for a query. The Studios chip is the exception
-                    // and lists the most favourited studios until a name narrows them.
+                    // Blank search starts with the same browse rails as AniList:
+                    // trending anime/manga, upcoming birthdays, and favourite studios.
                     val browsingStudios = currentState.isBrowsingStudios()
+                    val defaultBrowse = query.isBlank() && !filters.hasActiveFilters
+                    val effectiveFilters = if (defaultBrowse) filters.copy(
+                        sort = com.anisync.android.domain.SearchSort(
+                            column = com.anisync.android.domain.SearchSortColumn.TRENDING,
+                            descending = true
+                        )
+                    ) else filters
                     val result = searchRepository.searchEverything(
                         query = query,
-                        filters = filters,
+                        filters = effectiveFilters,
+                        perPage = 50,
                         wantAnime = !browsingStudios,
                         wantManga = !browsingStudios,
-                        wantEntities = query.isNotBlank(),
-                        wantStudios = query.isNotBlank() || browsingStudios
+                        wantEntities = query.isNotBlank() || defaultBrowse,
+                        wantStudios = query.isNotBlank() || browsingStudios || defaultBrowse
                     )
 
                     val data = (result as? Result.Success)?.data
@@ -426,7 +458,10 @@ class DiscoverViewModel @Inject constructor(
                         st.copy(
                             searchAnime = animeEntries,
                             searchManga = mangaEntries,
-                            groupedResults = grouped,
+                            groupedResults = if (defaultBrowse) grouped.copy(
+                                characters = grouped.characters.sortedByUpcomingBirthday(),
+                                staff = grouped.staff.sortedByUpcomingBirthday()
+                            ) else grouped,
                             searchTotals = SearchTotals(
                                 anime = data?.animeTotal ?: 0,
                                 manga = data?.mangaTotal ?: 0
@@ -721,7 +756,8 @@ class DiscoverViewModel @Inject constructor(
     private fun DiscoverUiState.shouldSearch(): Boolean =
         searchQuery.trim().length >= MIN_SEARCH_QUERY_LENGTH ||
             searchFilters.hasActiveFilters ||
-            isBrowsingStudios()
+            isBrowsingStudios() ||
+            (isSearchActive && searchQuery.isBlank())
 
     private fun DiscoverUiState.isBrowsingStudios(): Boolean =
         activeCategory == ResultCategory.STUDIOS && searchQuery.isBlank()
