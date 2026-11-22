@@ -360,8 +360,17 @@ fun LazyListScope.richTextItems(
     }
 
     items(count = blocks.size, key = { "richtext-$it" }) { index ->
+        val isAdjacentAniListPreview = index > 0 &&
+            blocks[index] is RichTextBlock.AnilistLink &&
+            blocks[index - 1] is RichTextBlock.AnilistLink
         SelectionContainer(
-            modifier = itemModifier.padding(top = if (index == 0) 0.dp else 8.dp)
+            modifier = itemModifier.padding(
+                top = when {
+                    index == 0 -> 0.dp
+                    isAdjacentAniListPreview -> 0.dp
+                    else -> 8.dp
+                }
+            )
         ) {
             Column {
                 RenderSingleBlock(
