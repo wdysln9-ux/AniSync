@@ -44,29 +44,9 @@ class DiscoverRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getRecommendations(type: MediaType): Result<List<LibraryEntry>> {
-        // Match Jelajahi > Rekomendasi: pick an unused random page from all popularity results.
-        return safeApiCall {
-            val sort = listOf(MediaSort.POPULARITY_DESC)
-            val firstResponse = apolloClient.query(
-                GetMediaBySortQuery(
-                    page = Optional.present(1),
-                    sort = Optional.present(sort),
-                    type = Optional.present(type),
-                    perPage = Optional.present(10)
-                )
-            )
-                .fetchPolicy(FetchPolicy.NetworkOnly)
-                .doNotStore(true)
-                .execute()
-
-            val total = firstResponse.dataOrThrow().Page?.pageInfo?.total ?: 0
-            val totalPages = ((total + 9) / 10).coerceAtLeast(1)
-            val selectedPage = randomPage("recommendations:$type", totalPages)
-            when (val result = fetchMedia(sort, type, selectedPage)) {
-                is Result.Success -> result.data
-                is Result.Error -> throw Exception(result.message, result.exception)
-            }
-        }
+        // Discover catalogue uses the regular Popular list. The separate Rekomendasi search tab
+        // keeps its random sort preset in DiscoverViewModel.
+        return fetchMedia(listOf(MediaSort.POPULARITY_DESC), type)
     }
 
     override suspend fun getNewlyAdded(type: MediaType): Result<List<LibraryEntry>> {
