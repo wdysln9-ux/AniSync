@@ -697,6 +697,7 @@
     <string name="details_next_episode_in">Episode %1$d airs in %2$s</string>
     <string name="details_trailer">Trailer</string>
     <string name="details_duration_minutes">%1$d min</string>
+    <string name="details_episode_count">%1$d eps</string>
     <string name="details_score_average">weighted</string>
     <string name="details_score_average_ranked">weighted · #%1$d all-time</string>
     <string name="details_score_info_title">Scores</string>
