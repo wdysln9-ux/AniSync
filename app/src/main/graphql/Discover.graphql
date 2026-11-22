@@ -54,6 +54,7 @@ query GetUpcomingMedia(
       type
       format
       averageScore: weightedScore
+      startDate { year month day }
       season
       seasonYear
     }
@@ -66,6 +67,7 @@ query GetPaginatedMedia(
   $sort: [MediaSort],
   $type: MediaType,
   $status: MediaStatus,
+  $statusIn: [MediaStatus],
   $format: MediaFormat,
   $season: MediaSeason,
   $seasonYear: Int
@@ -77,7 +79,7 @@ query GetPaginatedMedia(
       lastPage
       total
     }
-    media(sort: $sort, type: $type, status: $status, format: $format, season: $season, seasonYear: $seasonYear) {
+    media(sort: $sort, type: $type, status: $status, status_in: $statusIn, format: $format, season: $season, seasonYear: $seasonYear) {
       id
       title {
         userPreferred
