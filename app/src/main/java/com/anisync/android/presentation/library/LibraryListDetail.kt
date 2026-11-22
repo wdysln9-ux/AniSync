@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import com.anisync.android.R
+import com.anisync.android.domain.LibraryEntry
 import com.anisync.android.presentation.navigation.MediaListDetailScaffold
 import com.anisync.android.presentation.util.LocalAdaptiveInfo
 
@@ -26,6 +27,8 @@ fun LibraryListDetail(
     onNavigateToNotes: () -> Unit,
     onBrowseDiscover: () -> Unit,
     onOpenRecap: (String) -> Unit,
+    pendingEditEntry: LibraryEntry? = null,
+    onPendingEditConsumed: () -> Unit = {},
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -36,6 +39,8 @@ fun LibraryListDetail(
             onNavigateToNotes = onNavigateToNotes,
             onBrowseDiscover = onBrowseDiscover,
             onOpenRecap = onOpenRecap,
+            pendingEditEntry = pendingEditEntry,
+            onPendingEditConsumed = onPendingEditConsumed,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
         )
@@ -54,6 +59,8 @@ fun LibraryListDetail(
             onNavigateToNotes = onNavigateToNotes,
             onBrowseDiscover = onBrowseDiscover,
             onOpenRecap = onOpenRecap,
+            pendingEditEntry = pendingEditEntry,
+            onPendingEditConsumed = onPendingEditConsumed,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
         )
