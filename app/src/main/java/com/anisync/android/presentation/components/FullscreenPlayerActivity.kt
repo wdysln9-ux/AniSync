@@ -70,6 +70,8 @@ internal object PlayerPreferences {
     private const val MUTED = "muted"
     private const val DISPLAY_MODE = "display_mode"
     private const val AUTO_NEXT = "auto_next"
+    private const val AUTO_SKIP_OPENING = "auto_skip_opening"
+    private const val AUTO_SKIP_ENDING = "auto_skip_ending"
     private const val CINEMATIC_ENABLED = "cinematic_enabled"
     private const val CINEMATIC_INTENSITY = "cinematic_intensity"
     private const val CINEMATIC_BLUR = "cinematic_blur"
@@ -96,6 +98,14 @@ internal object PlayerPreferences {
     fun autoNext(context: android.content.Context) = prefs(context).getBoolean(AUTO_NEXT, true)
     fun setAutoNext(context: android.content.Context, value: Boolean) {
         prefs(context).edit().putBoolean(AUTO_NEXT, value).apply()
+    }
+    fun autoSkipOpening(context: android.content.Context) = prefs(context).getBoolean(AUTO_SKIP_OPENING, false)
+    fun setAutoSkipOpening(context: android.content.Context, value: Boolean) {
+        prefs(context).edit().putBoolean(AUTO_SKIP_OPENING, value).apply()
+    }
+    fun autoSkipEnding(context: android.content.Context) = prefs(context).getBoolean(AUTO_SKIP_ENDING, false)
+    fun setAutoSkipEnding(context: android.content.Context, value: Boolean) {
+        prefs(context).edit().putBoolean(AUTO_SKIP_ENDING, value).apply()
     }
     fun cinematicEnabled(context: android.content.Context) = prefs(context).getBoolean(CINEMATIC_ENABLED, false)
     fun setCinematicEnabled(context: android.content.Context, value: Boolean) {
