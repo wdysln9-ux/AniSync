@@ -30,6 +30,10 @@ object Calendar
 @Serializable
 object Notes
 
+/** Standalone offline notes with user-owned backup support. */
+@Serializable
+object LocalNotes
+
 @Serializable
 object Feed
 
