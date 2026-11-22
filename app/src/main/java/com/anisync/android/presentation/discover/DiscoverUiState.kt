@@ -206,4 +206,5 @@ sealed interface DiscoverAction {
 
     /** Re-run one rail's request, rather than the whole screen's. */
     data class RetrySection(val section: DiscoverSection) : DiscoverAction
+    data class LoadMoreSection(val section: DiscoverSection) : DiscoverAction
 }
