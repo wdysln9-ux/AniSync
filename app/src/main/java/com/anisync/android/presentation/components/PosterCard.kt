@@ -201,7 +201,7 @@ fun PosterCard(
                                 text = String.format(Locale.US, "%.1f", score / 10.0),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = communityScoreTint(score),
+                                color = communityScoreTint(score.toDouble()),
                                 modifier = Modifier.padding(start = 4.dp)
                             )
                         }
