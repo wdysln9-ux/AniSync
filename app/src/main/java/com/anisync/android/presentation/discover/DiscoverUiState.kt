@@ -60,7 +60,10 @@ data class SearchPaging(
 data class SectionFeed<T>(
     val items: List<T> = emptyList(),
     val isLoading: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val page: Int = 1,
+    val hasNextPage: Boolean = false,
+    val isLoadingMore: Boolean = false
 ) {
     /** True once the rail has finished and has nothing worth drawing. */
     val isEmpty: Boolean get() = !isLoading && items.isEmpty()
