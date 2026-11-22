@@ -95,6 +95,7 @@ import com.anisync.android.presentation.util.TransitionKeys
 import com.anisync.android.presentation.util.copyOnLongPress
 import com.anisync.android.presentation.util.pluralStringResourceOrDefault
 import com.anisync.android.ui.theme.StarGold
+import com.anisync.android.presentation.components.communityScoreTint
 import com.anisync.android.ui.theme.emphasis
 import java.text.NumberFormat
 import java.util.Locale
@@ -925,18 +926,19 @@ fun AppearanceRow(
                         RolePill(role = role, highlighted = roleHighlighted)
                     }
                     if (score != null && score > 0) {
+                        val scoreTint = communityScoreTint(score.toDouble())
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = null,
-                                tint = StarGold,
+                                tint = scoreTint,
                                 modifier = Modifier.size(13.dp)
                             )
                             Spacer(Modifier.width(3.dp))
                             Text(
                                 text = score.toString(),
                                 style = MaterialTheme.typography.labelSmall.emphasis(),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = scoreTint
                             )
                         }
                     }
