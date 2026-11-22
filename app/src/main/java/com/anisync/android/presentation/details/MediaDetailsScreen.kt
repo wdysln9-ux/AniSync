@@ -1317,12 +1317,21 @@ fun DetailsPageContent(
                                     }
                                     count?.takeIf { it > 0 }?.let { episodes ->
                                         onInfoFilterClick(
-                                            com.anisync.android.domain.SearchFilters(
-                                                episodes = com.anisync.android.domain.IntComparatorFilter(
-                                                    mode = com.anisync.android.domain.ComparatorMode.EXACTLY,
-                                                    value = episodes
+                                            if (details.type == com.anisync.android.type.MediaType.MANGA) {
+                                                com.anisync.android.domain.SearchFilters(
+                                                    chapters = com.anisync.android.domain.IntComparatorFilter(
+                                                        mode = com.anisync.android.domain.ComparatorMode.EXACTLY,
+                                                        value = episodes
+                                                    )
                                                 )
-                                            )
+                                            } else {
+                                                com.anisync.android.domain.SearchFilters(
+                                                    episodes = com.anisync.android.domain.IntComparatorFilter(
+                                                        mode = com.anisync.android.domain.ComparatorMode.EXACTLY,
+                                                        value = episodes
+                                                    )
+                                                )
+                                            }
                                         )
                                     }
                                 },
@@ -2309,7 +2318,7 @@ private fun MetadataTags(details: MediaDetails, onFilterClick: (com.anisync.andr
         }
         details.seasonYear?.let { year ->
             val season = details.season?.let { raw ->
-                com.anisync.android.type.MediaSeason.entries.firstOrNull { it.name == raw }
+                com.anisync.android.type.MediaSeason.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
             }
             add(MetadataPart(
                 season?.let { "${it.name.lowercase().replaceFirstChar { ch -> ch.uppercase() }} $year" } ?: year.toString(),
