@@ -148,13 +148,20 @@ private fun MediaLinkCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = typeLabel(block.type),
-                style = MaterialTheme.typography.labelSmall,
-                color = accent,
-                fontWeight = FontWeight.Medium
-            )
+            preview?.genres
+                ?.filter { it.isNotBlank() }
+                ?.takeIf { it.isNotEmpty() }
+                ?.joinToString(", ")
+                ?.let { genres ->
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = genres,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
         }
     }
 }
@@ -308,7 +315,14 @@ private fun MediaLinkCardPreview() {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 AniListLinkCard(
                     block = fakeBlock("anime", 101347, "Mushoku-Tensei"),
-                    preview = LinkPreview("Mushoku Tensei: Jobless Reincarnation", null, "#5C8AA6", "TV · 2021"),
+                    preview = LinkPreview(
+                        "Mushoku Tensei: Jobless Reincarnation",
+                        null,
+                        "#5C8AA6",
+                        "TV · Spring 2021 · 23 Episode · ⭐ 8.4",
+                        score = 84,
+                        genres = listOf("Adventure", "Drama", "Fantasy")
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     onLinkClick = {}
                 )
