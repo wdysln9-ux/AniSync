@@ -293,9 +293,6 @@ fun FeedScreen(
                                         onRetryReplies = {
                                             viewModel.onAction(FeedAction.RetryReplies(activity.id))
                                         },
-                                        onLastReplyClick = { id, _ ->
-                                            viewModel.onAction(FeedAction.ToggleReplies(id))
-                                        },
                                         onUserClick = onUserClick,
                                         onMediaClick = onMediaClick,
                                         onLastReplyClick = onLastReplyClick,
