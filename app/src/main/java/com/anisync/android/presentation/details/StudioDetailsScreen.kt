@@ -282,7 +282,7 @@ private fun StudioDetailsContent(
 ) {
     var sortIndex by rememberSaveable { mutableIntStateOf(1) }
     var formatIndex by rememberSaveable { mutableIntStateOf(0) }
-    var mainStudioOnly by rememberSaveable { mutableStateOf(false) }
+    var studioRoleIndex by rememberSaveable { mutableIntStateOf(0) }
     var onListOnly by rememberSaveable { mutableStateOf(false) }
 
     val adaptive = LocalAdaptiveInfo.current
@@ -339,14 +339,20 @@ private fun StudioDetailsContent(
         studio.media,
         sortIndex,
         formatIndex,
-        mainStudioOnly,
+        studioRoleIndex,
         onListOnly,
         listStatuses,
         formats,
         titleLanguage
     ) {
         val filtered = studio.media
-            .filter { !mainStudioOnly || it.isMainStudio }
+            .filter {
+                when (studioRoleIndex) {
+                    1 -> it.isMainStudio
+                    2 -> !it.isMainStudio
+                    else -> true
+                }
+            }
             .filter { !onListOnly || listStatuses.containsKey(it.mediaId) }
             .filter { formatIndex == 0 || it.format == formats.getOrNull(formatIndex - 1) }
         // Popularity is the order the API paged in, so leaving it alone is what keeps a later
@@ -424,10 +430,11 @@ private fun StudioDetailsContent(
                     leadingIcon = Icons.Default.SwapVert,
                     appliedWhenNotDefault = false
                 )
-                PersonToggleChip(
-                    label = stringResource(R.string.studio_main_studio_chip),
-                    selected = mainStudioOnly,
-                    onToggle = { mainStudioOnly = !mainStudioOnly }
+                PersonDropdownChip(
+                    label = studioRoleOptions[studioRoleIndex],
+                    options = studioRoleOptions,
+                    selectedIndex = studioRoleIndex,
+                    onSelect = { studioRoleIndex = it }
                 )
                 PersonToggleChip(
                     label = stringResource(R.string.filter_on_my_list),
@@ -448,6 +455,8 @@ private fun StudioDetailsContent(
 
     val mainStudioLabel = stringResource(R.string.studio_main_studio_chip)
     val coProductionLabel = stringResource(R.string.studio_role_co_production)
+    val anyRoleLabel = "Sebagai apapun"
+    val studioRoleOptions = listOf(anyRoleLabel, mainStudioLabel, coProductionLabel)
     val airingLabel = stringResource(R.string.media_status_airing)
 
     val listContent: LazyListScope.() -> Unit = {
