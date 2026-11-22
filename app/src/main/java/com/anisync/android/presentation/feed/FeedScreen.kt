@@ -272,7 +272,11 @@ fun FeedScreen(
                                         onClick = { onActivityClick(activity.id) },
                                         expandStatusOnCardClick = true,
                                         onCommentToggle = {
-                                            viewModel.onAction(FeedAction.ToggleReplies(activity.id))
+                                            if (activity.replyCount > 5) {
+                                                onActivityClick(activity.id)
+                                            } else {
+                                                viewModel.onAction(FeedAction.ToggleReplies(activity.id))
+                                            }
                                         },
                                         showInlineReplies = uiState.expandedRepliesActivityId == activity.id,
                                         inlineReplies = uiState.replyDetails[activity.id]?.replies.orEmpty(),
