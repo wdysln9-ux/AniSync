@@ -1540,9 +1540,8 @@ fun DetailsPageContent(
                         }
                     }
 
-                    // Reviews
-                    val canReview = details.isReviewBlocked != true
-                    if (displayReviews.isNotEmpty() || canReview) {
+                    // Reviews — omit the entire section when there are no reviews.
+                    if (displayReviews.isNotEmpty()) {
                         item(key = "reviews_header") {
                             Column {
                                 Spacer(modifier = Modifier.height(dimensionResource(R.dimen.spacing_extra_large)))
@@ -1550,7 +1549,7 @@ fun DetailsPageContent(
                                     title = stringResource(R.string.section_reviews),
                                     level = HeaderLevel.Section,
                                     onActionClick = if (displayReviews.size >= 5) { { showAllReviewsSheet = true } } else null,
-                                    trailingContent = if (canReview) {
+                                    trailingContent = if (details.isReviewBlocked != true) {
                                         {
                                             IconButton(onClick = onWriteReviewClick) {
                                                 Icon(
@@ -1582,45 +1581,38 @@ fun DetailsPageContent(
                         }
                     }
 
-                    // Discussions — forum threads with this media as a mediaCategory
-                    item(key = "discussions_header") {
-                        Column {
-                            Spacer(modifier = Modifier.height(dimensionResource(R.dimen.spacing_extra_large)))
-                            SectionHeader(
-                                title = stringResource(R.string.forum_discussions_title),
-                                level = HeaderLevel.Section,
-                                onActionClick = if (discussions.isNotEmpty()) onViewAllDiscussions else null,
-                                trailingContent = {
-                                    IconButton(onClick = onStartDiscussion) {
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = stringResource(R.string.forum_discussions_start),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
+                    // Discussions — omit the section when there are no threads.
+                    if (discussions.isNotEmpty()) {
+                        item(key = "discussions_header") {
+                            Column {
+                                Spacer(modifier = Modifier.height(dimensionResource(R.dimen.spacing_extra_large)))
+                                SectionHeader(
+                                    title = stringResource(R.string.forum_discussions_title),
+                                    level = HeaderLevel.Section,
+                                    onActionClick = onViewAllDiscussions,
+                                    trailingContent = {
+                                        IconButton(onClick = onStartDiscussion) {
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = stringResource(R.string.forum_discussions_start),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
                                     }
-                                }
-                            )
-                            Spacer(modifier = Modifier.height(dimensionResource(R.dimen.spacing_medium)))
-                            if (discussions.isEmpty()) {
-                                Text(
-                                    text = stringResource(R.string.forum_discussions_empty),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.spacing_large))
                                 )
                                 Spacer(modifier = Modifier.height(dimensionResource(R.dimen.spacing_medium)))
                             }
                         }
-                    }
-                    items(items = discussions, key = { "discussion_${it.id}" }) { thread ->
-                        DiscussionPreviewRow(
-                            thread = thread,
-                            onClick = { onDiscussionClick(thread.id, thread.title) },
-                            modifier = Modifier
-                                .padding(horizontal = dimensionResource(R.dimen.spacing_large))
-                                .padding(bottom = dimensionResource(R.dimen.spacing_normal))
-                                .animateItem()
-                        )
+                        items(items = discussions, key = { "discussion_${it.id}" }) { thread ->
+                            DiscussionPreviewRow(
+                                thread = thread,
+                                onClick = { onDiscussionClick(thread.id, thread.title) },
+                                modifier = Modifier
+                                    .padding(horizontal = dimensionResource(R.dimen.spacing_large))
+                                    .padding(bottom = dimensionResource(R.dimen.spacing_normal))
+                                    .animateItem()
+                            )
+                        }
                     }
                 }
                 DetailsTab.WATCH -> {
