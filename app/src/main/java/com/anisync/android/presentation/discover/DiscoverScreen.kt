@@ -937,6 +937,10 @@ private fun DiscoverSearchOverlay(
     actions: SearchResultActions
 ) {
     var openedFilter by remember { mutableStateOf<FilterId?>(null) }
+    DisposableEffect(Unit) {
+        onAction(DiscoverAction.OnSearchActiveChange(true))
+        onDispose { onAction(DiscoverAction.OnSearchActiveChange(false)) }
+    }
     val category = state.activeCategory
     val focusManager = LocalFocusManager.current
     val fieldCollapse = rememberSearchFieldCollapse(searchBarState)
