@@ -476,6 +476,7 @@ private fun buildInfoItems(
             value = fullEpisodesValue,
             iconTint = MaterialTheme.colorScheme.primary,
             onClick = onEpisodesClick
+        )
     )
 
     // 3. Duration
