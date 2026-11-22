@@ -308,7 +308,7 @@
     <string name="studio_main_studio_chip">Estúdio principal</string>
     <string name="clip_label_external_link">Ligação externa (%1$s)</string>
     <string name="control_log_out">Sair</string>
-    <string name="profile_level">Nível %1$d</string>
+    <string name="profile_level">Nível %1$s</string>
     <string name="profile_active">Ativo %1$s</string>
     <string name="notifications_title">Notificações</string>
     <string name="notifications_filter_all">Tudo</string>
