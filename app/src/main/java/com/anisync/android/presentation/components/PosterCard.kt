@@ -32,7 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import com.anisync.android.presentation.components.communityScoreTint
 import java.util.Locale
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
