@@ -271,6 +271,27 @@ fun FeedScreen(
                                         selected = activity.id == selectedActivityId,
                                         onClick = { onActivityClick(activity.id) },
                                         expandStatusOnCardClick = true,
+                                        onCommentToggle = {
+                                            viewModel.onAction(FeedAction.ToggleReplies(activity.id))
+                                        },
+                                        showInlineReplies = uiState.expandedRepliesActivityId == activity.id,
+                                        inlineReplies = uiState.replyDetails[activity.id]?.replies.orEmpty(),
+                                        isLoadingReplies = activity.id in uiState.loadingReplyIds,
+                                        replyLoadError = uiState.replyLoadErrors[activity.id],
+                                        replyDraft = uiState.replyDrafts[activity.id].orEmpty(),
+                                        isSubmittingReply = activity.id in uiState.submittingReplyIds,
+                                        onReplyDraftChange = {
+                                            viewModel.onAction(FeedAction.UpdateReplyDraft(activity.id, it))
+                                        },
+                                        onSubmitReply = {
+                                            viewModel.onAction(FeedAction.SubmitInlineReply(activity.id))
+                                        },
+                                        onRetryReplies = {
+                                            viewModel.onAction(FeedAction.RetryReplies(activity.id))
+                                        },
+                                        onLastReplyClick = { id, _ ->
+                                            viewModel.onAction(FeedAction.ToggleReplies(id))
+                                        },
                                         onUserClick = onUserClick,
                                         onMediaClick = onMediaClick,
                                         onLastReplyClick = onLastReplyClick,
