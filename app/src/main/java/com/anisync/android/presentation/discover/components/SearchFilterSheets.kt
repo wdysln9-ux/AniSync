@@ -208,8 +208,8 @@ private fun AnimeWStyleFilterSheet(
         )
 
         Spacer(Modifier.height(18.dp))
-        // 3. Status tayang
-        SheetSectionLabel("Status tayang")
+        // 3. Status
+        SheetSectionLabel("Status")
         FilterChoiceChipGroup(
             options = StatusOptions,
             label = { it.toLabel() },
@@ -326,8 +326,7 @@ private fun AnimeWStyleFilterSheet(
                     )
                 }))
             },
-            valueRange = 0f..100f,
-            steps = 99
+            valueRange = 0f..100f
         )
 
         // 8. Chip tahun — terpisah dari slider tahun
@@ -391,7 +390,6 @@ private fun AnimeWStyleFilterSheet(
         SheetSectionLabel("Genre")
         val visibleGenres = if (showAdultContent) genres else genres.filterNot { it in ADULT_GENRES }
         Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            IncludeExcludeHint(counts = null)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 visibleGenres.forEach { genre ->
                     IncludeExcludeChip(
@@ -416,7 +414,25 @@ private fun AnimeWStyleFilterSheet(
         Spacer(Modifier.height(18.dp))
         SheetSectionLabel("Tags")
         Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            IncludeExcludeHint(counts = null)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Persentase minimum", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "${filters.minimumTagRank}%",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Slider(
+                value = filters.minimumTagRank.toFloat(),
+                onValueChange = { value ->
+                    onFiltersChange(filters.copy(minimumTagRank = value.toInt().coerceIn(0, 100)))
+                },
+                valueRange = 0f..100f
+            )
             var showAllTags by rememberSaveable { mutableStateOf(false) }
             val visibleTags = if (showAllTags) tags else tags.take(16)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -446,7 +462,17 @@ private fun AnimeWStyleFilterSheet(
             }
         }
 
-        // 12. Hide my anime
+        // 12. Sumber
+        Spacer(Modifier.height(18.dp))
+        SheetSectionLabel("Sumber")
+        FilterChoiceChipGroup(
+            options = SourceOptions,
+            label = { it.toLabel().orEmpty() },
+            isSelected = { it in filters.sources },
+            onClick = { onFiltersChange(filters.copy(sources = filters.sources.toggle(it))) }
+        )
+
+        // Hide My Anime selalu berada di bagian paling bawah.
         Spacer(Modifier.height(18.dp))
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
@@ -466,16 +492,6 @@ private fun AnimeWStyleFilterSheet(
                 onCheckedChange = { onFiltersChange(filters.copy(hideMyAnime = it)) }
             )
         }
-
-        // Source stays after the requested twelve sections.
-        Spacer(Modifier.height(18.dp))
-        SheetSectionLabel("Source")
-        FilterChoiceChipGroup(
-            options = SourceOptions,
-            label = { it.toLabel().orEmpty() },
-            isSelected = { it in filters.sources },
-            onClick = { onFiltersChange(filters.copy(sources = filters.sources.toggle(it))) }
-        )
     }
 }
 
@@ -650,8 +666,8 @@ private fun GenresSheet(
 // =============================================================================
 
 private val AnimeFormats = listOf(
-    MediaFormat.TV, MediaFormat.TV_SHORT, MediaFormat.MOVIE,
-    MediaFormat.SPECIAL, MediaFormat.OVA, MediaFormat.ONA, MediaFormat.MUSIC
+    MediaFormat.TV, MediaFormat.MOVIE, MediaFormat.ONA, MediaFormat.OVA,
+    MediaFormat.TV_SHORT, MediaFormat.SPECIAL, MediaFormat.MUSIC
 )
 private val MangaFormats = listOf(MediaFormat.MANGA, MediaFormat.NOVEL, MediaFormat.ONE_SHOT)
 
