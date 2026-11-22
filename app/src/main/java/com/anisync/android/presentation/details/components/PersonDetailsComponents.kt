@@ -121,7 +121,8 @@ data class PersonFact(
     val label: String,
     val value: String,
     val icon: ImageVector,
-    val tint: Color
+    val tint: Color,
+    val valueTint: Color? = null
 )
 
 /** A tab in [PersonTabs]; [count] is shown as a badge when known. */
@@ -394,7 +395,7 @@ private fun PersonFactTile(fact: PersonFact, modifier: Modifier = Modifier) {
             Text(
                 text = fact.value,
                 style = MaterialTheme.typography.labelLarge.emphasis(),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = fact.valueTint ?: MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
