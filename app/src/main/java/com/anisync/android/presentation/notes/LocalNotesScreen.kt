@@ -92,6 +92,10 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     var trash by remember { mutableStateOf(false) }
     var folderDialog by remember { mutableStateOf(false) }
     var newFolder by remember { mutableStateOf("") }
+    var editingFolderId by remember { mutableStateOf<String?>(null) }
+    var folderMenuId by remember { mutableStateOf<String?>(null) }
+    var movingNoteId by remember { mutableStateOf<String?>(null) }
+    var sortNewestFirst by remember { mutableStateOf(true) }
     var backupMenu by remember { mutableStateOf(false) }
 
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -145,12 +149,12 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     }
 
     val note = data.notes.firstOrNull { it.id == editing }
-    val visible = remember(data, folderId, query, archived, trash) {
+    val visible = remember(data, folderId, query, archived, trash, sortNewestFirst) {
         data.notes.filter {
             (if (trash) it.deleted else if (archived) it.archived && !it.deleted else !it.archived && !it.deleted) &&
                 (folderId == "all" || it.folderId == folderId) &&
                 (query.isBlank() || it.title.contains(query, true) || it.body.contains(query, true))
-        }.sortedWith(compareByDescending<LocalNote> { it.pinned }.thenByDescending { it.updatedAt })
+        }.sortedWith(compareByDescending<LocalNote> { it.pinned }.thenBy { if (sortNewestFirst) -it.updatedAt else it.updatedAt })
     }
 
     Scaffold(
@@ -225,15 +229,37 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(folderId == "all" && !archived && !trash, { folderId = "all"; archived = false; trash = false }, label = { Text("Semua") })
-                data.folders.forEach { folder -> FilterChip(folderId == folder.id && !archived && !trash,
-                    { folderId = folder.id; archived = false; trash = false }, label = { Text(folder.name) }) }
+                data.folders.forEach { folder ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        FilterChip(folderId == folder.id && !archived && !trash,
+                            { folderId = folder.id; archived = false; trash = false }, label = { Text(folder.name) })
+                        Box {
+                            TextButton(onClick = { folderMenuId = folder.id }) { Text("⋮") }
+                            DropdownMenu(expanded = folderMenuId == folder.id, onDismissRequest = { folderMenuId = null }) {
+                                DropdownMenuItem(text = { Text("Ganti nama tab") }, onClick = {
+                                    folderMenuId = null; editingFolderId = folder.id; newFolder = folder.name; folderDialog = true
+                                })
+                                if (data.folders.size > 1) DropdownMenuItem(text = { Text("Hapus tab") }, onClick = {
+                                    folderMenuId = null
+                                    val fallback = data.folders.firstOrNull { it.id != folder.id }?.id ?: "default"
+                                    data = data.copy(
+                                        folders = data.folders.filterNot { it.id == folder.id },
+                                        notes = data.notes.map { if (it.folderId == folder.id) it.copy(folderId = fallback) else it }
+                                    )
+                                    if (folderId == folder.id) folderId = "all"
+                                })
+                            }
+                        }
+                    }
+                }
                 FilterChip(archived, { archived = !archived; trash = false }, label = { Text("Arsip") })
                 FilterChip(trash, { trash = !trash; archived = false }, label = { Text("Sampah") })
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("${visible.size} catatan", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = { folderDialog = true }) { Icon(Icons.Default.Add, null); Text("Folder") }
+                TextButton(onClick = { editingFolderId = null; newFolder = ""; folderDialog = true }) { Icon(Icons.Default.Add, null); Text("Tab") }
+                TextButton(onClick = { sortNewestFirst = !sortNewestFirst }) { Text(if (sortNewestFirst) "Terbaru" else "Terlama") }
             }
             if (visible.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(if (trash) "Sampah masih kosong" else if (archived) "Belum ada arsip" else "Belum ada catatan. Tekan + untuk mulai.",
@@ -253,13 +279,19 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                                 Box {
                                     IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, "Opsi") }
                                     DropdownMenu(menu, { menu = false }) {
-                                        if (item.deleted) DropdownMenuItem(text = { Text("Pulihkan") }, leadingIcon = { Icon(Icons.Default.Restore, null) },
-                                            onClick = { menu = false; data = data.copy(notes = data.notes.map { if (it.id == item.id) it.copy(deleted = false, archived = false) else it }) })
-                                        else {
+                                        if (item.deleted) {
+                                            DropdownMenuItem(text = { Text("Pulihkan") }, leadingIcon = { Icon(Icons.Default.Restore, null) },
+                                                onClick = { menu = false; data = data.copy(notes = data.notes.map { if (it.id == item.id) it.copy(deleted = false, archived = false) else it }) })
+                                            DropdownMenuItem(text = { Text("Hapus permanen") }, leadingIcon = { Icon(Icons.Default.Delete, null) },
+                                                onClick = { menu = false; data = data.copy(notes = data.notes.filterNot { it.id == item.id }) })
+                                        } else {
                                             DropdownMenuItem(text = { Text(if (item.pinned) "Lepas pin" else "Sematkan") }, leadingIcon = { Icon(Icons.Default.PushPin, null) },
                                                 onClick = { menu = false; data = data.copy(notes = data.notes.map { if (it.id == item.id) it.copy(pinned = !it.pinned) else it }) })
                                             DropdownMenuItem(text = { Text(if (item.archived) "Keluarkan dari arsip" else "Arsipkan") }, leadingIcon = { Icon(Icons.Default.Archive, null) },
                                                 onClick = { menu = false; data = data.copy(notes = data.notes.map { if (it.id == item.id) it.copy(archived = !it.archived) else it }) })
+                                            if (!archived) DropdownMenuItem(text = { Text("Pindahkan ke tab…") }, onClick = {
+                                                menu = false; movingNoteId = item.id
+                                            })
                                             DropdownMenuItem(text = { Text("Pindahkan ke sampah") }, leadingIcon = { Icon(Icons.Default.Delete, null) },
                                                 onClick = { menu = false; data = data.copy(notes = data.notes.map { if (it.id == item.id) it.copy(deleted = true) else it }) })
                                         }
@@ -276,15 +308,37 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
             }
         }
     }
-    if (folderDialog) AlertDialog(onDismissRequest = { folderDialog = false; newFolder = "" },
-        title = { Text("Buat folder") },
+    if (movingNoteId != null) AlertDialog(
+        onDismissRequest = { movingNoteId = null },
+        title = { Text("Pindahkan catatan ke tab") },
+        text = {
+            Column {
+                data.folders.forEach { folder ->
+                    TextButton(onClick = {
+                        val id = movingNoteId
+                        data = data.copy(notes = data.notes.map { if (it.id == id) it.copy(folderId = folder.id, updatedAt = System.currentTimeMillis()) else it })
+                        movingNoteId = null
+                    }, modifier = Modifier.fillMaxWidth()) { Text(folder.name) }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { movingNoteId = null }) { Text("Batal") } }
+    )
+    if (folderDialog) AlertDialog(onDismissRequest = { folderDialog = false; newFolder = ""; editingFolderId = null },
+        title = { Text(if (editingFolderId == null) "Buat tab" else "Ganti nama tab") },
         text = { OutlinedTextField(newFolder, { newFolder = it }, label = { Text("Nama folder") }, singleLine = true) },
         confirmButton = { TextButton(onClick = {
             if (newFolder.isNotBlank()) {
-                val folder = LocalNoteFolder(UUID.randomUUID().toString(), newFolder.trim())
-                data = data.copy(folders = data.folders + folder); folderId = folder.id
+                val currentId = editingFolderId
+                if (currentId == null) {
+                    val folder = LocalNoteFolder(UUID.randomUUID().toString(), newFolder.trim())
+                    data = data.copy(folders = data.folders + folder)
+                    folderId = folder.id
+                } else {
+                    data = data.copy(folders = data.folders.map { if (it.id == currentId) it.copy(name = newFolder.trim()) else it })
+                }
             }
-            folderDialog = false; newFolder = ""
-        }) { Text("Buat") } },
-        dismissButton = { TextButton(onClick = { folderDialog = false }) { Text("Batal") } })
+            folderDialog = false; newFolder = ""; editingFolderId = null
+        }) { Text(if (editingFolderId == null) "Buat" else "Simpan") } },
+        dismissButton = { TextButton(onClick = { folderDialog = false; editingFolderId = null; newFolder = "" }) { Text("Batal") } })
 }
