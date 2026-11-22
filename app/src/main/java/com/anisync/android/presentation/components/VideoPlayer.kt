@@ -821,7 +821,7 @@ internal fun VideoControlsOverlay(
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTapGestures(
-                        onTap = { controlsVisible = !controlsVisible },
+                        onTap = { controlsVisible = true; poke() },
                         onDoubleTap = { offset ->
                             controlsVisible = true
                             poke()
@@ -849,45 +849,6 @@ internal fun VideoControlsOverlay(
                         }
                     )
                 }
-                .pointerInput(hostWindow, audioManager) {
-                    var brightnessGesture = false
-                    detectVerticalDragGestures(
-                        onDragStart = { offset ->
-                            brightnessGesture = offset.x < size.width / 2f
-                            levelHud = if (brightnessGesture) "brightness" else "volume"
-                            controlsVisible = true
-                            poke()
-                        },
-                        onVerticalDrag = { change, dragAmount ->
-                            change.consume()
-                            val delta = -dragAmount / size.height.coerceAtLeast(1).toFloat() * 1.6f
-                            if (brightnessGesture) {
-                                brightnessLevel = (brightnessLevel + delta).coerceIn(0.01f, 1f)
-                                hostWindow?.let { window ->
-                                    window.attributes = window.attributes.apply {
-                                        screenBrightness = brightnessLevel
-                                    }
-                                }
-                            } else {
-                                val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
-                                val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-                                val next = (current + delta * maxVolume).roundToInt().coerceIn(0, maxVolume)
-                                if (next != current) {
-                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, next, 0)
-                                    volumeLevel = next.toFloat() / maxVolume
-                                }
-                            }
-                            levelHudRevision++
-                            poke()
-                        }
-                    )
-                }
-        )
-
-        // Vertical swipe zones: left adjusts screen brightness, right adjusts media volume.
-        Box(
-            Modifier
-                .fillMaxSize()
                 .pointerInput(hostWindow, audioManager) {
                     var brightnessGesture = false
                     detectVerticalDragGestures(
