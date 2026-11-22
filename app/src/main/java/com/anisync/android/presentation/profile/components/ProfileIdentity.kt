@@ -445,8 +445,8 @@ private fun ProfileIdentityDetails(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val level = remember(profile.minutesWatched) {
-                (profile.minutesWatched.coerceAtLeast(0) / 60)
+            val level = remember(profile.episodesWatched) {
+                profile.episodesWatched.coerceAtLeast(0)
             }
             val formattedLevel = rememberIntegerFormat().format(level)
             Surface(
