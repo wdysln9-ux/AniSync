@@ -71,7 +71,7 @@ import com.anisync.android.presentation.util.rememberHapticFeedback
 import com.anisync.android.type.MediaType
 import com.anisync.android.ui.theme.ExpressiveShapes
 import com.anisync.android.ui.theme.ListIndicatorKind
-import com.anisync.android.ui.theme.StarGold
+import com.anisync.android.presentation.components.personalScoreTint
 import com.anisync.android.ui.theme.listIndicatorColor
 import com.anisync.android.util.getTitle
 
@@ -463,6 +463,7 @@ private fun ScorePosterBadge(
     modifier: Modifier = Modifier
 ) {
     val showStar = format != ScoreFormat.POINT_5 && format != ScoreFormat.POINT_3
+    val scoreColor = score?.let { personalScoreTint(it, format) } ?: Color.White
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
@@ -475,14 +476,14 @@ private fun ScorePosterBadge(
             Icon(
                 imageVector = Icons.Default.Star,
                 contentDescription = null,
-                tint = StarGold,
+                tint = scoreColor,
                 modifier = Modifier.size(11.dp)
             )
         }
         Text(
             text = formatScore(score, format),
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
+            color = scoreColor,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1
         )
