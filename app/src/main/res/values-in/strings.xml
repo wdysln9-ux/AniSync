@@ -509,7 +509,7 @@
     <string name="media_stats_episode_eyebrow">Episode %1$d</string>
     <string name="media_stats_day_activity">Aktivitas harian</string>
     <string name="media_stats_score_bucket_eyebrow">Skor %1$d</string>
-    <string name="stat_hashtag">Tagar</string>
+    <string name="stat_hashtag">Hashtag</string>
     <string name="media_stats_percent_of_ratings">%1$d%% dari penilaian</string>
     <string name="media_stats_empty">Belum ada statistik komunitas untuk judul ini.</string>
     <string name="media_stats_error">Tidak bisa memuat statistik.</string>
@@ -661,7 +661,7 @@
     <string name="season_summer">Musim panas</string>
     <string name="season_fall">Musim gugur</string>
     <string name="media_status_airing">Sedang tayang</string>
-    <string name="media_status_finished">Tamat</string>
+    <string name="media_status_finished">Selesai</string>
     <string name="media_status_not_yet_released">Belum dirilis</string>
     <string name="media_status_cancelled">Dibatalkan</string>
     <string name="media_status_hiatus">Hiatus</string>
@@ -1377,7 +1377,7 @@
     <string name="alert_retrying_in">Mencoba lagi dalam %1$d detik</string>
     <string name="link_card_view_activity">Lihat aktivitas</string>
     <string name="select_all">Pilih semua</string>
-    <string name="media_status_releasing">Sedang dirilis</string>
+    <string name="media_status_releasing">Tayang</string>
     <string name="a11y_action_select_entry">Pilih entri</string>
     <string name="a11y_action_mark_episode">Tandai episode %1$d sebagai ditonton</string>
     <string name="library_all_caught_up">Sudah terbaru</string>
