@@ -566,7 +566,8 @@ private fun studioFacts(studio: StudioDetails, onListCount: Int): List<PersonFac
                     label = stringResource(R.string.studio_stat_average_score),
                     value = "${scores.average().roundToInt()}%",
                     icon = Icons.Default.Star,
-                    tint = communityScoreTint(scores.average())
+                    tint = communityScoreTint(scores.average()),
+                    valueTint = communityScoreTint(scores.average())
                 )
             )
         }
