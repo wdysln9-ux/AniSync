@@ -792,17 +792,27 @@ private fun YearPickerBody(
                 )
             }
         }
-        if (!showOlderYears && currentYear > 2012) {
+        if (currentYear > 2012) {
             Surface(
-                onClick = { showOlderYears = true },
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                onClick = { showOlderYears = !showOlderYears },
+                shape = MaterialTheme.shapes.small,
+                color = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 modifier = Modifier.padding(top = 10.dp)
             ) {
                 Text(
-                    "Selengkapnya (+22)",
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.labelMedium
+                    if (showOlderYears) "Tampilkan lebih sedikit" else "Selengkapnya (+22)",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+            if (showOlderYears) {
+                Text(
+                    "Tahun lama ditampilkan",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 4.dp, top = 5.dp)
                 )
             }
         }
