@@ -112,7 +112,7 @@
     <string name="discover_section_trending">Sedang tren</string>
     <string name="discover_section_airing_today">Tayang hari ini</string>
     <string name="discover_section_releasing_now">Sedang rilis</string>
-    <string name="discover_section_popular">Terpopuler sepanjang masa</string>
+    <string name="discover_section_popular">Terbaru</string>
     <string name="discover_section_not_yet_released">Belum rilis</string>
     <string name="discover_section_newly_added">Baru di AniList</string>
     <string name="discover_section_reviews">Ulasan terbaru</string>
