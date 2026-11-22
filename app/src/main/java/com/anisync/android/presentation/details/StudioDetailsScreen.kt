@@ -98,6 +98,7 @@ import com.anisync.android.presentation.util.copyOnLongPress
 import com.anisync.android.presentation.util.formatAsTitle
 import com.anisync.android.presentation.util.pluralStringResourceOrDefault
 import com.anisync.android.ui.theme.StarGold
+import com.anisync.android.presentation.components.communityScoreTint
 import com.anisync.android.util.getTitle
 import kotlin.math.roundToInt
 
@@ -566,7 +567,7 @@ private fun studioFacts(studio: StudioDetails, onListCount: Int): List<PersonFac
                     label = stringResource(R.string.studio_stat_average_score),
                     value = "${scores.average().roundToInt()}%",
                     icon = Icons.Default.Star,
-                    tint = StarGold
+                    tint = communityScoreTint(scores.average())
                 )
             )
         }
