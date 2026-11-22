@@ -37,9 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.VisibilityOff
-import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -1146,7 +1144,6 @@ private fun RichImage(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ImageLoadingSkeleton(
     modifier: Modifier = Modifier,
@@ -1157,17 +1154,12 @@ private fun ImageLoadingSkeleton(
     } else {
         modifier.heightIn(min = 120.dp)
     }
+    // The animated shimmer already communicates loading; an extra spinner only adds visual noise.
     Box(
         modifier = sizedModifier
             .clip(RoundedCornerShape(8.dp))
-            .shimmerEffect(),
-        contentAlignment = Alignment.Center
-    ) {
-        ContainedLoadingIndicator(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            indicatorColor = MaterialTheme.colorScheme.primary
-        )
-    }
+            .shimmerEffect()
+    )
 }
 
 private fun RichTextAlignment.toTextAlign(): TextAlign = when (this) {
