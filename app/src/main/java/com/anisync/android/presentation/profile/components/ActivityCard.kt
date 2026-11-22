@@ -91,7 +91,9 @@ fun ActivityCard(
     showAuthor: Boolean = true,
     pinnedLabel: Boolean = false,
     /** Replaces the relative time, for lists that already say which day it was. */
-    timeText: String? = null
+    timeText: String? = null,
+    /** In the main Feed, tapping empty card space expands a status instead of opening its detail. */
+    expandStatusOnCardClick: Boolean = false
 ) {
     if (activity.type == ActivityType.MEDIA_LIST) {
         ActivityListCard(
@@ -111,9 +113,17 @@ fun ActivityCard(
     }
 
     val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    var statusExpanded by rememberSaveable(activity.id) { mutableStateOf(false) }
+    val cardClick: () -> Unit = {
+        if (expandStatusOnCardClick && activity.type == ActivityType.TEXT) {
+            statusExpanded = !statusExpanded
+        } else {
+            onClick()
+        }
+    }
 
     Card(
-        onClick = onClick,
+        onClick = cardClick,
         modifier = modifier
             .fillMaxWidth()
             .selectedPaneItem(selected, RoundedCornerShape(24.dp)),
@@ -185,7 +195,10 @@ fun ActivityCard(
                         // While collapsed, the visible preview is a teaser: a tap anywhere in it
                         // (including on a peeking image or embedded link) opens the activity rather
                         // than firing the image viewer / following the link.
-                        onBodyClick = onClick
+                        onBodyClick = onClick,
+                        expanded = if (expandStatusOnCardClick && activity.type == ActivityType.TEXT) statusExpanded else null,
+                        onExpandedChange = { statusExpanded = it },
+                        preserveEmbeddedClicks = expandStatusOnCardClick && activity.type == ActivityType.TEXT
                     ) {
                         ActivityCardBody(
                             activity = activity,
@@ -289,10 +302,17 @@ private fun CollapsibleActivityBody(
     collapsedMaxHeight: Dp,
     fadeColor: Color,
     onBodyClick: () -> Unit,
+    expanded: Boolean? = null,
+    onExpandedChange: ((Boolean) -> Unit)? = null,
+    preserveEmbeddedClicks: Boolean = false,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    var internalExpanded by rememberSaveable { mutableStateOf(false) }
+    val expanded = expanded ?: internalExpanded
+    val setExpanded: (Boolean) -> Unit = { value ->
+        if (onExpandedChange != null) onExpandedChange(value) else internalExpanded = value
+    }
     var overflow by remember { mutableStateOf(false) }
     val density = LocalDensity.current
     val maxHeightPx = with(density) { collapsedMaxHeight.toPx() }
@@ -337,7 +357,7 @@ private fun CollapsibleActivityBody(
             // peeking images / links and routes them to the card (open the activity). Drawn after
             // the content so it sits on top; clipped to the collapsed bounds, so hidden content
             // below the cut is untouched. Removed once expanded, restoring normal image/link taps.
-            if (overflow && !expanded) {
+            if (overflow && !expanded && !preserveEmbeddedClicks) {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
@@ -349,7 +369,7 @@ private fun CollapsibleActivityBody(
         if (overflow) {
             ReadMoreToggle(
                 expanded = expanded,
-                onToggle = { expanded = !expanded },
+                onToggle = { setExpanded(!expanded) },
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
