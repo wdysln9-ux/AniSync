@@ -844,6 +844,14 @@ private const val MIN_REFRESH_SPINNER_MS = 800L
 
 private const val DAY_SECONDS = 24L * 60 * 60
 
+private val CATALOG_SECTIONS = setOf(
+    DiscoverSection.TRENDING,
+    DiscoverSection.POPULAR,
+    DiscoverSection.NOT_YET_RELEASED,
+    DiscoverSection.NEWLY_ADDED,
+    DiscoverSection.RELEASING_NOW
+)
+
 data class SearchTaxonomy(
     val genres: List<String> = emptyList(),
     val tags: List<MediaTag> = emptyList(),
