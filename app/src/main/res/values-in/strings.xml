@@ -450,7 +450,7 @@
     <string name="clip_label_external_link">Tautan eksternal (%1$s)</string>
     <string name="control_log_out">Keluar</string>
     <string name="profile_level">Level %1$s</string>
-    <string name="profile_active">Aktif %1$s</string>
+    <string name="profile_active">Terakhir dilihat %1$s</string>
     <string name="notifications_title">Notifikasi</string>
     <string name="notifications_filter_all">Semua</string>
     <string name="notifications_filter_airing">Tayang</string>
