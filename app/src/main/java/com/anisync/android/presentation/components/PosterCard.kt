@@ -32,7 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import com.anisync.android.ui.theme.StarGold
+import com.anisync.android.presentation.components.communityScoreTint
 import java.util.Locale
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
@@ -195,14 +195,14 @@ fun PosterCard(
                             androidx.compose.material3.Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = null,
-                                tint = StarGold,
+                                tint = communityScoreTint(score),
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
                                 text = String.format(Locale.US, "%.1f", score / 10.0),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                color = communityScoreTint(score),
                                 modifier = Modifier.padding(start = 4.dp)
                             )
                         }
