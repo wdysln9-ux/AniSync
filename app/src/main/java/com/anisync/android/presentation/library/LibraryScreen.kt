@@ -286,7 +286,9 @@ fun LibraryScreen(
 
     LaunchedEffect(pendingEditEntry) {
         pendingEditEntry?.let { entry ->
-            viewModel.onAction(LibraryAction.OnMediaTypeChange(entry.type))
+            entry.type?.let { type ->
+                viewModel.onAction(LibraryAction.OnMediaTypeChange(type))
+            }
             handleEdit(entry)
             onPendingEditConsumed()
         }
