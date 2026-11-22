@@ -1303,7 +1303,7 @@ fun DetailsPageContent(
                                 onRankingClick = onRankingClick,
                                 onStatusClick = {
                                     com.anisync.android.type.MediaStatus.entries
-                                        .firstOrNull { it.name == details.status }
+                                        .firstOrNull { it.name.equals(details.status, ignoreCase = true) }
                                         ?.let { status ->
                                             onInfoFilterClick(
                                                 com.anisync.android.domain.SearchFilters(statuses = setOf(status))
@@ -1329,7 +1329,7 @@ fun DetailsPageContent(
                                 },
                                 onSeasonClick = {
                                     val season = com.anisync.android.type.MediaSeason.entries
-                                        .firstOrNull { it.name == details.season }
+                                        .firstOrNull { it.name.equals(details.season, ignoreCase = true) }
                                     if (season != null) {
                                         onInfoFilterClick(
                                             com.anisync.android.domain.SearchFilters(
@@ -1344,7 +1344,7 @@ fun DetailsPageContent(
                                 },
                                 onSourceClick = {
                                     com.anisync.android.type.MediaSource.entries
-                                        .firstOrNull { it.name == details.source }
+                                        .firstOrNull { it.name.equals(details.source, ignoreCase = true) }
                                         ?.let { source ->
                                             onInfoFilterClick(
                                                 com.anisync.android.domain.SearchFilters(sources = setOf(source))
@@ -2304,7 +2304,7 @@ private fun MetadataTags(details: MediaDetails, onFilterClick: (com.anisync.andr
     data class MetadataPart(val text: String, val filters: com.anisync.android.domain.SearchFilters?)
     val parts = buildList {
         details.format?.let { raw ->
-            com.anisync.android.type.MediaFormat.entries.firstOrNull { it.name == raw }?.let { format ->
+            com.anisync.android.type.MediaFormat.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }?.let { format ->
                 add(MetadataPart(raw.formatAsTitle() ?: raw, com.anisync.android.domain.SearchFilters(formats = setOf(format))))
             }
         }
