@@ -71,6 +71,10 @@ internal object PlayerPreferences {
     private const val AUTO_NEXT = "auto_next"
     private const val CINEMATIC_ENABLED = "cinematic_enabled"
     private const val CINEMATIC_INTENSITY = "cinematic_intensity"
+    private const val CINEMATIC_BLUR = "cinematic_blur"
+    private const val CINEMATIC_BRIGHTNESS = "cinematic_brightness"
+    private const val CINEMATIC_VIGNETTE = "cinematic_vignette"
+    private const val CINEMATIC_ZOOM = "cinematic_zoom"
     private const val STRETCH_SCALE = "stretch_scale"
 
     private fun prefs(context: android.content.Context) =
@@ -100,6 +104,14 @@ internal object PlayerPreferences {
     fun setCinematicIntensity(context: android.content.Context, value: Float) {
         prefs(context).edit().putFloat(CINEMATIC_INTENSITY, value.coerceIn(0.05f, 0.8f)).apply()
     }
+    fun cinematicBlur(context: android.content.Context) = prefs(context).getFloat(CINEMATIC_BLUR, 18f).coerceIn(0f, 48f)
+    fun setCinematicBlur(context: android.content.Context, value: Float) { prefs(context).edit().putFloat(CINEMATIC_BLUR, value.coerceIn(0f, 48f)).apply() }
+    fun cinematicBrightness(context: android.content.Context) = prefs(context).getFloat(CINEMATIC_BRIGHTNESS, 0f).coerceIn(-1f, 1f)
+    fun setCinematicBrightness(context: android.content.Context, value: Float) { prefs(context).edit().putFloat(CINEMATIC_BRIGHTNESS, value.coerceIn(-1f, 1f)).apply() }
+    fun cinematicVignette(context: android.content.Context) = prefs(context).getFloat(CINEMATIC_VIGNETTE, 0f).coerceIn(0f, 1f)
+    fun setCinematicVignette(context: android.content.Context, value: Float) { prefs(context).edit().putFloat(CINEMATIC_VIGNETTE, value.coerceIn(0f, 1f)).apply() }
+    fun cinematicZoom(context: android.content.Context) = prefs(context).getFloat(CINEMATIC_ZOOM, 1.22f).coerceIn(1f, 1.8f)
+    fun setCinematicZoom(context: android.content.Context, value: Float) { prefs(context).edit().putFloat(CINEMATIC_ZOOM, value.coerceIn(1f, 1.8f)).apply() }
     fun stretchScale(context: android.content.Context) = prefs(context).getFloat(STRETCH_SCALE, 1f).coerceIn(0.45f, 2.5f)
     fun setStretchScale(context: android.content.Context, value: Float) {
         prefs(context).edit().putFloat(STRETCH_SCALE, value.coerceIn(0.45f, 2.5f)).apply()
@@ -113,6 +125,10 @@ internal object FullscreenVideoBridge {
     var closeFullscreen: (() -> Unit)? = null
     var onPlaybackEnded: (() -> Unit)? = null
     val cinematicIntensity = mutableFloatStateOf(0f)
+    val cinematicBlur = mutableFloatStateOf(18f)
+    val cinematicBrightness = mutableFloatStateOf(0f)
+    val cinematicVignette = mutableFloatStateOf(0f)
+    val cinematicZoom = mutableFloatStateOf(1.22f)
 }
 
 /**
