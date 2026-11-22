@@ -527,7 +527,7 @@
     </plurals>
     <string name="clip_label_external_link">額外連結（%1$s）</string>
     <string name="control_log_out">登出</string>
-    <string name="profile_level">等級 %1$d</string>
+    <string name="profile_level">等級 %1$s</string>
     <string name="notifications_title">通知</string>
     <string name="notifications_filter_all">全部</string>
     <string name="profile_active">活動於 %1$s</string>
