@@ -143,6 +143,7 @@ fun ThreadDetailScreen(
     threadId: Int,
     threadTitle: String,
     onBackClick: () -> Unit,
+    onOpenThread: (threadId: Int, threadTitle: String) -> Unit = { _, _ -> },
     onUserClick: (String) -> Unit,
     targetCommentId: Int? = null,
     commentDetailMode: Boolean = false,
@@ -503,7 +504,7 @@ fun ThreadDetailScreen(
                                 if (commentDetailMode) {
                                     ForumThreadCard(
                                         thread = thread,
-                                        onClick = {},
+                                        onClick = { onOpenThread(thread.id, thread.title) },
                                         onUserClick = onUserClick,
                                         modifier = Modifier.padding(horizontal = 16.dp)
                                     )
@@ -726,45 +727,7 @@ fun ThreadDetailScreen(
                                 }
                             }
 
-                            if (uiState.hasMoreComments) {
-                                item(key = "load_more") {
-                                    val perPage = uiState.perPage.coerceAtLeast(1)
-                                    val range = uiState.loadedPageRange
-                                    val pagesBelow = (uiState.lastPage - (range?.last
-                                        ?: uiState.lastPage)).coerceAtLeast(0)
-                                    val approxBatch = perPage.coerceAtMost(
-                                        if (uiState.totalComments > 0) (uiState.totalComments - uiState.comments.size).coerceAtLeast(
-                                            perPage
-                                        ) else perPage
-                                    )
-                                    val remaining =
-                                        if (uiState.totalComments > 0) (uiState.totalComments - uiState.comments.size).coerceAtLeast(
-                                            pagesBelow * perPage
-                                        ) else pagesBelow * perPage
 
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 32.dp, horizontal = 24.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (uiState.isLoadingMoreComments) AppCircularProgressIndicator()
-                                        else {
-                                            LoadPagePill(
-                                                label = stringResource(
-                                                    R.string.forum_load_more_count,
-                                                    approxBatch,
-                                                    remaining
-                                                ),
-                                                icon = Icons.Default.KeyboardArrowDown,
-                                                onClick = {
-                                                    viewModel.onAction(ThreadDetailAction.LoadMoreComments)
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
 
                             item(key = "bottom_spacer") { Spacer(modifier = Modifier.height(112.dp)) }
                         }
