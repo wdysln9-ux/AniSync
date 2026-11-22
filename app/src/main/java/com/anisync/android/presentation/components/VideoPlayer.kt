@@ -731,7 +731,7 @@ internal fun VideoControlsOverlay(
     var brightnessLevel by remember(hostWindow) {
         mutableFloatStateOf(
             if (originalWindowBrightness >= 0f) originalWindowBrightness
-            else (AndroidSettings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128) / 255f)
+            else (AndroidSettings.System.getInt(context.contentResolver, AndroidSettings.System.SCREEN_BRIGHTNESS, 128) / 255f)
         )
     }
     var volumeLevel by remember(audioManager) {
