@@ -6,7 +6,6 @@ set(RBS ${RB}/src)
 
 add_library(rubberband-jni SHARED
     ${CMAKE_CURRENT_LIST_DIR}/RubberBandStretcherJNI.cpp
-    ${RBS}/rubberband-c.cpp
     ${RBS}/RubberBandStretcher.cpp
     ${RBS}/RubberBandLiveShifter.cpp
     ${RBS}/faster/AudioCurveCalculator.cpp

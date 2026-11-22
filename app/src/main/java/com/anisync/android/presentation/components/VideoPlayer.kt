@@ -1143,6 +1143,7 @@ internal fun VideoControlsOverlay(
                     ) {
                         // One integrated, pill-shaped track: buffered and played portions share
                         // the exact same thickness and rounded geometry instead of stacking a thin line.
+                        val seekTrackColor = MaterialTheme.colorScheme.primary
                         androidx.compose.foundation.Canvas(
                             modifier = Modifier.fillMaxWidth().height(40.dp)
                         ) {
@@ -1159,7 +1160,7 @@ internal fun VideoControlsOverlay(
                             )
                             if (bufferedX > 0f) {
                                 drawRoundRect(
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.42f),
+                                    color = seekTrackColor.copy(alpha = 0.42f),
                                     topLeft = androidx.compose.ui.geometry.Offset(0f, top),
                                     size = androidx.compose.ui.geometry.Size(bufferedX.coerceAtMost(size.width), trackHeight),
                                     cornerRadius = radius
