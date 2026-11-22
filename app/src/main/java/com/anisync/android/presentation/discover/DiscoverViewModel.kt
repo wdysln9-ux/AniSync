@@ -613,7 +613,7 @@ class DiscoverViewModel @Inject constructor(
                 is Result.Error -> _uiState.update { s ->
                     if (s.mediaType != mediaType) s else {
                         val latest = s.feeds.of(section) as? SectionFeed<LibraryEntry> ?: current
-                        s.copy(feeds = s.feeds.withFeed(section, latest.copy(isLoadingMore = false)))
+                        s.copy(feeds = s.feeds.withFeed(section, latest.copy(isLoadingMore = false, hasNextPage = false)))
                     }
                 }
             }
