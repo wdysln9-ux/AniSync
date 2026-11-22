@@ -209,7 +209,8 @@ data class ForumThreadDetail(
     val threadTitle: String = "",
     val commentId: Int = 0,
     val coverColor: String? = null,
-    val profileColor: String? = null
+    val profileColor: String? = null,
+    val commentDetailMode: Boolean = false
 )
 
 /**
