@@ -318,6 +318,7 @@ fun AniSyncNavHost(
                 pendingEntryToEdit = entry
                 if (navController.currentDestination?.hasRoute<Library>() != true) {
                     navController.navigate(Library) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                         launchSingleTop = true
                         restoreState = true
                     }
