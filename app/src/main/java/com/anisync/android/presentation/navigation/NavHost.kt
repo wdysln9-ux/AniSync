@@ -1193,6 +1193,9 @@ fun AniSyncNavHost(
                             targetCommentId = if (route.commentId != 0) route.commentId else null,
                             commentDetailMode = route.commentDetailMode,
                             onBackClick = { navController.popBackStack() },
+                            onOpenThread = { threadId, threadTitle ->
+                                navController.navigate(ForumThreadDetail(threadId, threadTitle))
+                            },
                             onUserClick = navigateToUserProfile,
                             onEditThread = {
                                 navController.navigate(
