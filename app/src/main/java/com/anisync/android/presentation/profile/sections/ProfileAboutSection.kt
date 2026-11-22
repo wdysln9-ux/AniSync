@@ -265,7 +265,7 @@ internal fun BioPreview(about: String, onOpen: () -> Unit, modifier: Modifier = 
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onOpen)
-    ) { (card, text, fade, button), constraints ->
+    ) { (card, text, fade), constraints ->
         val width = constraints.maxWidth
         val inset = 16.dp.roundToPx()
         val body = text.first().measure(Constraints(maxWidth = (width - 2 * inset).coerceAtLeast(0)))
