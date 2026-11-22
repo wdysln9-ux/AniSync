@@ -328,6 +328,11 @@ private fun StudioDetailsContent(
     val formatOptions = remember(formats, anyFormatLabel) {
         listOf(anyFormatLabel) + formats.map { format -> format.formatAsTitle() ?: format }
     }
+    val mainStudioLabel = stringResource(R.string.studio_main_studio_chip)
+    val coProductionLabel = stringResource(R.string.studio_role_co_production)
+    val anyRoleLabel = "Sebagai apapun"
+    val studioRoleOptions = listOf(anyRoleLabel, mainStudioLabel, coProductionLabel)
+
     val sortOptions = listOf(
         stringResource(R.string.person_sort_popularity),
         stringResource(R.string.person_sort_newest),
@@ -453,10 +458,6 @@ private fun StudioDetailsContent(
         }
     }
 
-    val mainStudioLabel = stringResource(R.string.studio_main_studio_chip)
-    val coProductionLabel = stringResource(R.string.studio_role_co_production)
-    val anyRoleLabel = "Sebagai apapun"
-    val studioRoleOptions = listOf(anyRoleLabel, mainStudioLabel, coProductionLabel)
     val airingLabel = stringResource(R.string.media_status_airing)
 
     val listContent: LazyListScope.() -> Unit = {
