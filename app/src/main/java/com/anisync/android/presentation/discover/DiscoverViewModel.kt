@@ -310,12 +310,19 @@ class DiscoverViewModel @Inject constructor(
         }
         val query = currentState.searchQuery
         val filters = currentState.searchFilters
+        val defaultBrowse = query.isBlank() && !filters.hasActiveFilters
+        val effectiveFilters = if (defaultBrowse) filters.copy(
+            sort = com.anisync.android.domain.SearchSort(
+                column = com.anisync.android.domain.SearchSortColumn.TRENDING,
+                descending = true
+            )
+        ) else filters
 
         _uiState.update { currentState.copy(searchPaging = paging.copy(isLoadingMore = true)) }
         viewModelScope.launch {
             val result = searchRepository.searchEverything(
                 query = query,
-                filters = filters,
+                filters = effectiveFilters,
                 page = nextPage,
                 perPage = 50,
                 wantAnime = wantAnime,
@@ -354,9 +361,9 @@ class DiscoverViewModel @Inject constructor(
                             searchManga = (st.searchManga + data.manga).distinctBy { it.mediaId },
                             groupedResults = grouped.copy(
                                 characters = (grouped.characters + appended.characters).distinctBy { it.id }
-                                    .sortedByUpcomingBirthday(),
+                                    .let { if (defaultBrowse) it.sortedByUpcomingBirthday() else it },
                                 staff = (grouped.staff + appended.staff).distinctBy { it.id }
-                                    .sortedByUpcomingBirthday(),
+                                    .let { if (defaultBrowse) it.sortedByUpcomingBirthday() else it },
                                 users = (grouped.users + appended.users).distinctBy { it.id },
                                 studios = (grouped.studios + appended.studios).distinctBy { it.id }
                             ),
