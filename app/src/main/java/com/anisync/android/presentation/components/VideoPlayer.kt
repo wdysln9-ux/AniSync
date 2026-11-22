@@ -197,15 +197,19 @@ fun VideoPlayer(
     var cinematicOverlayIntensity by remember { mutableFloatStateOf(if (PlayerPreferences.cinematicEnabled(context)) PlayerPreferences.cinematicIntensity(context) else 0f) }
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
     var playbackEndHandled by remember(url, headers) { mutableStateOf(false) }
+    var selectedAudioRenderer by remember(url) {
+        mutableStateOf(
+            if (useWsolaAudio) EpisodeAudioRendererPreferences.get(context)
+            else EpisodeAudioRenderer.MEDIA3_SONIC
+        )
+    }
+    var pendingRendererResumeMs by remember(url) { mutableLongStateOf(0L) }
 
-    // Cached player survives scrolling; self-managed one is built+released here. Both go through
-    // buildVideoExoPlayer so the OkHttp/browser-UA data source and eager prepare apply identically.
-    // The self-managed instance uses the application context so it can be safely handed to the
-    // fullscreen activity without leaking this composition's context.
+    // Recreate only episode players when the selected audio path changes; retain the playhead.
     val exoPlayer = if (playerCache != null && !useWsolaAudio) {
         remember(url, headers) { playerCache.getOrCreate(url, headers) }
     } else {
-        remember(url, headers, useWsolaAudio) {
+        remember(url, headers, useWsolaAudio, selectedAudioRenderer) {
             buildVideoExoPlayer(
                 context.applicationContext,
                 url,
@@ -213,8 +217,17 @@ fun VideoPlayer(
                 loop,
                 autoPlay,
                 headers = headers,
-                useWsolaAudio = useWsolaAudio
+                useWsolaAudio = useWsolaAudio,
+                audioRenderer = selectedAudioRenderer
             )
+        }
+    }
+
+    LaunchedEffect(exoPlayer) {
+        val resumeAt = pendingRendererResumeMs
+        if (resumeAt > 0L) {
+            exoPlayer.seekTo(resumeAt)
+            pendingRendererResumeMs = 0L
         }
     }
 
@@ -299,7 +312,8 @@ fun VideoPlayer(
                 loop = false,
                 autoPlay = false,
                 headers = preloadHeaders,
-                useWsolaAudio = useWsolaAudio
+                useWsolaAudio = useWsolaAudio,
+                audioRenderer = selectedAudioRenderer
             )
             // Keep it prepared and paused so its downloaded segments enter the shared disk cache.
             awaitCancellation()
@@ -461,6 +475,12 @@ fun VideoPlayer(
                 },
                 onSeekFinished = onSeekFinished,
                 onSetPlaybackSpeed = { exoPlayer.setPlaybackParameters(PlaybackParameters(it, 1f)) },
+                audioRenderer = if (useWsolaAudio) selectedAudioRenderer else null,
+                onSelectAudioRenderer = { renderer ->
+                    pendingRendererResumeMs = exoPlayer.currentPosition.coerceAtLeast(0L)
+                    EpisodeAudioRendererPreferences.set(context, renderer)
+                    selectedAudioRenderer = renderer
+                },
                 sourceOptions = sourceOptions,
                 onSelectSource = onSelectSource,
                 onAutoNextChange = onAutoNextChange,
@@ -726,6 +746,8 @@ internal fun VideoControlsOverlay(
     onSeekBy: (Long) -> Unit,
     onSeekFinished: () -> Unit,
     onSetPlaybackSpeed: (Float) -> Unit,
+    audioRenderer: EpisodeAudioRenderer? = null,
+    onSelectAudioRenderer: (EpisodeAudioRenderer) -> Unit = {},
     sourceOptions: List<String>,
     onSelectSource: (Int) -> Unit,
     onAutoNextChange: (Boolean) -> Unit = {},
@@ -1081,6 +1103,15 @@ internal fun VideoControlsOverlay(
 
                 DropdownMenu(expanded = quickSettingsExpanded, onDismissRequest = { quickSettingsExpanded = false }) {
                     DropdownMenuItem(text = { Text("Pengaturan lengkap") }, onClick = { quickSettingsExpanded = false; playerSettingsExpanded = true; poke() })
+                    if (audioRenderer != null) {
+                        DropdownMenuItem(text = { Text("Renderer audio") }, onClick = {})
+                        EpisodeAudioRenderer.entries.forEach { renderer ->
+                            DropdownMenuItem(
+                                text = { Text("${if (audioRenderer == renderer) "✓ " else ""}${renderer.title}") },
+                                onClick = { onSelectAudioRenderer(renderer); quickSettingsExpanded = false; poke() }
+                            )
+                        }
+                    }
                     DropdownMenuItem(text = { Text("Kecepatan") }, onClick = {})
                     listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 3f, 4f).forEach { speed ->
                         DropdownMenuItem(text = { Text("${if (selectedSpeed == speed) "✓ " else ""}${speed}x") }, onClick = { selectedSpeed = speed; PlayerPreferences.setPlaybackSpeed(context, speed); onSetPlaybackSpeed(speed); poke() })
