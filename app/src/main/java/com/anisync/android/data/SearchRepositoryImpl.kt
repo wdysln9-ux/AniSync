@@ -92,6 +92,40 @@ class SearchRepositoryImpl @Inject constructor(
             // Random mode shuffles each normally paginated result page locally. Selecting a
             // random API page can land on an empty/out-of-range page when AniList totals change
             // between the count request and the selected-page request.
+            suspend fun fetchPage(requestPage: Int) = apolloClient.query(
+                SearchMediaQuery(
+                    search = if (query.isBlank()) Optional.absent() else Optional.present(query),
+                    type = Optional.present(type),
+                    page = Optional.present(requestPage),
+                    perPage = Optional.present(perPage),
+                    sort = Optional.present(listOf(filters.sortFor(type, query))),
+                    genre_in = filters.genresIncluded.toOptionalList(),
+                    genre_not_in = filters.genresExcluded.toOptionalList(),
+                    tag_in = filters.tagsIncluded.toOptionalList(),
+                    tag_not_in = filters.tagsExcluded.toOptionalList(),
+                    minimumTagRank = Optional.present(filters.minimumTagRank),
+                    format_in = filters.formats.toOptionalList(),
+                    status_in = filters.statuses.toOptionalList(),
+                    source_in = filters.sources.toOptionalList(),
+                    startDate_greater = filters.startDateFloor(),
+                    startDate_lesser = filters.startDateCeiling(),
+                    season = filters.season?.let { Optional.present(it) } ?: Optional.absent(),
+                    seasonYear = filters.seasonYear()?.let { Optional.present(it) } ?: Optional.absent(),
+                    weightedScore = filters.score.exact(),
+                    weightedScore_greater = filters.score.greater(),
+                    weightedScore_lesser = filters.score.lesser(),
+                    episodes = filters.episodes.exact(),
+                    episodes_greater = filters.episodes.greater(),
+                    episodes_lesser = filters.episodes.lesser(),
+                    chapters = filters.chapters.exact(),
+                    chapters_greater = filters.chapters.greater(),
+                    chapters_lesser = filters.chapters.lesser(),
+                    countryOfOrigin = filters.country?.let { Optional.present(it.code) } ?: Optional.absent(),
+                    isAdult = resolveAdultFilter(filters.adultMode, quickSearch = true),
+                    onList = if (type == MediaType.ANIME && filters.hideMyAnime) Optional.present(false) else Optional.absent()
+                )
+            ).fetchPolicy(FetchPolicy.NetworkOnly).doNotStore(true).execute()
+
             val response = fetchPage(page)
             val pageData = response.data?.Page
             val pageInfo = pageData?.pageInfo
