@@ -593,7 +593,7 @@ fun AniSyncNavHost(
                         },
                         onCommentClick = { threadId, commentId, threadTitle, profileColor ->
                             navController.navigate(
-                                ForumThreadDetail(threadId, threadTitle, commentId, profileColor = profileColor)
+                                ForumThreadDetail(threadId, threadTitle, commentId, profileColor = profileColor, commentDetailMode = true)
                             )
                         },
                         onActivityClick = navigateToProfileActivity,
