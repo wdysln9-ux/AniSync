@@ -236,7 +236,12 @@ fun MediaPosterCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                item.format?.let { format -> MediaPosterCardDefaults.MetaText(format.toLabel()) }
+                item.format?.let { format ->
+                    val formatLabel = format.toLabel().let {
+                        if (format == com.anisync.android.type.MediaFormat.TV_SHORT) "TV Pendek" else it
+                    }
+                    MediaPosterCardDefaults.MetaText(formatLabel)
+                }
 
 
             }
