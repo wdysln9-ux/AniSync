@@ -18,6 +18,8 @@ internal class WsolaRenderersFactory(context: Context) : DefaultRenderersFactory
         enableAudioOutputPlaybackParams: Boolean
     ): AudioSink? {
         return DefaultAudioSink.Builder(context)
+            .setEnableFloatOutput(false)
+            .setEnableAudioOutputPlaybackParameters(false)
             .setAudioProcessorChain(WsolaAudioProcessorChain())
             .build()
     }
