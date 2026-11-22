@@ -145,6 +145,8 @@ data class DiscoverUiState(
      * reacts to changes by clearing the query field and expanding the search bar.
      */
     val searchOverlayRequest: Long = 0L,
+    /** One-shot request to open the consolidated filter panel at its last section. */
+    val openGenreFilterRequest: Long = 0L,
     /** Bumped when the Discover tab is reselected, asking the list to scroll back to the top. */
     val scrollToTopRequest: Long = 0L
 ) {
