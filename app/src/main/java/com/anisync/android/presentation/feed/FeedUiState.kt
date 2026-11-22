@@ -1,6 +1,7 @@
 package com.anisync.android.presentation.feed
 
 import androidx.compose.runtime.Immutable
+import com.anisync.android.domain.ActivityDetail
 import com.anisync.android.domain.FeedFilter
 import com.anisync.android.domain.FeedMediaType
 import com.anisync.android.domain.FeedScope
@@ -47,7 +48,15 @@ data class FeedUiState(
      * mutation) and what to prefill the editor with.
      */
     val editingActivity: UserActivity? = null,
-    val isSavingEdit: Boolean = false
+    val isSavingEdit: Boolean = false,
+    /** Only one activity's inline replies are expanded at a time. */
+    val expandedRepliesActivityId: Int? = null,
+    /** Full reply data is fetched lazily on the first expansion and retained while the feed lives. */
+    val replyDetails: Map<Int, ActivityDetail> = emptyMap(),
+    val loadingReplyIds: Set<Int> = emptySet(),
+    val replyLoadErrors: Map<Int, String> = emptyMap(),
+    val replyDrafts: Map<Int, String> = emptyMap(),
+    val submittingReplyIds: Set<Int> = emptySet()
 )
 
 sealed interface FeedAction {
@@ -63,6 +72,9 @@ sealed interface FeedAction {
     data object ShowNewActivity : FeedAction
     data class ToggleSubscribe(val activityId: Int) : FeedAction
     data class ToggleLike(val activityId: Int) : FeedAction
+    data class ToggleReplies(val activityId: Int) : FeedAction
+    data class UpdateReplyDraft(val activityId: Int, val text: String) : FeedAction
+    data class SubmitInlineReply(val activityId: Int) : FeedAction
     data class DeleteActivity(val activityId: Int) : FeedAction
     data class EditActivity(val activityId: Int) : FeedAction
     data object DismissEdit : FeedAction
