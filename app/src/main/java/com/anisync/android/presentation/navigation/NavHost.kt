@@ -16,7 +16,12 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -64,6 +69,8 @@ import com.anisync.android.presentation.forum.EditThreadBodyScreen
 import com.anisync.android.presentation.forum.ThreadDetailScreen
 import com.anisync.android.presentation.library.LibraryListDetail
 import com.anisync.android.presentation.library.LibraryScreen
+import com.anisync.android.domain.LibraryEntry
+import com.anisync.android.presentation.util.LocalLibraryEntryEditor
 import com.anisync.android.presentation.login.LoginScreen
 import com.anisync.android.presentation.notifications.NotificationsListDetail
 import com.anisync.android.presentation.profile.ProfileScreen
@@ -297,8 +304,25 @@ fun AniSyncNavHost(
         }
 
         val backTrailHost = rememberBackTrailHost(navController)
+        var pendingEntryToEdit by remember { mutableStateOf<LibraryEntry?>(null) }
+        val currentViewConfiguration = LocalViewConfiguration.current
+        val cardViewConfiguration = remember(currentViewConfiguration) {
+            object : ViewConfiguration by currentViewConfiguration {
+                override val longPressTimeoutMillis: Long = 380L
+            }
+        }
 
         CompositionLocalProvider(
+            LocalViewConfiguration provides cardViewConfiguration,
+            LocalLibraryEntryEditor provides { entry ->
+                pendingEntryToEdit = entry
+                if (navController.currentDestination?.hasRoute<Library>() != true) {
+                    navController.navigate(Library) {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            },
             LocalAniLinkCallbacks provides aniLinkCallbacks,
             LocalBackTrailHost provides backTrailHost,
         ) {
@@ -382,6 +406,8 @@ fun AniSyncNavHost(
                         }
                     },
                     onOpenRecap = { navController.navigate(RecapStory(it)) },
+                    pendingEditEntry = pendingEntryToEdit,
+                    onPendingEditConsumed = { pendingEntryToEdit = null },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this
                 )
