@@ -981,6 +981,9 @@ internal fun VideoControlsOverlay(
     var playerSettingsExpanded by remember { mutableStateOf(false) }
     var selectedSpeed by remember { mutableFloatStateOf(PlayerPreferences.playbackSpeed(context)) }
     var autoNextEnabled by remember { mutableStateOf(PlayerPreferences.autoNext(context)) }
+    var autoSkipOpeningEnabled by remember { mutableStateOf(PlayerPreferences.autoSkipOpening(context)) }
+    var autoSkipEndingEnabled by remember { mutableStateOf(PlayerPreferences.autoSkipEnding(context)) }
+    var skipNotice by remember { mutableStateOf<String?>(null) }
     var cinematicEnabled by remember { mutableStateOf(PlayerPreferences.cinematicEnabled(context)) }
     var cinematicSettingsExpanded by remember { mutableStateOf(false) }
     var cinematicIntensity by remember { mutableFloatStateOf(PlayerPreferences.cinematicIntensity(context)) }
@@ -1033,6 +1036,27 @@ internal fun VideoControlsOverlay(
     val fraction = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
     val bufferedFraction = if (durationMs > 0) (bufferedPositionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
     val activeSkipSegment = skipSegments.firstOrNull { positionMs >= it.startMs && positionMs < it.endMs }
+
+    LaunchedEffect(activeSkipSegment?.startMs, activeSkipSegment?.endMs, durationMs, autoSkipOpeningEnabled, autoSkipEndingEnabled) {
+        val segment = activeSkipSegment ?: return@LaunchedEffect
+        val shouldSkip = when (segment.label) {
+            "Opening" -> autoSkipOpeningEnabled
+            "Ending" -> autoSkipEndingEnabled
+            else -> false
+        }
+        if (shouldSkip && durationMs > 0L) {
+            onSeek((segment.endMs.toFloat() / durationMs).coerceIn(0f, 1f))
+            onSeekFinished()
+            skipNotice = "${segment.label} dilewati"
+            controlsVisible = false
+        }
+    }
+    LaunchedEffect(skipNotice) {
+        if (skipNotice != null) {
+            delay(1400L)
+            skipNotice = null
+        }
+    }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Controls are laid out against the surface they sit on, not the device: a tablet's
@@ -1182,6 +1206,26 @@ internal fun VideoControlsOverlay(
             }
         }
         AnimatedVisibility(
+            visible = skipNotice != null,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = edgePadding)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(50.dp),
+                color = Color.Black.copy(alpha = 0.76f),
+                contentColor = Color.White
+            ) {
+                Text(
+                    text = skipNotice.orEmpty(),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
+        AnimatedVisibility(
             visible = controlsVisible,
             enter = fadeIn(),
             exit = fadeOut(),
@@ -1261,6 +1305,34 @@ internal fun VideoControlsOverlay(
                                     androidx.compose.material3.Switch(
                                         checked = autoNextEnabled,
                                         onCheckedChange = { autoNextEnabled = it; PlayerPreferences.setAutoNext(context, it); onAutoNextChange(it); poke() }
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Lewati Opening otomatis")
+                                    androidx.compose.material3.Switch(
+                                        checked = autoSkipOpeningEnabled,
+                                        onCheckedChange = {
+                                            autoSkipOpeningEnabled = it
+                                            PlayerPreferences.setAutoSkipOpening(context, it)
+                                        }
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Lewati Ending otomatis")
+                                    androidx.compose.material3.Switch(
+                                        checked = autoSkipEndingEnabled,
+                                        onCheckedChange = {
+                                            autoSkipEndingEnabled = it
+                                            PlayerPreferences.setAutoSkipEnding(context, it)
+                                        }
                                     )
                                 }
                                 Row(
@@ -1515,8 +1587,10 @@ internal fun VideoControlsOverlay(
                     onClick = {
                         onSeek((segment.endMs.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(0f, 1f))
                         onSeekFinished()
-                        poke()
-                    }
+                        skipNotice = "${segment.label} dilewati"
+                        controlsVisible = false
+                    },
+                    shape = RoundedCornerShape(50.dp)
                 ) {
                     Text(if (segment.label == "Opening") "Lewati Opening" else "Lewati Ending")
                 }
