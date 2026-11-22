@@ -94,7 +94,6 @@ import com.anisync.android.presentation.util.LocalLibraryStatuses
 import com.anisync.android.presentation.util.TransitionKeys
 import com.anisync.android.presentation.util.copyOnLongPress
 import com.anisync.android.presentation.util.pluralStringResourceOrDefault
-import com.anisync.android.ui.theme.StarGold
 import com.anisync.android.presentation.components.communityScoreTint
 import com.anisync.android.ui.theme.emphasis
 import java.text.NumberFormat
