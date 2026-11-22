@@ -6,7 +6,7 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 
-/** Routes decoded float PCM through Rubber Band instead of Media3 Sonic. */
+/** Routes decoded PCM through Rubber Band's internal float processing path. */
 @UnstableApi
 internal class RubberBandRenderersFactory(context: Context) : DefaultRenderersFactory(context) {
     override fun buildAudioSink(
@@ -15,9 +15,10 @@ internal class RubberBandRenderersFactory(context: Context) : DefaultRenderersFa
         enableAudioOutputPlaybackParams: Boolean
     ): AudioSink {
         return DefaultAudioSink.Builder(context)
-            // RubberBandAudioProcessor only accepts PCM float. Forward the renderer's
-            // negotiated output mode so the sink actually supplies float PCM to the chain.
-            .setEnableFloatOutput(enableFloatOutput)
+            // Keep Media3 audio processing enabled; RubberBandAudioProcessor performs its own
+            // float conversion and returns the original PCM encoding.
+            .setEnableFloatOutput(false)
+            .setEnableAudioOutputPlaybackParameters(false)
             .setAudioProcessorChain(RubberBandAudioProcessorChain())
             .build()
     }
