@@ -1,5 +1,6 @@
 package com.anisync.android.presentation.components.result
 
+import com.anisync.android.presentation.components.communityScoreTint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -60,7 +61,6 @@ import com.anisync.android.presentation.util.communityScoreLabel
 import com.anisync.android.presentation.util.formatAndYear
 import com.anisync.android.presentation.util.selectedPaneItem
 import com.anisync.android.ui.theme.ExpressiveShapes
-import com.anisync.android.ui.theme.StarGold
 import com.anisync.android.type.MediaType
 import com.anisync.android.util.getTitle
 
@@ -105,12 +105,7 @@ fun DiscoverResultPoster(
             // Score badge: no filled container, with both the star and value using the
             // same score-tier color as AnimeW.
             entry.communityScoreLabel()?.let { score ->
-                val scoreColor = when {
-                    (entry.averageScore ?: 0) >= 75 -> Color(0xFF4CAF50)
-                    (entry.averageScore ?: 0) >= 70 -> Color(0xFFFFD54F)
-                    (entry.averageScore ?: 0) >= 60 -> Color(0xFFFF9800)
-                    else -> Color(0xFFF44336)
-                }
+                val scoreColor = communityScoreTint((entry.averageScore ?: 0).toDouble())
                 Row(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
