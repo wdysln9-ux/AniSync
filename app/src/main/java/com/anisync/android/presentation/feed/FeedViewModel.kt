@@ -7,7 +7,6 @@ import com.anisync.android.R
 import com.anisync.android.data.AppSettings
 import com.anisync.android.data.account.AccountManager
 import com.anisync.android.data.util.AppLocale
-import com.anisync.android.domain.ActivityDetail
 import com.anisync.android.domain.ActivityEventBus
 import com.anisync.android.domain.ActivityRepository
 import com.anisync.android.domain.ActivityType
