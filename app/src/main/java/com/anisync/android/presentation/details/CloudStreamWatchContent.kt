@@ -420,6 +420,8 @@ internal fun CloudStreamWatchContent(
                             preloadHeaders = (preloadStream?.get("headers") as? Map<*, *>)?.entries?.associate {
                                 it.key.toString() to it.value.toString()
                             }.orEmpty(),
+                            aniskipMalId = malId,
+                            aniskipEpisodeNumber = number,
                             onPlaybackEnded = {
                                 if (autoNextEnabled) {
                                     // Keep fullscreen only when the episode that just ended was fullscreen.
