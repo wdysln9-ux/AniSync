@@ -58,7 +58,8 @@ import com.anisync.android.presentation.util.lengthFact
 import com.anisync.android.presentation.util.releaseStatusLabel
 import com.anisync.android.presentation.util.selectedPaneItem
 import com.anisync.android.type.MediaType
-import com.anisync.android.ui.theme.StarGold
+import com.anisync.android.presentation.components.communityScoreTint
+import com.anisync.android.presentation.components.personalScoreTint
 import com.anisync.android.util.getTitle
 
 private val RowHeight = 120.dp
@@ -126,6 +127,7 @@ fun LibraryResultRow(
                 facts = entry.factsLine(mediaType),
                 score = score?.let { formatScore(it, scoreFormat) },
                 scoreStar = scoreFormat != ScoreFormat.POINT_5 && scoreFormat != ScoreFormat.POINT_3,
+                scoreTint = score?.let { personalScoreTint(it, scoreFormat) } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 entry = entry
             )
         }
@@ -168,6 +170,7 @@ fun DiscoverResultRow(
             facts = entry.factsLine(),
             score = entry.communityScoreLabel(),
             scoreStar = true,
+            scoreTint = entry.averageScore?.toDouble()?.let(::communityScoreTint) ?: MaterialTheme.colorScheme.onSurfaceVariant,
             entry = entry
         )
     }
@@ -368,6 +371,7 @@ private fun FactsBand(
     facts: String?,
     score: String?,
     scoreStar: Boolean,
+    scoreTint: Color,
     entry: LibraryEntry
 ) {
     val countdown = entry.dynamicTimeUntilAiring
@@ -387,8 +391,9 @@ private fun FactsBand(
                 if (score != null) {
                     IconValue(
                         icon = Icons.Default.Star.takeIf { scoreStar },
-                        tint = StarGold,
-                        value = score
+                        tint = scoreTint,
+                        value = score,
+                        valueColor = scoreTint
                     )
                 }
                 if (score != null && state != null) Separator()
@@ -420,7 +425,7 @@ private fun FactsText(text: String) {
 
 /** A 14dp glyph and a bold value: the score with its star, favourites with their heart. */
 @Composable
-private fun IconValue(icon: ImageVector?, tint: Color, value: String) {
+private fun IconValue(icon: ImageVector?, tint: Color, value: String, valueColor: Color = MaterialTheme.colorScheme.onSurface) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp)
@@ -432,7 +437,7 @@ private fun IconValue(icon: ImageVector?, tint: Color, value: String) {
             text = value,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = valueColor,
             maxLines = 1
         )
     }
