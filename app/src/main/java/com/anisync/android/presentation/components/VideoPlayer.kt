@@ -185,7 +185,9 @@ fun VideoPlayer(
     onFullscreenEntered: () -> Unit = {},
     onCinematicLightingChange: (Float) -> Unit = {},
     preloadUrl: String? = null,
-    preloadHeaders: Map<String, String> = emptyMap()
+    preloadHeaders: Map<String, String> = emptyMap(),
+    aniskipMalId: Int? = null,
+    aniskipEpisodeNumber: Int? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -195,6 +197,7 @@ fun VideoPlayer(
     var positionMs by remember { mutableLongStateOf(0L) }
     var durationMs by remember { mutableLongStateOf(0L) }
     var bufferedPositionMs by remember { mutableLongStateOf(0L) }
+    var aniSkipSegments by remember(url, aniskipMalId, aniskipEpisodeNumber) { mutableStateOf<List<AniSkipSegment>>(emptyList()) }
     var isScrubbing by remember { mutableStateOf(false) }
     var videoAspectRatio by remember { mutableFloatStateOf(DEFAULT_VIDEO_ASPECT) }
     var playerState by remember { mutableStateOf(PlayerState.Loading) }
@@ -205,6 +208,17 @@ fun VideoPlayer(
     val isHandedOff by rememberUpdatedState(handedOff)
     var cinematicOverlayIntensity by remember { mutableFloatStateOf(if (PlayerPreferences.cinematicEnabled(context)) PlayerPreferences.cinematicIntensity(context) else 0f) }
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
+    LaunchedEffect(url, aniskipMalId, aniskipEpisodeNumber, durationMs) {
+        aniSkipSegments = emptyList()
+        FullscreenVideoBridge.aniSkipSegments.value = emptyList()
+        val id = aniskipMalId
+        val number = aniskipEpisodeNumber
+        if (id != null && id > 0 && number != null && number > 0 && durationMs > 0L) {
+            val segments = AniSkipRepository.getSegments(id, number, durationMs)
+            aniSkipSegments = segments
+            FullscreenVideoBridge.aniSkipSegments.value = segments
+        }
+    }
     var playbackEndHandled by remember(url, headers) { mutableStateOf(false) }
     var selectedAudioRenderer by remember(url) {
         mutableStateOf(
@@ -473,6 +487,7 @@ fun VideoPlayer(
                 positionMs = positionMs,
                 durationMs = durationMs,
                 bufferedPositionMs = bufferedPositionMs,
+                skipSegments = aniSkipSegments,
                 isFullscreen = false,
                 onPlayPause = onPlayPause,
                 onToggleMute = onToggleMute,
@@ -793,6 +808,7 @@ internal fun VideoControlsOverlay(
     positionMs: Long,
     durationMs: Long,
     bufferedPositionMs: Long = 0L,
+    skipSegments: List<AniSkipSegment> = emptyList(),
     isFullscreen: Boolean,
     onPlayPause: () -> Unit,
     onToggleMute: () -> Unit,
@@ -896,6 +912,7 @@ internal fun VideoControlsOverlay(
     LaunchedEffect(seekFeedback) { if (seekFeedback != null) { delay(850); seekFeedback = null; accumulatedSeekMs = 0L } }
     val fraction = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
     val bufferedFraction = if (durationMs > 0) (bufferedPositionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
+    val activeSkipSegment = skipSegments.firstOrNull { positionMs >= it.startMs && positionMs < it.endMs }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Controls are laid out against the surface they sit on, not the device: a tablet's
@@ -1307,6 +1324,19 @@ internal fun VideoControlsOverlay(
                                     cornerRadius = radius
                                 )
                             }
+                            // AniSkip OP/ED ranges are highlighted in yellow on the timeline.
+                            skipSegments.forEach { segment ->
+                                val start = (segment.startMs.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
+                                val end = (segment.endMs.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
+                                if (end > start) {
+                                    drawRoundRect(
+                                        color = Color(0xFFFFD54F),
+                                        topLeft = androidx.compose.ui.geometry.Offset(start, top - 1.dp.toPx()),
+                                        size = androidx.compose.ui.geometry.Size(end - start, trackHeight + 2.dp.toPx()),
+                                        cornerRadius = androidx.compose.ui.geometry.CornerRadius((trackHeight + 2.dp.toPx()) / 2f)
+                                    )
+                                }
+                            }
                             // Use a clean circular playhead instead of Material's default
                             // expressive slider thumb, which can render as a short vertical bar.
                             drawCircle(
@@ -1349,6 +1379,26 @@ internal fun VideoControlsOverlay(
                             modifier = Modifier.size(if (wide) 28.dp else 22.dp)
                         )
                     }
+                }
+            }
+        }
+        // Keep the skip action available even while the normal controls are hidden.
+        AnimatedVisibility(
+            visible = activeSkipSegment != null && durationMs > 0L,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = edgePadding, bottom = if (controlsVisible) 58.dp else 18.dp)
+        ) {
+            val segment = activeSkipSegment
+            if (segment != null) {
+                FilledTonalButton(
+                    onClick = {
+                        onSeek((segment.endMs.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(0f, 1f))
+                        onSeekFinished()
+                        poke()
+                    }
+                ) {
+                    Text(if (segment.label == "Opening") "Lewati Opening" else "Lewati Ending")
                 }
             }
         }
