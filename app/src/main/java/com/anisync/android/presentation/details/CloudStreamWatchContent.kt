@@ -536,16 +536,21 @@ internal fun CloudStreamWatchContent(
                             aniskipEpisodeNumber = number,
                             onPlaybackEnded = {
                                 if (autoNextEnabled) {
-                                    // Keep fullscreen only when the episode that just ended was fullscreen.
-                                    autoNextFullscreen = FullscreenVideoBridge.isFullscreen
+                                    val wasFullscreen = FullscreenVideoBridge.isFullscreen
+                                    val readyNextSource = preloadStream
+                                    // Reuse the fullscreen Activity when the preloaded source is ready.
+                                    // Otherwise close/re-enter only as a fallback while resolving.
+                                    autoNextFullscreen = wasFullscreen && readyNextSource == null
                                     val index = episodes.indexOfFirst { it === current || it == current }
                                     episodes.getOrNull(index + 1)?.let { next ->
-                                        val readyNextSource = preloadStream
-                                    playEpisode(
-                                        next,
-                                        selectedStream?.get("name")?.toString(),
-                                        readyNextSource
-                                    )
+                                        playEpisode(
+                                            next,
+                                            selectedStream?.get("name")?.toString(),
+                                            readyNextSource
+                                        )
+                                        if (wasFullscreen && readyNextSource == null) {
+                                            FullscreenVideoBridge.closeFullscreen?.invoke()
+                                        }
                                     }
                                 }
                             }
