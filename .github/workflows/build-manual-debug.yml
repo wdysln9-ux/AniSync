@@ -1,81 +1,37 @@
 name: Build Manual Debug APK
 
-# Debug builds are signed with the auto-generated debug keystore, so this needs
-# none of the signing secrets the release workflows use. The app id carries the
-# .debug suffix, so the result installs alongside a release build.
-
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build Debug APK (Manual)
+    name: Build ARM64 Debug APK
     runs-on: ubuntu-latest
-
     permissions:
       contents: read
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-
+        with:
+          submodules: recursive
+      - name: Install Android NDK and CMake
+        run: sdkmanager --install "ndk;27.2.12479018" "cmake;3.22.1"
       - name: Set up JDK 17
         uses: actions/setup-java@v6
         with:
-          distribution: 'zulu'
+          distribution: zulu
           java-version: '17'
-
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
-
-      - name: Build Debug APK
+      - name: Build ARM64 Debug APK
         run: |
           chmod +x gradlew
           ./gradlew assembleStableDebug
-
-      - name: Resolve APK file names
-        shell: bash
-        run: |
-          set -euo pipefail
-          apk_dir="app/build/outputs/apk/stable/debug"
-
-          universal_file="$(basename "$(ls "$apk_dir"/*-universal-debug.apk)")"
-
-          {
-            echo "APK_DIR=$apk_dir"
-            echo "APK_UNIVERSAL_FILE=$universal_file"
-          } >> "$GITHUB_ENV"
-
-      - name: Upload universal Artifact
+      - name: Upload ARM64 APK
         uses: actions/upload-artifact@v7
         with:
-          path: ${{ env.APK_DIR }}/${{ env.APK_UNIVERSAL_FILE }}
+          name: AniSync-arm64-debug
+          path: app/build/outputs/apk/stable/debug/*-arm64-v8a-debug.apk
           if-no-files-found: error
           retention-days: 30
           archive: false
-
-      - name: Upload all ABI splits
-        uses: actions/upload-artifact@v7
-        with:
-          name: AniSync-debug-all-abis
-          path: ${{ env.APK_DIR }}/*.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Summarise the run
-        shell: bash
-        run: |
-          {
-            echo "### Debug build ready"
-            echo
-            echo "Built from \`${GITHUB_REF_NAME}\` at \`${GITHUB_SHA}\`."
-            echo
-            echo "The universal APK runs on any device and is the one to hand to a"
-            echo "bug reporter. Grab it from the Artifacts section of this run:"
-            echo
-            echo "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-            echo
-            echo "Artifact: \`${APK_UNIVERSAL_FILE}\`"
-            echo
-            echo "Downloading an artifact requires a signed-in GitHub account."
-          } >> "$GITHUB_STEP_SUMMARY"

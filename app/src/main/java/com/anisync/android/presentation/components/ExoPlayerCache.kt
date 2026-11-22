@@ -148,12 +148,16 @@ internal fun buildVideoExoPlayer(
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
-    // Use Media3's built-in Sonic time-stretch processor for playback speed.
-    // Keep AudioTrack output-rate adjustment disabled: on some devices it introduces
-    // audible latency/artifacts, while Sonic processes decoded PCM in the player pipeline.
-    val renderersFactory = DefaultRenderersFactory(context)
-        .setEnableAudioFloatOutput(false)
-        .setEnableAudioOutputPlaybackParameters(false)
+    // Episode playback uses Rubber Band's pitch-preserving time stretcher.
+    // Embedded clips retain the standard Media3 renderer because they are usually muted.
+    val renderersFactory = if (useWsolaAudio) {
+        RubberBandRenderersFactory(context).setEnableAudioFloatOutput(true)
+            .setEnableAudioOutputPlaybackParameters(false)
+    } else {
+        DefaultRenderersFactory(context)
+            .setEnableAudioFloatOutput(false)
+            .setEnableAudioOutputPlaybackParameters(false)
+    }
 
     val diskCache = cache ?: SharedVideoDiskCache.get(context)
     return ExoPlayer.Builder(context, renderersFactory)
