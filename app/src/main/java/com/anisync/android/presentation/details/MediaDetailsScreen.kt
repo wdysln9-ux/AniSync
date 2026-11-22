@@ -560,6 +560,9 @@ fun MediaDetailsScreen(
                                             state.details.type
                                         )
                                     },
+                                    onInfoFilterClick = { filters ->
+                                        viewModel.openDiscoverSearch(filters, state.details.type)
+                                    },
                                     onGenreClick = { genre ->
                                         viewModel.openDiscoverSearch(
                                             com.anisync.android.domain.SearchFilters(genresIncluded = setOf(genre)),
@@ -940,6 +943,7 @@ fun DetailsPageContent(
     onEnsureStatsLoaded: () -> Unit,
     onRetryStats: () -> Unit,
     onRankingClick: (com.anisync.android.domain.MediaRanking) -> Unit,
+    onInfoFilterClick: (com.anisync.android.domain.SearchFilters) -> Unit,
     onGenreClick: (String) -> Unit,
     onTagClick: (com.anisync.android.domain.Tag) -> Unit,
     onRelationClick: (Int) -> Unit,
@@ -1303,7 +1307,57 @@ fun DetailsPageContent(
                             MediaInformationSection(
                                 details = details,
                                 onStudioClick = onStudioClick,
-                                onRankingClick = onRankingClick
+                                onRankingClick = onRankingClick,
+                                onStatusClick = {
+                                    com.anisync.android.type.MediaStatus.entries
+                                        .firstOrNull { it.name == details.status }
+                                        ?.let { status ->
+                                            onInfoFilterClick(
+                                                com.anisync.android.domain.SearchFilters(statuses = setOf(status))
+                                            )
+                                        }
+                                },
+                                onEpisodesClick = {
+                                    val count = if (details.type == com.anisync.android.type.MediaType.MANGA) {
+                                        details.chapters
+                                    } else {
+                                        details.episodes ?: details.nextAiringEpisode?.episode?.minus(1)
+                                    }
+                                    count?.takeIf { it > 0 }?.let { episodes ->
+                                        onInfoFilterClick(
+                                            com.anisync.android.domain.SearchFilters(
+                                                episodes = com.anisync.android.domain.IntComparatorFilter(
+                                                    mode = com.anisync.android.domain.ComparatorMode.EXACTLY,
+                                                    value = episodes
+                                                )
+                                            )
+                                        )
+                                    }
+                                },
+                                onSeasonClick = {
+                                    val season = com.anisync.android.type.MediaSeason.entries
+                                        .firstOrNull { it.name == details.season }
+                                    if (season != null) {
+                                        onInfoFilterClick(
+                                            com.anisync.android.domain.SearchFilters(
+                                                season = season,
+                                                yearRange = com.anisync.android.domain.IntRangeFilter(
+                                                    min = details.seasonYear,
+                                                    max = details.seasonYear
+                                                )
+                                            )
+                                        )
+                                    }
+                                },
+                                onSourceClick = {
+                                    com.anisync.android.type.MediaSource.entries
+                                        .firstOrNull { it.name == details.source }
+                                        ?.let { source ->
+                                            onInfoFilterClick(
+                                                com.anisync.android.domain.SearchFilters(sources = setOf(source))
+                                            )
+                                        }
+                                }
                             )
                         }
                     }
