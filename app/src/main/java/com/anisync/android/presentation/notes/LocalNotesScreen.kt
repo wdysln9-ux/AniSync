@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
+import com.anisync.android.presentation.components.AsyncRichTextRenderer
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -136,13 +137,11 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     LaunchedEffect(data, treeUri) {
         delay(500)
         val snapshot = data
-        withContext(Dispatchers.IO) {
+        val savedToTree = withContext(Dispatchers.IO) {
             prefs.edit().putString(PAYLOAD, notesJson.encodeToString(snapshot)).apply()
-            treeUri?.let { uri ->
-                val ok = saveTree(context, uri, snapshot)
-                status = if (ok) "Tersimpan • cadangan diperbarui" else "Tersimpan lokal • cadangan gagal"
-            }
+            treeUri?.let { uri -> saveTree(context, uri, snapshot) }
         }
+        if (treeUri != null) status = if (savedToTree == true) "Tersimpan • cadangan diperbarui" else "Tersimpan lokal • cadangan gagal"
     }
 
     val note = data.notes.firstOrNull { it.id == editing }
@@ -199,8 +198,11 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     textStyle = MaterialTheme.typography.headlineSmall.copy(color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold),
                     decorationBox = { inner -> Box { if (note.title.isEmpty()) Text("Judul catatan", color = MaterialTheme.colorScheme.outline); inner() } })
                 HorizontalDivider()
-                if (preview) Text(note.body.ifBlank { "Belum ada isi." }, Modifier.fillMaxSize().padding(top = 14.dp),
-                    style = MaterialTheme.typography.bodyLarge)
+                if (preview) {
+                    if (note.body.isBlank()) Text("Belum ada isi.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    else AsyncRichTextRenderer(html = note.body, modifier = Modifier.fillMaxSize().padding(top = 14.dp),
+                        style = MaterialTheme.typography.bodyLarge)
+                }
                 else {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("**tebal**", "*miring*", "~~coret~~", "# Judul", "- [ ] Checklist", "> Kutipan", "\`kode\`", "[tautan](url)", "||spoiler||").forEach { token ->
