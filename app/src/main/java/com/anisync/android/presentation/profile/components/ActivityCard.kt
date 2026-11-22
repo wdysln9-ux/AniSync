@@ -191,6 +191,7 @@ fun ActivityCard(
                 onUserClick = onUserClick,
                 onEditClick = onEditClick,
                 onDeleteClick = onDeleteClick,
+                onOpenActivity = onClick,
                 showPinIcon = !labelled,
                 timeText = timeText
             )
@@ -418,6 +419,7 @@ private fun ActivityCardHeader(
     onUserClick: (String) -> Unit,
     onEditClick: (() -> Unit)?,
     onDeleteClick: (() -> Unit)?,
+    onOpenActivity: () -> Unit,
     showPinIcon: Boolean = true,
     timeText: String? = null
 ) {
@@ -508,6 +510,7 @@ private fun ActivityCardHeader(
 
             ActivityOverflowButton(
                 activity = activity,
+                onOpenActivity = onOpenActivity,
                 onEditClick = onEditClick,
                 onDeleteClick = onDeleteClick
             )
