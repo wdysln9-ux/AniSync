@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +43,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
 import com.anisync.android.R
 import com.anisync.android.presentation.components.AppModalBottomSheet
 
@@ -69,6 +72,7 @@ fun FilterSheetScaffold(
     onReset: (() -> Unit)? = null,
     resetEnabled: Boolean = false,
     scrollableBody: Boolean = true,
+    scrollToBottomOnOpen: Boolean = false,
     footer: (@Composable () -> Unit)? = null,
     sheetState: SheetState = if (footer != null) {
         rememberBottomSheetState(
@@ -109,12 +113,19 @@ fun FilterSheetScaffold(
                 modifier = Modifier.padding(bottom = 8.dp),
                 color = MaterialTheme.colorScheme.outlineVariant
             )
+            val bodyScrollState = rememberScrollState()
+            LaunchedEffect(scrollToBottomOnOpen, scrollableBody) {
+                if (scrollToBottomOnOpen && scrollableBody) {
+                    snapshotFlow { bodyScrollState.maxValue }.first { it > 0 }
+                    bodyScrollState.animateScrollTo(bodyScrollState.maxValue)
+                }
+            }
             val bodyBase = Modifier
                 .weight(1f, fill = false)
                 .fillMaxWidth()
                 .padding(bottom = if (footer != null) 8.dp else 32.dp)
             val bodyModifier = if (scrollableBody) {
-                bodyBase.verticalScroll(rememberScrollState())
+                bodyBase.verticalScroll(bodyScrollState)
             } else {
                 bodyBase
             }
