@@ -96,9 +96,13 @@ fun MediaInformationSection(
     details: MediaDetails,
     modifier: Modifier = Modifier,
     onStudioClick: (Int) -> Unit = {},
-    onRankingClick: (MediaRanking) -> Unit = {}
+    onRankingClick: (MediaRanking) -> Unit = {},
+    openTitlesRequest: Int = 0
 ) {
     var activeSheet by remember { mutableStateOf<InfoSheetKind?>(null) }
+    LaunchedEffect(openTitlesRequest) {
+        if (openTitlesRequest > 0) activeSheet = InfoSheetKind.TITLES
+    }
 
     // The airing countdown has its own strip under the tracker now, so it is not repeated here.
     val infoItems = buildInfoItems(details, onStudioClick, includeAiringCountdown = false)
