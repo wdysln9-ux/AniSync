@@ -411,10 +411,11 @@ private fun buildInfoItems(
     val uriHandler = LocalUriHandler.current
 
     // 1. Status
-    val statusValue = if (details.status.equals("NOT_YET_RELEASED", ignoreCase = true)) {
-        stringResource(R.string.media_status_upcoming)
-    } else {
-        details.status.formatAsTitle() ?: stringResource(R.string.unknown)
+    val statusValue = when {
+        details.status.equals("NOT_YET_RELEASED", ignoreCase = true) -> stringResource(R.string.media_status_upcoming)
+        details.status.equals("RELEASING", ignoreCase = true) -> stringResource(R.string.media_status_releasing)
+        details.status.equals("FINISHED", ignoreCase = true) -> stringResource(R.string.media_status_finished)
+        else -> details.status.formatAsTitle() ?: stringResource(R.string.unknown)
     }
     items.add(
         InfoItem(
