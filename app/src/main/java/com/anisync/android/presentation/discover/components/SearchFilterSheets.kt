@@ -600,9 +600,9 @@ internal fun SearchSortColumn.label(): String = stringResource(
         SearchSortColumn.RANDOM -> R.string.search_sort_random
         SearchSortColumn.POPULARITY -> R.string.search_sort_popularity
         SearchSortColumn.SCORE -> R.string.search_sort_score
-        SearchSortColumn.TRENDING -> R.string.search_sort_trending
+        SearchSortColumn.TRENDING -> return "Trending"
         SearchSortColumn.FAVOURITES -> R.string.search_sort_favourites
-        SearchSortColumn.RELEASE_DATE -> R.string.search_sort_release_date
+        SearchSortColumn.RELEASE_DATE -> return "Terbaru"
         SearchSortColumn.UPDATED -> R.string.search_sort_updated
         SearchSortColumn.TITLE -> R.string.search_sort_title
         SearchSortColumn.EPISODES -> R.string.search_sort_episodes
