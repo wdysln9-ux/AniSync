@@ -158,6 +158,9 @@ fun LookAndFeelScreen(
     // The top bar re-clamps over the next few frames, so the tiles are re-pinned until it settles.
     var displaySizeTilesY by remember { mutableFloatStateOf(0f) }
     var displaySizeAnchorY by remember { mutableStateOf<Float?>(null) }
+    var pendingDisplaySizeScale by rememberSaveable {
+        mutableFloatStateOf(uiState.displaySize.scale)
+    }
     val density = LocalDensity.current
     LaunchedEffect(density) {
         val anchor = displaySizeAnchorY ?: return@LaunchedEffect
@@ -228,17 +231,22 @@ fun LookAndFeelScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Ukuran tampilan", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                        Text("${(uiState.displaySize.scale * 100f).roundToInt()}%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                        Text("${(pendingDisplaySizeScale * 100f).roundToInt()}%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     }
                     Slider(
                         state = rememberControlledSliderState(
-                            value = uiState.displaySize.scale,
+                            value = pendingDisplaySizeScale,
                             valueRange = DisplaySize.MIN_SCALE..DisplaySize.MAX_SCALE
                         ),
                         onValueChange = { value ->
-                            val percent = (value * 100f).roundToInt().coerceIn(30, 200)
+                            pendingDisplaySizeScale = value
+                        },
+                        onValueChangeFinished = {
+                            val percent = (pendingDisplaySizeScale * 100f).roundToInt().coerceIn(30, 200)
+                            val displaySize = DisplaySize(percent / 100f)
+                            pendingDisplaySizeScale = displaySize.scale
                             displaySizeAnchorY = displaySizeTilesY
-                            viewModel.onAction(SettingsAction.SetDisplaySize(DisplaySize(percent / 100f)))
+                            viewModel.onAction(SettingsAction.SetDisplaySize(displaySize))
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = SliderDefaults.colors(
