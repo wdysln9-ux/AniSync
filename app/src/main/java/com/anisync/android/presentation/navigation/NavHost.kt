@@ -42,6 +42,7 @@ import com.anisync.android.presentation.calendar.CalendarScreen
 import com.anisync.android.presentation.components.MediaArtworkThemeOverride
 import com.anisync.android.presentation.components.ProfileColorThemeOverride
 import com.anisync.android.presentation.notes.NotesJournalScreen
+import com.anisync.android.presentation.notes.LocalNotesScreen
 import com.anisync.android.presentation.details.CharacterDetailsScreen
 import com.anisync.android.presentation.details.CharacterMediaGridScreen
 import com.anisync.android.presentation.details.MediaDetailsScreen
@@ -397,6 +398,7 @@ fun AniSyncNavHost(
                     onMediaClickFullScreen = onLibraryMediaClick,
                     onNavigateToCalendar = { navController.navigate(Calendar) },
                     onNavigateToNotes = { navController.navigate(Notes) },
+                    onNavigateToLocalNotes = { navController.navigate(LocalNotes) },
                     // An empty list is a dead end without this: same options the bottom bar uses,
                     // so the tab switch saves and restores state rather than stacking a screen.
                     onBrowseDiscover = {
@@ -1328,6 +1330,17 @@ fun AniSyncNavHost(
             // =================================================================
             // CREATE THREAD - Shared Axis Z (Depth)
             // =================================================================
+            // Local offline notes
+            composable<LocalNotes>(
+                enterTransition = { sharedAxisZEnter() },
+                exitTransition = { sharedAxisZExit() },
+                popEnterTransition = { sharedAxisZPopEnter() },
+                popExitTransition = { sharedAxisZPopExit() }
+            ) {
+                LocalNotesScreen(onBackClick = { navController.popBackStack() })
+            }
+
+            // Create forum thread
             composable<CreateThread>(
                 enterTransition = { sharedAxisZEnter() },
                 exitTransition = { sharedAxisZExit() },
