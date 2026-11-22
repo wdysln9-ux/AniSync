@@ -161,6 +161,7 @@ import com.anisync.android.presentation.details.components.FollowingRow
 import com.anisync.android.presentation.details.components.UserNotesCard
 import com.anisync.android.presentation.details.components.RecommendMediaSheet
 import com.anisync.android.presentation.details.components.MediaInformationSection
+import com.anisync.android.presentation.details.components.MediaTitlesSheet
 import com.anisync.android.presentation.details.components.NextEpisodeStrip
 import com.anisync.android.presentation.details.components.TrackingCard
 import com.anisync.android.presentation.details.components.WatchOnRow
@@ -968,7 +969,7 @@ fun DetailsPageContent(
     /** Height of the page's top app bar, which is where the sticky tab strip docks. */
     topBarHeight: Dp
 ) {
-    var titleSheetRequest by remember(details.id) { mutableIntStateOf(0) }
+    var showTitlesSheet by remember(details.id) { mutableStateOf(false) }
 
     val displayCharacters = remember(details.characters, titleLanguage) {
         details.characters.distinctBy { it.id }.take(10).map { character ->
@@ -1170,7 +1171,7 @@ fun DetailsPageContent(
                     onScoreClick = { showScoreInfo = true },
                     onTitleClick = {
                         onTabSelected(DetailsTab.OVERVIEW)
-                        titleSheetRequest++
+                        showTitlesSheet = true
                     }
                 )
             }
@@ -1255,8 +1256,7 @@ fun DetailsPageContent(
                             MediaInformationSection(
                                 details = details,
                                 onStudioClick = onStudioClick,
-                                onRankingClick = onRankingClick,
-                                openTitlesRequest = titleSheetRequest
+                                onRankingClick = onRankingClick
                             )
                         }
                     }
@@ -1774,6 +1774,10 @@ fun DetailsPageContent(
                 onDismiss = { showRecommendSheet = false }
             )
         }
+    }
+
+    if (showTitlesSheet) {
+        MediaTitlesSheet(details = details, onDismiss = { showTitlesSheet = false })
     }
 }
 
