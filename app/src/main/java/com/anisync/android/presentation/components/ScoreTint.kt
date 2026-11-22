@@ -11,6 +11,7 @@ import com.anisync.android.domain.max
  * Community scores use AniList's 0–100 scale.
  */
 fun communityScoreTint(score: Double): Color = when {
+    score >= 85.0 -> Color(0xFFB388FF)
     score >= 75.0 -> Color(0xFF55D879)
     score >= 60.0 -> Color(0xFFFFC247)
     else -> Color(0xFFFF7168)
