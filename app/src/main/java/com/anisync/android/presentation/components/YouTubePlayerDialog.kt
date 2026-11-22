@@ -123,10 +123,10 @@ private fun YouTubeWebView(
         </head>
         <body>
           <iframe
-            src="https://www.youtube-nocookie.com/embed/$videoId?autoplay=1&playsinline=1&rel=0"
+            src="https://www.youtube.com/embed/$videoId?autoplay=1&playsinline=1&rel=0&origin=https%3A%2F%2Fwww.youtube.com"
             title="YouTube video player"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerpolicy="strict-origin-when-cross-origin"
+            referrerpolicy="origin"
             allowfullscreen>
           </iframe>
         </body>
@@ -148,10 +148,12 @@ private fun YouTubeWebView(
                     settings.loadsImagesAutomatically = true
                     settings.javaScriptCanOpenWindowsAutomatically = false
                     settings.setSupportMultipleWindows(false)
+                    // YouTube requires a valid Referer for embedded playback (error 153).
+                    // Use a real YouTube document origin rather than a synthetic no-cookie origin.
                     webViewClient = WebViewClient()
                     webChromeClient = WebChromeClient()
                     loadDataWithBaseURL(
-                        "https://www.youtube-nocookie.com",
+                        "https://www.youtube.com/",
                         html,
                         "text/html",
                         "UTF-8",
