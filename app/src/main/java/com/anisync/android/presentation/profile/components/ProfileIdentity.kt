@@ -503,8 +503,8 @@ private fun ProfileIdentityDetails(
                 profile.activeAt?.takeIf { it > 0L }?.let(::formatLastSeenWhatsApp).orEmpty()
             }
             val meta = listOfNotNull(
-                activeTime.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.profile_active, it) },
-                joinedDate?.let { stringResource(R.string.profile_joined, it) }
+                joinedDate?.let { stringResource(R.string.profile_joined, it) },
+                activeTime.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.profile_active, it) }
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 meta.forEachIndexed { index, part ->
