@@ -2322,10 +2322,10 @@ private fun MetadataTags(details: MediaDetails, onFilterClick: (com.anisync.andr
             }
             add(MetadataPart(
                 season?.let { "${it.name.lowercase().replaceFirstChar { ch -> ch.uppercase() }} $year" } ?: year.toString(),
-                season?.let { com.anisync.android.domain.SearchFilters(
-                    season = it,
+                com.anisync.android.domain.SearchFilters(
+                    season = season,
                     yearRange = com.anisync.android.domain.IntRangeFilter(min = year, max = year)
-                ) }
+                )
             ))
         }
         val format = details.format?.uppercase()
