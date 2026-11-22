@@ -91,6 +91,7 @@ fun RichTextInputSheet(
     enablePreview: Boolean = true,
     enableMediaAttach: Boolean = true,
     fullScreen: Boolean = false,
+    allowPartialExpansion: Boolean = false,
     isSubmitEnabled: (body: String) -> Boolean = {
         ContentLimits.characterCount(it.trim()) in minLength..maxLength
     },
@@ -116,7 +117,11 @@ fun RichTextInputSheet(
     // half-expanded stop would leave the toolbar and the submit button below the edge.
     val sheetState = rememberBottomSheetState(
         initialValue = SheetValue.Hidden,
-        enabledValues = setOf(SheetValue.Hidden, SheetValue.PartiallyExpanded, SheetValue.Expanded),
+        enabledValues = if (allowPartialExpansion) {
+            setOf(SheetValue.Hidden, SheetValue.PartiallyExpanded, SheetValue.Expanded)
+        } else {
+            setOf(SheetValue.Hidden, SheetValue.Expanded)
+        },
         confirmValueChange = { targetValue ->
             if (targetValue == SheetValue.Hidden && hasDraftState.value) {
                 showDiscardDialog = true
