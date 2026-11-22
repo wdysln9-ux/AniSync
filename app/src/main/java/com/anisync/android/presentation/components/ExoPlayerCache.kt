@@ -133,6 +133,7 @@ internal fun buildVideoExoPlayer(
     cache: Cache? = null,
     headers: Map<String, String> = emptyMap(),
     useWsolaAudio: Boolean = false,
+    audioRenderer: EpisodeAudioRenderer = if (useWsolaAudio) EpisodeAudioRenderer.RUBBER_BAND else EpisodeAudioRenderer.MEDIA3_SONIC,
 ): ExoPlayer {
     val loadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
@@ -148,15 +149,20 @@ internal fun buildVideoExoPlayer(
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
-    // Episode playback uses Rubber Band's pitch-preserving time stretcher.
-    // Embedded clips retain the standard Media3 renderer because they are usually muted.
-    val renderersFactory = if (useWsolaAudio) {
-        RubberBandRenderersFactory(context).setEnableAudioFloatOutput(true)
-            .setEnableAudioOutputPlaybackParameters(false)
-    } else {
-        DefaultRenderersFactory(context)
-            .setEnableAudioFloatOutput(false)
-            .setEnableAudioOutputPlaybackParameters(false)
+    // Keep every available audio path selectable for direct A/B testing in episode playback.
+    val renderersFactory = when (audioRenderer) {
+        EpisodeAudioRenderer.RUBBER_BAND ->
+            RubberBandRenderersFactory(context).setEnableAudioFloatOutput(true)
+                .setEnableAudioOutputPlaybackParameters(false)
+        EpisodeAudioRenderer.WSOLA ->
+            WsolaRenderersFactory(context).setEnableAudioFloatOutput(false)
+                .setEnableAudioOutputPlaybackParameters(false)
+        EpisodeAudioRenderer.PLATFORM ->
+            DefaultRenderersFactory(context).setEnableAudioFloatOutput(false)
+                .setEnableAudioOutputPlaybackParameters(true)
+        EpisodeAudioRenderer.MEDIA3_SONIC ->
+            DefaultRenderersFactory(context).setEnableAudioFloatOutput(false)
+                .setEnableAudioOutputPlaybackParameters(false)
     }
 
     val diskCache = cache ?: SharedVideoDiskCache.get(context)
