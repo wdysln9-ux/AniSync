@@ -99,7 +99,7 @@ class LinkPreviewProviderImpl @Inject constructor(
                             score = media.averageScore
                         ),
                         score = media.averageScore,
-                        genres = media.genres.filterNotNull()
+                        genres = media.genres?.filterNotNull().orEmpty()
                     )
                 }
 
