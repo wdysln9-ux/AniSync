@@ -313,7 +313,18 @@ class SearchRepositoryImpl @Inject constructor(
                         includeStudios = false
                     )
                 }
-                val entityData = firstData ?: regularResponse?.data
+                val entityResponse = when {
+                    !randomSort -> regularResponse
+                    page == 1 || (!wantEntities && !wantStudios) -> firstResponse
+                    else -> fetchPage(
+                        page,
+                        includeAnime = false,
+                        includeManga = false,
+                        includeEntities = wantEntities,
+                        includeStudios = wantStudios
+                    )
+                }
+                val entityData = entityResponse?.data
                 val animePage = animeResponse?.data?.anime
                 val mangaPage = mangaResponse?.data?.manga
 
