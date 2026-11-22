@@ -84,6 +84,7 @@ fun SearchFilterSheetHost(
     category: ResultCategory,
     hasQuery: Boolean,
     matchingTitles: Int,
+    scrollToBottomOnOpen: Boolean = false,
     genres: List<String>,
     tags: List<MediaTag>,
     showAdultContent: Boolean,
@@ -102,6 +103,7 @@ fun SearchFilterSheetHost(
             category = category,
             hasQuery = hasQuery,
             matchingTitles = matchingTitles,
+            scrollToBottomOnOpen = scrollToBottomOnOpen,
             genres = genres,
             tags = tags,
             showAdultContent = showAdultContent,
@@ -171,6 +173,7 @@ private fun AnimeWStyleFilterSheet(
     category: ResultCategory,
     hasQuery: Boolean,
     matchingTitles: Int,
+    scrollToBottomOnOpen: Boolean,
     genres: List<String>,
     tags: List<MediaTag>,
     showAdultContent: Boolean,
@@ -186,6 +189,7 @@ private fun AnimeWStyleFilterSheet(
         onDismiss = onDismiss,
         onReset = { onFiltersChange(SearchFilters()) },
         resetEnabled = filters != SearchFilters(),
+        scrollToBottomOnOpen = scrollToBottomOnOpen,
         footer = footer
     ) {
         // 1. Urutkan
