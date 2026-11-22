@@ -50,9 +50,9 @@ import com.anisync.android.domain.parser.RichTextBlock
 import com.anisync.android.ui.theme.emphasis
 
 // Bounded so the card never stretches edge-to-edge on wide screens; on a phone it is ~full width.
-private val MediaCardMaxWidth = 420.dp
-private val MediaCoverWidth = 60.dp
-private val MediaCoverHeight = 90.dp        // 2:3, matches AniList covers (no crop needed)
+private val MediaCardMaxWidth = 360.dp
+private val MediaCoverWidth = 48.dp
+private val MediaCoverHeight = 72.dp        // 2:3, matches AniList covers (no crop needed)
 private val ProfileCardWidth = 132.dp
 private val ProfileAvatarSize = 76.dp
 private val CardShape = RoundedCornerShape(12.dp)
@@ -119,9 +119,9 @@ private fun MediaLinkCard(
             .background(container)
             .border(1.dp, outline, CardShape)
             .clickable { onLinkClick(block.url) }
-            .padding(10.dp),
+            .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         CoverImage(
             url = preview?.imageUrl,
@@ -134,7 +134,7 @@ private fun MediaLinkCard(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyLarge.emphasis(),
+                style = MaterialTheme.typography.bodyMedium.emphasis(),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -142,7 +142,7 @@ private fun MediaLinkCard(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = sub,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -151,7 +151,7 @@ private fun MediaLinkCard(
             Spacer(Modifier.height(2.dp))
             Text(
                 text = typeLabel(block.type),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
                 color = accent,
                 fontWeight = FontWeight.Medium
             )
