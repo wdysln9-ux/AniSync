@@ -65,6 +65,7 @@ import com.anisync.android.domain.LibraryEntry
 import com.anisync.android.domain.LibraryStatus
 import com.anisync.android.domain.ScoreFormat
 import com.anisync.android.domain.formatScore
+import com.anisync.android.presentation.components.personalScoreTint
 import com.anisync.android.presentation.util.AppMotion
 import com.anisync.android.presentation.util.LocalAppSettings
 import com.anisync.android.presentation.util.TransitionKeys
@@ -513,6 +514,7 @@ fun LibraryMediaCard(
 @Composable
 private fun ScorePosterBadge(score: Double?, format: ScoreFormat, modifier: Modifier = Modifier) {
     val showStar = format != ScoreFormat.POINT_5 && format != ScoreFormat.POINT_3
+    val scoreColor = score?.let { personalScoreTint(it, format) } ?: Color.White
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
@@ -525,14 +527,14 @@ private fun ScorePosterBadge(score: Double?, format: ScoreFormat, modifier: Modi
             Icon(
                 imageVector = Icons.Default.Star,
                 contentDescription = null,
-                tint = Color(0xFFFFC107),
+                tint = scoreColor,
                 modifier = Modifier.size(11.dp)
             )
         }
         Text(
             text = formatScore(score, format),
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
+            color = scoreColor,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1
         )
