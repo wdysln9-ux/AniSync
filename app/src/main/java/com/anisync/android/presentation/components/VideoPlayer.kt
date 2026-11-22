@@ -1349,6 +1349,18 @@ internal fun VideoControlsOverlay(
                                 size = androidx.compose.ui.geometry.Size(size.width, trackHeight),
                                 cornerRadius = radius
                             )
+                            // OP/ED ranges are part of the same track, not a thicker layer floating above it.
+                            skipSegments.forEach { segment ->
+                                val start = (segment.startMs.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
+                                val end = (segment.endMs.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
+                                if (end > start) {
+                                    drawRect(
+                                        color = Color(0xFFFFD54F),
+                                        topLeft = androidx.compose.ui.geometry.Offset(start, top),
+                                        size = androidx.compose.ui.geometry.Size(end - start, trackHeight)
+                                    )
+                                }
+                            }
                             if (bufferedX > 0f) {
                                 drawRoundRect(
                                     color = seekTrackColor.copy(alpha = 0.42f),
@@ -1364,18 +1376,6 @@ internal fun VideoControlsOverlay(
                                     size = androidx.compose.ui.geometry.Size(playedX.coerceAtMost(size.width), trackHeight),
                                     cornerRadius = radius
                                 )
-                            }
-                            // OP/ED ranges are part of the same track, not a thicker layer floating above it.
-                            skipSegments.forEach { segment ->
-                                val start = (segment.startMs.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
-                                val end = (segment.endMs.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
-                                if (end > start) {
-                                    drawRect(
-                                        color = Color(0xFFFFD54F),
-                                        topLeft = androidx.compose.ui.geometry.Offset(start, top),
-                                        size = androidx.compose.ui.geometry.Size(end - start, trackHeight)
-                                    )
-                                }
                             }
                             // Use a clean circular playhead instead of Material's default
                             // expressive slider thumb, which can render as a short vertical bar.
