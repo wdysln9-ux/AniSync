@@ -178,7 +178,16 @@ internal fun CloudStreamWatchContent(
         if (malId != null && malId > 0) metadata = withContext(Dispatchers.IO) { loadAniZip(malId) }
     }
 
-    suspend fun resolvePreloadSource(chosen: Map<String, Any?>): Map<String, Any?>? {
+    fun sameServer(source: Map<String, Any?>, preferredName: String?): Boolean {
+        if (preferredName.isNullOrBlank()) return false
+        val candidate = source["name"]?.toString()?.trim().orEmpty()
+        return candidate.equals(preferredName.trim(), ignoreCase = true)
+    }
+
+    suspend fun resolvePreloadSource(
+        chosen: Map<String, Any?>,
+        preferredServerName: String? = selectedStream?.get("name")?.toString()
+    ): Map<String, Any?>? {
         val hit = selected ?: return null
         val number = (chosen["episode"] as? Number)?.toInt()
         val detail = anime ?: return null
@@ -200,13 +209,14 @@ internal fun CloudStreamWatchContent(
                 links = (next["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
                 done = next["done"] == true
             }
-            links.firstOrNull { !it["url"]?.toString().isNullOrBlank() }
+            val playable = links.filter { !it["url"]?.toString().isNullOrBlank() }
+            playable.firstOrNull { sameServer(it, preferredServerName) } ?: playable.firstOrNull()
         } catch (_: Throwable) {
             null
         }
     }
 
-    fun playEpisode(chosen: Map<String, Any?>) {
+    fun playEpisode(chosen: Map<String, Any?>, preferredServerName: String? = null) {
         episode = chosen
         streams = emptyList()
         subtitles = emptyList()
@@ -222,11 +232,12 @@ internal fun CloudStreamWatchContent(
             if (cachedStreams != null) {
                 streams = cachedStreams.first
                 subtitles = cachedStreams.second
-                selectedStream = cachedStreams.first.firstOrNull()
+                selectedStream = cachedStreams.first.firstOrNull { sameServer(it, preferredServerName) }
+                    ?: cachedStreams.first.firstOrNull()
                 resolving = false
                 val currentIndex = episodes.indexOfFirst { it === chosen || it == chosen }
                 episodes.getOrNull(currentIndex + 1)?.let { nextEpisode ->
-                    launch { preloadStream = resolvePreloadSource(nextEpisode) }
+                    launch { preloadStream = resolvePreloadSource(nextEpisode, selectedStream?.get("name")?.toString()) }
                 }
                 return@launch
             }
@@ -256,7 +267,8 @@ internal fun CloudStreamWatchContent(
                         subs = (next["subtitles"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
                         done = next["done"] == true
                         if (links.isNotEmpty()) {
-                            streams = links; subtitles = subs; selectedStream = links.first(); selected = hit
+                            streams = links; subtitles = subs
+                            selectedStream = links.firstOrNull { sameServer(it, preferredServerName) } ?: links.first(); selected = hit
                             CloudStreamWatchCache.streams[cacheKey] = links to subs
                             success = true
                             break
@@ -264,7 +276,8 @@ internal fun CloudStreamWatchContent(
                     }
                     if (success) break
                     if (links.isNotEmpty()) {
-                        streams = links; subtitles = subs; selectedStream = links.first(); selected = hit
+                        streams = links; subtitles = subs
+                        selectedStream = links.firstOrNull { sameServer(it, preferredServerName) } ?: links.first(); selected = hit
                         CloudStreamWatchCache.streams[cacheKey] = links to subs
                         success = true
                         break
@@ -278,7 +291,7 @@ internal fun CloudStreamWatchContent(
                 val nextEpisode = episodes.getOrNull(currentIndex + 1)
                 if (nextEpisode != null) {
                     launch {
-                        preloadStream = resolvePreloadSource(nextEpisode)
+                        preloadStream = resolvePreloadSource(nextEpisode, selectedStream?.get("name")?.toString())
                     }
                 }
             }
@@ -428,7 +441,7 @@ internal fun CloudStreamWatchContent(
                                     autoNextFullscreen = FullscreenVideoBridge.isFullscreen
                                     val index = episodes.indexOfFirst { it === current || it == current }
                                     episodes.getOrNull(index + 1)?.let { next ->
-                                        playEpisode(next)
+                                        playEpisode(next, selectedStream?.get("name")?.toString())
                                     }
                                 }
                             }
@@ -468,7 +481,15 @@ internal fun CloudStreamWatchContent(
                             SourceChip(
                                 label = listOfNotNull(name, quality).joinToString(" · "),
                                 isSelected = selectedStream === source,
-                                onClick = { selectedStream = source }
+                                onClick = {
+                                    selectedStream = source
+                                    val index = episodes.indexOfFirst { it === current || it == current }
+                                    episodes.getOrNull(index + 1)?.let { nextEpisode ->
+                                        scope.launch {
+                                            preloadStream = resolvePreloadSource(nextEpisode, source["name"]?.toString())
+                                        }
+                                    }
+                                }
                             )
                         }
                     }
