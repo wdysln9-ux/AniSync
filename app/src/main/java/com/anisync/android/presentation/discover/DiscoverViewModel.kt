@@ -11,6 +11,7 @@ import com.anisync.android.domain.DiscoverRepository
 import com.anisync.android.domain.DetailsRepository
 import com.anisync.android.domain.DiscoverSection
 import com.anisync.android.domain.GroupedSearchResults
+import com.anisync.android.domain.sortedByUpcomingBirthday
 import com.anisync.android.domain.IntRangeFilter
 import com.anisync.android.domain.LibraryEntry
 import com.anisync.android.domain.LibraryStatus
