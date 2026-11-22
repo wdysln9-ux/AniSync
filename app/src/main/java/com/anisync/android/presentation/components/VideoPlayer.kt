@@ -226,7 +226,7 @@ fun VideoPlayer(
         }
     }
     var playbackEndHandled by remember(url, headers) { mutableStateOf(false) }
-    var selectedAudioRenderer by remember(url) {
+    var selectedAudioRenderer by remember(useWsolaAudio) {
         mutableStateOf(
             if (useWsolaAudio) EpisodeAudioRendererPreferences.get(context)
             else EpisodeAudioRenderer.MEDIA3_SONIC
@@ -236,9 +236,9 @@ fun VideoPlayer(
 
     // Recreate only episode players when the selected audio path changes; retain the playhead.
     val exoPlayer = if (playerCache != null && !useWsolaAudio) {
-        remember(url, headers) { playerCache.getOrCreate(url, headers) }
+        remember(headers) { playerCache.getOrCreate(url, headers) }
     } else {
-        remember(url, headers, useWsolaAudio, selectedAudioRenderer) {
+        remember(headers, useWsolaAudio, selectedAudioRenderer) {
             buildVideoExoPlayer(
                 context.applicationContext,
                 url,
@@ -257,6 +257,17 @@ fun VideoPlayer(
         if (resumeAt > 0L) {
             exoPlayer.seekTo(resumeAt)
             pendingRendererResumeMs = 0L
+        }
+    }
+
+    // Keep one player instance for the lifetime of this episode panel. Auto Next replaces its
+    // media item in-place, so the fullscreen Activity keeps rendering the same player/surface.
+    LaunchedEffect(exoPlayer, url) {
+        val currentUri = exoPlayer.currentMediaItem?.localConfiguration?.uri?.toString()
+        if (currentUri != url) {
+            exoPlayer.setMediaItem(MediaItem.fromUri(url))
+            exoPlayer.prepare()
+            exoPlayer.playWhenReady = true
         }
     }
 
@@ -315,7 +326,9 @@ fun VideoPlayer(
         onDispose {
             exoPlayer.removeListener(listener)
             // Only release if self-managed; cached players are released by ExoPlayerCache.releaseAll().
-            if (playerCache == null || useWsolaAudio) exoPlayer.release() else exoPlayer.pause()
+            if (FullscreenVideoBridge.player === exoPlayer) {
+                // The fullscreen Activity still owns this exact instance during Auto Next.
+            } else if (playerCache == null || useWsolaAudio) exoPlayer.release() else exoPlayer.pause()
         }
     }
 
@@ -406,8 +419,9 @@ fun VideoPlayer(
 
     DisposableEffect(exoPlayer) {
         FullscreenVideoBridge.onPlaybackEnded = {
+            // Auto Next changes the media item on this same player. Do not close the Activity:
+            // doing so briefly reveals the portrait panel before fullscreen is launched again.
             currentOnPlaybackEnded()
-            FullscreenVideoBridge.closeFullscreen?.invoke()
         }
         onDispose {
             if (FullscreenVideoBridge.onPlaybackEnded != null) FullscreenVideoBridge.onPlaybackEnded = null
