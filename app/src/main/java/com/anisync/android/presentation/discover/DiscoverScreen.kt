@@ -351,6 +351,7 @@ fun DiscoverScreen(
             onOpenCalendar = onNavigateToCalendar,
             onAddToPlanning = { viewModel.onAction(DiscoverAction.AddToPlanning(it)) },
             onRetrySection = { viewModel.onAction(DiscoverAction.RetrySection(it)) },
+            onLoadMoreSection = { viewModel.onAction(DiscoverAction.LoadMoreSection(it)) },
             onReorderSections = { showReorderSheet = true },
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope
@@ -627,6 +628,7 @@ private fun DiscoverContent(
     onOpenCalendar: () -> Unit,
     onAddToPlanning: (Int) -> Unit,
     onRetrySection: (DiscoverSection) -> Unit,
+    onLoadMoreSection: (DiscoverSection) -> Unit,
     onReorderSections: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
@@ -679,6 +681,7 @@ private fun DiscoverContent(
                     onOpenCalendar = onOpenCalendar,
                     onAddToPlanning = onAddToPlanning,
                     onRetrySection = onRetrySection,
+                    onLoadMoreSection = onLoadMoreSection,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope
                 )
@@ -706,6 +709,7 @@ private fun LazyListScope.discoverSection(
     onOpenCalendar: () -> Unit,
     onAddToPlanning: (Int) -> Unit,
     onRetrySection: (DiscoverSection) -> Unit,
+    onLoadMoreSection: (DiscoverSection) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
@@ -788,7 +792,10 @@ private fun LazyListScope.discoverSection(
                         titleLanguage = titleLanguage,
                         onItemClick = { onMediaClick(it, TransitionKeys.DISCOVER_TRENDING) },
                         sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        hasNextPage = feeds.trending.hasNextPage,
+                        isLoadingMore = feeds.trending.isLoadingMore,
+                        onLoadMore = { onLoadMoreSection(DiscoverSection.TRENDING) }
                     )
                 }
             }
@@ -812,7 +819,10 @@ private fun LazyListScope.discoverSection(
                 titleLanguage = titleLanguage,
                 onItemClick = { onMediaClick(it, TransitionKeys.DISCOVER_RELEASING) },
                 sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope
+                animatedVisibilityScope = animatedVisibilityScope,
+                hasNextPage = feeds.releasing.hasNextPage,
+                isLoadingMore = feeds.releasing.isLoadingMore,
+                onLoadMore = { onLoadMoreSection(DiscoverSection.RELEASING_NOW) }
             )
         }
 
@@ -824,7 +834,10 @@ private fun LazyListScope.discoverSection(
                 transitionPrefix = TransitionKeys.DISCOVER_POPULAR,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
-                cardWidth = 148.dp
+                cardWidth = 148.dp,
+                hasNextPage = feeds.popular.hasNextPage,
+                isLoadingMore = feeds.popular.isLoadingMore,
+                onLoadMore = { onLoadMoreSection(DiscoverSection.POPULAR) }
             )
         }
 
@@ -842,7 +855,10 @@ private fun LazyListScope.discoverSection(
                 onItemClick = { onMediaClick(it, TransitionKeys.DISCOVER_UPCOMING) },
                 marker = { entry -> entry.releaseMarker(seasonLabels, tba) },
                 sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope
+                animatedVisibilityScope = animatedVisibilityScope,
+                hasNextPage = feeds.notYetReleased.hasNextPage,
+                isLoadingMore = feeds.notYetReleased.isLoadingMore,
+                onLoadMore = { onLoadMoreSection(DiscoverSection.NOT_YET_RELEASED) }
             )
         }
 
@@ -855,7 +871,10 @@ private fun LazyListScope.discoverSection(
                 onItemClick = { onMediaClick(it, TransitionKeys.DISCOVER_NEWLY_ADDED) },
                 marker = { entry -> entry.catalogueMarker() },
                 sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope
+                animatedVisibilityScope = animatedVisibilityScope,
+                hasNextPage = feeds.newlyAdded.hasNextPage,
+                isLoadingMore = feeds.newlyAdded.isLoadingMore,
+                onLoadMore = { onLoadMoreSection(DiscoverSection.NEWLY_ADDED) }
             )
         }
 
