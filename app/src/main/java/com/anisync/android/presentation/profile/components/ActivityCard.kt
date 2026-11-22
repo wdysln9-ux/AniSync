@@ -169,7 +169,10 @@ fun ActivityCard(
                 // Overview teaser: a fixed line cap that opens the full activity on tap (non-interactive).
                 maxBodyLines != null -> {
                     ClampedActivityBody(maxLines = maxBodyLines, fadeColor = containerColor) {
-                        ActivityCardBody(activity = activity)
+                        ActivityCardBody(
+                            activity = activity,
+                            compactAdjacentMediaLinks = !showAuthor
+                        )
                     }
                 }
                 // Full feed: cap long status/message bodies to a readable height with inline expand.
@@ -184,7 +187,10 @@ fun ActivityCard(
                         // than firing the image viewer / following the link.
                         onBodyClick = onClick
                     ) {
-                        ActivityCardBody(activity = activity)
+                        ActivityCardBody(
+                            activity = activity,
+                            compactAdjacentMediaLinks = !showAuthor
+                        )
                     }
                 }
                 else -> ActivityCardBody(activity = activity)
@@ -456,7 +462,10 @@ private fun ActivityCardHeader(
 
 /** Status and message bodies only — a list update is drawn by [ActivityListCard] instead. */
 @Composable
-private fun ActivityCardBody(activity: UserActivity) {
+private fun ActivityCardBody(
+    activity: UserActivity,
+    compactAdjacentMediaLinks: Boolean = false
+) {
     val rawHtml = activity.text.orEmpty()
     if (rawHtml.isNotBlank()) {
         Spacer(Modifier.height(12.dp))
@@ -466,6 +475,7 @@ private fun ActivityCardBody(activity: UserActivity) {
                 lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f
             ),
             color = MaterialTheme.colorScheme.onSurface,
+            compactAdjacentMediaLinks = compactAdjacentMediaLinks,
             modifier = Modifier.fillMaxWidth()
         )
     }
