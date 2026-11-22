@@ -339,35 +339,26 @@ fun VideoPlayer(
         }
     }
 
-    // Prepare the next episode only after the current stream has reached its forward-buffer
-    // target (or the end of a shorter episode). The second player shares the same disk cache,
-    // stays paused, and is released whenever the next URL changes or this player leaves.
+    // Start warming the next source as soon as its URL is resolved. Waiting for the
+    // current episode's large forward buffer delayed this work until playback was nearly over,
+    // which made Auto Next visibly pause between episodes.
     LaunchedEffect(exoPlayer, preloadUrl, preloadHeaders) {
         val nextUrl = preloadUrl?.takeIf { it.isNotBlank() && it != url } ?: return@LaunchedEffect
-        var nextPlayer: ExoPlayer? = null
+        val nextPlayer = buildVideoExoPlayer(
+            context.applicationContext,
+            nextUrl,
+            muted = true,
+            loop = false,
+            autoPlay = false,
+            headers = preloadHeaders,
+            useWsolaAudio = useWsolaAudio,
+            audioRenderer = selectedAudioRenderer
+        )
         try {
-            while (true) {
-                val total = exoPlayer.duration
-                val ahead = exoPlayer.bufferedPosition - exoPlayer.currentPosition
-                val targetReached = total > 0L &&
-                    (exoPlayer.bufferedPosition >= total - 2_000L || ahead >= 15L * 60_000L)
-                if (targetReached) break
-                delay(1_000)
-            }
-            nextPlayer = buildVideoExoPlayer(
-                context.applicationContext,
-                nextUrl,
-                muted = true,
-                loop = false,
-                autoPlay = false,
-                headers = preloadHeaders,
-                useWsolaAudio = useWsolaAudio,
-                audioRenderer = selectedAudioRenderer
-            )
-            // Keep it prepared and paused so its downloaded segments enter the shared disk cache.
+            // prepare() starts reading the opening segment into the shared disk cache.
             awaitCancellation()
         } finally {
-            nextPlayer?.release()
+            nextPlayer.release()
         }
     }
 
