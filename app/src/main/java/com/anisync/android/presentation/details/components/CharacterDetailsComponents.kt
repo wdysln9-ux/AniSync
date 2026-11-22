@@ -11,6 +11,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -653,7 +654,11 @@ fun ExpandableSynopsis(text: String) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(cardShape)
-            .clickable { expanded = !expanded }
+            // Toggle synopsis without the default Material ripple/splash feedback.
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { expanded = !expanded }
             .animateContentSize(
                 animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
             )
