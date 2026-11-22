@@ -51,7 +51,6 @@ import com.anisync.android.presentation.util.TransitionKeys
 import com.anisync.android.presentation.util.LocalLibraryEntryEditor
 import com.anisync.android.presentation.util.bouncyCombinedClickable
 import com.anisync.android.presentation.util.toLabel
-import com.anisync.android.ui.theme.StarGold
 import com.anisync.android.type.MediaType
 import com.anisync.android.util.getTitle
 import java.util.Locale
