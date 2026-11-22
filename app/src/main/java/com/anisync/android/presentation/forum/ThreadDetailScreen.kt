@@ -759,6 +759,7 @@ fun ThreadDetailScreen(
                 )
             },
             prefillBody = uiState.replyPrefillBody,
+            allowPartialExpansion = true,
             isSubmitting = uiState.isSubmittingReply,
             minLength = com.anisync.android.domain.ContentLimits.ThreadComment.min,
             maxLength = com.anisync.android.domain.ContentLimits.ThreadComment.max,
