@@ -5,6 +5,7 @@ import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -42,6 +43,7 @@ fun LibraryOverflowMenu(
     onDismiss: () -> Unit,
     onOpenCalendar: () -> Unit,
     onOpenNotes: () -> Unit,
+    onOpenLocalNotes: () -> Unit,
     onTogglePrivate: (Boolean) -> Unit,
     onManageLists: () -> Unit,
     onCardOptions: () -> Unit,
@@ -63,6 +65,11 @@ fun LibraryOverflowMenu(
                 onDismiss()
                 onOpenNotes()
             }
+        )
+        item(
+            text = "Catatan lokal",
+            leadingIcon = Icons.Default.NoteAdd,
+            onClick = { onDismiss(); onOpenLocalNotes() }
         )
         gap()
         item(
