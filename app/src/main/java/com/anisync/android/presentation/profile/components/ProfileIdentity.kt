@@ -116,8 +116,7 @@ private fun formatLastSeenWhatsApp(timestampMillis: Long): String {
     return when {
         sameDay -> "hari ini pukul $time"
         yesterday -> "kemarin pukul $time"
-        now.get(Calendar.YEAR) == seen.get(Calendar.YEAR) &&
-            now.get(Calendar.DAY_OF_YEAR) - seen.get(Calendar.DAY_OF_YEAR) in 2..6 ->
+        now.timeInMillis - timestampMillis in (2L * 24 * 60 * 60 * 1000)..<(7L * 24 * 60 * 60 * 1000) ->
             SimpleDateFormat("EEEE", Locale("id", "ID")).format(Date(timestampMillis))
                 .replaceFirstChar { it.titlecase(Locale("id", "ID")) } + " pukul $time"
         else -> SimpleDateFormat("dd/MM/yyyy", Locale("id", "ID")).format(Date(timestampMillis))
