@@ -9,6 +9,8 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -81,6 +83,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -1104,6 +1107,9 @@ fun DetailsPageContent(
     // app bar, so the two never read as duplicates. Both positions come from real measurements, not
     // a scroll-offset lookup, so a resize can't make them drift.
     val density = LocalDensity.current
+    val swipeAnimationScope = rememberCoroutineScope()
+    var pageDragOffset by remember { mutableFloatStateOf(0f) }
+    var pageSwipeAnimating by remember { mutableStateOf(false) }
     // The dock line is the app bar's measured height, which the Scaffold hands down. It cannot be
     // rebuilt from the status bar inset, because the bar only draws under the status bar when the
     // page fills the window: in a two-pane detail pane the pane already starts below it, and adding
@@ -1130,20 +1136,60 @@ fun DetailsPageContent(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
+                // The page follows the finger while dragging, then completes the slide before
+                // swapping tabs and brings the next page in from the opposite edge.
+                .graphicsLayer { translationX = pageDragOffset }
                 .pointerInput(availableTabs, effectiveTab, swipeThresholdPx) {
                     var horizontalDrag = 0f
                     detectHorizontalDragGestures(
+                        onDragStart = {
+                            horizontalDrag = 0f
+                            pageSwipeAnimating = false
+                            pageDragOffset = 0f
+                        },
                         onDragEnd = {
                             val currentIndex = availableTabs.indexOf(effectiveTab)
-                            if (horizontalDrag <= -swipeThresholdPx && currentIndex in 0 until availableTabs.lastIndex) {
-                                onTabSelected(availableTabs[currentIndex + 1])
-                            } else if (horizontalDrag >= swipeThresholdPx && currentIndex > 0) {
-                                onTabSelected(availableTabs[currentIndex - 1])
+                            val nextTab = when {
+                                horizontalDrag <= -swipeThresholdPx && currentIndex in 0 until availableTabs.lastIndex ->
+                                    availableTabs[currentIndex + 1]
+                                horizontalDrag >= swipeThresholdPx && currentIndex > 0 ->
+                                    availableTabs[currentIndex - 1]
+                                else -> null
+                            }
+                            val width = size.width.toFloat().coerceAtLeast(1f)
+                            swipeAnimationScope.launch {
+                                pageSwipeAnimating = true
+                                val exitTarget = when {
+                                    nextTab == null -> 0f
+                                    horizontalDrag < 0f -> -width
+                                    else -> width
+                                }
+                                animate(
+                                    initialValue = pageDragOffset,
+                                    targetValue = exitTarget,
+                                    animationSpec = tween(durationMillis = if (nextTab == null) 180 else 150)
+                                ) { value, _ -> pageDragOffset = value }
+
+                                if (nextTab != null) {
+                                    onTabSelected(nextTab)
+                                    pageDragOffset = if (horizontalDrag < 0f) width else -width
+                                    animate(
+                                        initialValue = pageDragOffset,
+                                        targetValue = 0f,
+                                        animationSpec = tween(durationMillis = 220)
+                                    ) { value, _ -> pageDragOffset = value }
+                                }
+                                pageDragOffset = 0f
+                                pageSwipeAnimating = false
                             }
                         },
                         onHorizontalDrag = { change, dragAmount ->
-                            horizontalDrag += dragAmount
-                            change.consume()
+                            if (!pageSwipeAnimating) {
+                                horizontalDrag += dragAmount
+                                val width = size.width.toFloat().coerceAtLeast(1f)
+                                pageDragOffset = (pageDragOffset + dragAmount).coerceIn(-width * 0.72f, width * 0.72f)
+                                change.consume()
+                            }
                         }
                     )
                 },
