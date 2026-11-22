@@ -209,7 +209,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 }
                 else {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("**tebal**", "*miring*", "~~coret~~", "# Judul", "- [ ] Checklist", "> Kutipan", "\`kode\`", "[tautan](url)", "||spoiler||").forEach { token ->
+                        listOf("**tebal**", "*miring*", "~~coret~~", "# Judul", "- [ ] Checklist", "> Kutipan", "`kode`", "[tautan](url)", "||spoiler||").forEach { token ->
                             AssistChip(onClick = { data = data.copy(notes = data.notes.map {
                                 if (it.id == note.id) it.copy(body = it.body + (if (it.body.isBlank()) "" else "\\n") + token) else it
                             }) }, label = { Text(token.take(12)) })
