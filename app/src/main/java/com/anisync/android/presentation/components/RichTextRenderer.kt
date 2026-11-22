@@ -132,7 +132,8 @@ fun AsyncRichTextRenderer(
     color: Color = MaterialTheme.colorScheme.onSurface,
     linkColor: Color = MaterialTheme.colorScheme.primary,
     codeBackground: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
-    spoilerColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
+    spoilerColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    compactAdjacentMediaLinks: Boolean = false
 ) {
     // Seeded from the parse cache, so a body re-entering composition (its card recycled back into
     // view) renders at full height immediately instead of re-parsing through the estimate→content
@@ -156,7 +157,8 @@ fun AsyncRichTextRenderer(
                 color = color,
                 linkColor = linkColor,
                 codeBackground = codeBackground,
-                spoilerColor = spoilerColor
+                spoilerColor = spoilerColor,
+                compactAdjacentMediaLinks = compactAdjacentMediaLinks
             )
         }
     }
@@ -446,23 +448,48 @@ fun RichTextRenderer(
     color: Color = MaterialTheme.colorScheme.onSurface,
     linkColor: Color = MaterialTheme.colorScheme.primary,
     codeBackground: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
-    spoilerColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
+    spoilerColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    compactAdjacentMediaLinks: Boolean = false
 ) {
     RichTextHost(parsedData, style, color, linkColor, codeBackground, spoilerColor) { scope ->
         SelectionContainer(modifier = modifier) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                RenderBlocks(
-                    blocks = scope.parsed.blocks,
-                    style = scope.style,
-                    color = scope.color,
-                    linkColor = scope.linkColor,
-                    codeBackground = scope.codeBackground,
-                    spoilerColor = scope.spoilerColor,
-                    previews = scope.previews,
-                    onImageClick = scope.onImageClick,
-                    onLinkClick = scope.onLinkClick,
-                    linkListener = scope.linkListener
-                )
+            val blocks = scope.parsed.blocks
+            val hasFloat = blocks.indexOfFirst {
+                it is RichTextBlock.Image && it.floatSide != RichTextFloat.None
+            } in 0 until blocks.lastIndex
+            if (!compactAdjacentMediaLinks || hasFloat) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RenderBlocks(
+                        blocks = blocks,
+                        style = scope.style,
+                        color = scope.color,
+                        linkColor = scope.linkColor,
+                        codeBackground = scope.codeBackground,
+                        spoilerColor = scope.spoilerColor,
+                        previews = scope.previews,
+                        onImageClick = scope.onImageClick,
+                        onLinkClick = scope.onLinkClick,
+                        linkListener = scope.linkListener
+                    )
+                }
+            } else {
+                Column {
+                    blocks.forEachIndexed { index, block ->
+                        if (index > 0) {
+                            val adjacentMediaLinks =
+                                block is RichTextBlock.AnilistLink &&
+                                blocks[index - 1] is RichTextBlock.AnilistLink
+                            androidx.compose.foundation.layout.Spacer(
+                                Modifier.height(if (adjacentMediaLinks) 0.5.dp else 8.dp)
+                            )
+                        }
+                        RenderSingleBlock(
+                            block, scope.style, scope.color, scope.linkColor,
+                            scope.codeBackground, scope.spoilerColor, scope.previews,
+                            scope.onImageClick, scope.onLinkClick, scope.linkListener
+                        )
+                    }
+                }
             }
         }
     }
