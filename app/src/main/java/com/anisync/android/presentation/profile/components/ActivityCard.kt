@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.anisync.android.R
+import com.anisync.android.domain.ActivityReply
 import com.anisync.android.domain.ActivityMediaType
 import com.anisync.android.domain.ActivityType
 import com.anisync.android.domain.UserActivity
@@ -93,7 +94,17 @@ fun ActivityCard(
     /** Replaces the relative time, for lists that already say which day it was. */
     timeText: String? = null,
     /** In the main Feed, tapping empty card space expands a status instead of opening its detail. */
-    expandStatusOnCardClick: Boolean = false
+    expandStatusOnCardClick: Boolean = false,
+    onCommentToggle: (() -> Unit)? = null,
+    showInlineReplies: Boolean = false,
+    inlineReplies: List<ActivityReply> = emptyList(),
+    isLoadingReplies: Boolean = false,
+    replyLoadError: String? = null,
+    replyDraft: String = "",
+    isSubmittingReply: Boolean = false,
+    onReplyDraftChange: (String) -> Unit = {},
+    onSubmitReply: () -> Unit = {},
+    onRetryReplies: () -> Unit = {}
 ) {
     if (activity.type == ActivityType.MEDIA_LIST) {
         ActivityListCard(
@@ -107,7 +118,17 @@ fun ActivityCard(
             onLastReplyClick = onLastReplyClick,
             onLikeClick = onLikeClick,
             onSubscribeClick = onSubscribeClick,
-            onDeleteClick = onDeleteClick
+            onDeleteClick = onDeleteClick,
+            onCommentToggle = onCommentToggle,
+            showInlineReplies = showInlineReplies,
+            inlineReplies = inlineReplies,
+            isLoadingReplies = isLoadingReplies,
+            replyLoadError = replyLoadError,
+            replyDraft = replyDraft,
+            isSubmittingReply = isSubmittingReply,
+            onReplyDraftChange = onReplyDraftChange,
+            onSubmitReply = onSubmitReply,
+            onRetryReplies = onRetryReplies
         )
         return
     }
@@ -212,9 +233,23 @@ fun ActivityCard(
             ActivityCardFooter(
                 activity = activity,
                 onLastReplyClick = onLastReplyClick,
-                onCommentClick = onClick,
+                onCommentClick = onCommentToggle ?: onClick,
                 onLikeClick = onLikeClick
             )
+
+            if (showInlineReplies) {
+                FeedInlineReplies(
+                    replies = inlineReplies,
+                    isLoading = isLoadingReplies,
+                    loadError = replyLoadError,
+                    draft = replyDraft,
+                    isSubmitting = isSubmittingReply,
+                    onDraftChange = onReplyDraftChange,
+                    onSubmit = onSubmitReply,
+                    onRetry = onRetryReplies,
+                    onUserClick = onUserClick
+                )
+            }
         }
     }
 }
