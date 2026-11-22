@@ -234,33 +234,15 @@ fun MainScreen(
             }
         }
     }
-    // "Open Discover search with preset filters" (ranking cards, genre/tag chips on
-    // media details): switch to the Discover tab; DiscoverViewModel picks the request
-    // up from the same launcher, applies the filters and expands the search overlay.
+    // A preset search is opened as a new Discover destination on top of the
+    // current page. This keeps the originating media detail in the back stack,
+    // so Back returns to the exact anime page instead of the previous tab root.
     LaunchedEffect(navController) {
-        // Routes the launcher pop below stops at — the five main tab roots.
-        val mainTabClasses = listOf(
-            Library::class, Discover::class, Feed::class, Forum::class, Profile::class
-        )
         viewModel.discoverSearchNavigations.collect {
-            // This tab switch is app-initiated (a ranking/genre/tag tap), not a
-            // deliberate "leave and come back later": first pop the detail chain
-            // that launched the search back to the source tab's root WITHOUT
-            // saving it, so returning to that tab later lands on the tab itself
-            // (with its own state intact), not on the media page again. Manual
-            // tab switches keep the normal save/restore behaviour.
-            while (
-                navController.currentBackStackEntry?.destination
-                    ?.let { dest -> mainTabClasses.any { dest.hasRoute(it) } } == false
-            ) {
-                if (!navController.popBackStack()) break
+            navController.navigate(Discover) {
+                launchSingleTop = true
             }
-            navController.navigateToMainTab(Discover, "discover", viewModel::onMainTabSelected)
-            // The restored Discover tab stack may itself have a details screen on
-            // top (search → details → chip tap). Pop back to the Discover root,
-            // otherwise the "switch" lands on the same details screen and the
-            // search overlay never shows.
-            navController.popBackStack(route = Discover, inclusive = false)
+            viewModel.onMainTabSelected("discover")
         }
     }
     val unreadNotificationCount by viewModel.unreadNotificationCount.collectAsStateWithLifecycle()
