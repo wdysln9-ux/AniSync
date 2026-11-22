@@ -59,6 +59,7 @@ fun LibraryListDetail(
             onMediaClick = onMediaClick,
             onNavigateToCalendar = onNavigateToCalendar,
             onNavigateToNotes = onNavigateToNotes,
+            onNavigateToLocalNotes = onNavigateToLocalNotes,
             onBrowseDiscover = onBrowseDiscover,
             onOpenRecap = onOpenRecap,
             pendingEditEntry = pendingEditEntry,
