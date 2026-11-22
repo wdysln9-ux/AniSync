@@ -1356,7 +1356,7 @@ fun DetailsPageContent(
                         }
                         if (displayRecommendations.isNotEmpty() || canRecommend) {
                             Column {
-                                Spacer(modifier = Modifier.height(dimensionResource(R.dimen.spacing_extra_large)))
+                                Spacer(modifier = Modifier.height(dimensionResource(R.dimen.spacing_large)))
                                 SectionHeader(
                                     title = stringResource(R.string.section_recommendations),
                                     level = HeaderLevel.Section,
