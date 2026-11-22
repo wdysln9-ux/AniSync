@@ -42,6 +42,7 @@ internal fun ActivityOverflowButton(
     modifier: Modifier = Modifier,
     buttonSize: Dp = 36.dp,
     iconSize: Dp = 20.dp,
+    onOpenActivity: () -> Unit,
     onEditClick: (() -> Unit)? = null,
     onDeleteClick: (() -> Unit)? = null
 ) {
@@ -59,6 +60,14 @@ internal fun ActivityOverflowButton(
             )
         }
         Menu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            item(
+                text = "Buka aktivitas",
+                leadingIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                onClick = {
+                    expanded = false
+                    onOpenActivity()
+                }
+            )
             item(
                 text = stringResource(R.string.cd_share),
                 leadingIcon = Icons.Default.Share,
