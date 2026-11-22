@@ -1206,6 +1206,16 @@ internal fun VideoControlsOverlay(
                                     cornerRadius = radius
                                 )
                             }
+                            // Use a clean circular playhead instead of Material's default
+                            // expressive slider thumb, which can render as a short vertical bar.
+                            drawCircle(
+                                color = Color.White,
+                                radius = 7.dp.toPx(),
+                                center = androidx.compose.ui.geometry.Offset(
+                                    playedX.coerceIn(7.dp.toPx(), (size.width - 7.dp.toPx()).coerceAtLeast(7.dp.toPx())),
+                                    size.height / 2f
+                                )
+                            )
                         }
                         Slider(
                             state = seekState,
@@ -1213,7 +1223,7 @@ internal fun VideoControlsOverlay(
                             onValueChangeFinished = onSeekFinished,
                             modifier = Modifier.fillMaxSize(),
                             colors = SliderDefaults.colors(
-                                thumbColor = Color.White,
+                                thumbColor = Color.Transparent,
                                 activeTrackColor = Color.Transparent,
                                 inactiveTrackColor = Color.Transparent,
                                 activeTickColor = Color.Transparent,
