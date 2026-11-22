@@ -270,6 +270,7 @@ fun FeedScreen(
                                         activity = activity,
                                         selected = activity.id == selectedActivityId,
                                         onClick = { onActivityClick(activity.id) },
+                                        expandStatusOnCardClick = true,
                                         onUserClick = onUserClick,
                                         onMediaClick = onMediaClick,
                                         onLastReplyClick = onLastReplyClick,
