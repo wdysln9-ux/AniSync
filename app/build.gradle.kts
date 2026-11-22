@@ -65,7 +65,6 @@ android {
     defaultConfig {
         applicationId = "com.anisync.android"
         minSdk = 26
-        ndk { abiFilters += listOf("arm64-v8a") }
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++17"
