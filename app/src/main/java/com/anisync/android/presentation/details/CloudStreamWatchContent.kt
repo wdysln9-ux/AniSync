@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +51,7 @@ internal fun CloudStreamWatchContent(
     englishTitle: String?,
     synonyms: List<String>,
     malId: Int?,
+    trackedProgress: Int? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -353,7 +355,13 @@ internal fun CloudStreamWatchContent(
                     val n = (item["episode"] as? Number)?.toInt()
                     val meta = n?.let { metadata[it] }
                     val title = meta?.title?.takeIf(String::isNotBlank) ?: item["name"]?.toString()?.takeIf(String::isNotBlank) ?: "Episode ${n ?: "?"}"
-                    Card(onClick = { playEpisode(item) }, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+                    Card(
+                        onClick = { playEpisode(item) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer { alpha = if (n != null && trackedProgress != null && n <= trackedProgress) 0.48f else 1f },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                    ) {
                         Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             AsyncImage(model = meta?.image ?: item["posterUrl"]?.toString(), contentDescription = null, modifier = Modifier.size(112.dp, 66.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
