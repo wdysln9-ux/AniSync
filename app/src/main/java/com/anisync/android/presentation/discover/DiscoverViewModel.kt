@@ -77,12 +77,15 @@ class DiscoverViewModel @Inject constructor(
         val browsingStudios: Boolean = false,
         /** A blank-query browse request, fired only while the search overlay is open. */
         val browsingDefault: Boolean = false,
+        val browseRequestId: Long = 0L,
         /** The search key or a recent search, which skip the pause that waits for typing to stop. */
         val submitted: Boolean = false
     ) {
         fun isSameSearch(other: SearchTriggerState): Boolean =
             copy(submitted = false) == other.copy(submitted = false)
     }
+
+    private var browseRequestId = 0L
 
     /** The search the results on screen came from. */
     private var lastRunTrigger = SearchTriggerState()
@@ -261,10 +264,12 @@ class DiscoverViewModel @Inject constructor(
         val currentState = _uiState.value
         _uiState.update { currentState.copy(isSearchActive = active) }
         if (active && currentState.searchQuery.isBlank() && !currentState.searchFilters.hasActiveFilters) {
+            browseRequestId += 1
             searchTrigger.value = SearchTriggerState(
                 query = "",
                 filterHash = currentState.searchFilters.hashCode(),
-                browsingDefault = true
+                browsingDefault = true,
+                browseRequestId = browseRequestId
             )
         } else if (!active) {
             lastRunTrigger = SearchTriggerState()
