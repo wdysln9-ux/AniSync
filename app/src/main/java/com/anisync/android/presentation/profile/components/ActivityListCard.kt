@@ -153,6 +153,7 @@ internal fun ActivityListCard(
                     // on it.
                     ActivityOverflowButton(
                         activity = activity,
+                        onOpenActivity = onClick,
                         buttonSize = 32.dp,
                         iconSize = 18.dp,
                         onDeleteClick = onDeleteClick
