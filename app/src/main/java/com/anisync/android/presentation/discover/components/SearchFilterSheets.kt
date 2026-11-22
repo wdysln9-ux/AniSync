@@ -202,7 +202,19 @@ private fun AnimeWStyleFilterSheet(
         SheetSectionLabel("Tipe")
         FilterChoiceChipGroup(
             options = formatOptions(category),
-            label = { it.toLabel() },
+            label = { format -> when (format) {
+                MediaFormat.TV -> "TV"
+                MediaFormat.MOVIE -> "Film"
+                MediaFormat.ONA -> "ONA"
+                MediaFormat.OVA -> "OVA"
+                MediaFormat.TV_SHORT -> "TV Pendek"
+                MediaFormat.SPECIAL -> "Special"
+                MediaFormat.MUSIC -> "Musik"
+                MediaFormat.MANGA -> "Manga"
+                MediaFormat.NOVEL -> "Novel"
+                MediaFormat.ONE_SHOT -> "Oneshot"
+                else -> format.toLabel()
+            } },
             isSelected = { it in filters.formats },
             onClick = { onFiltersChange(filters.copy(formats = filters.formats.toggle(it))) }
         )
@@ -222,7 +234,12 @@ private fun AnimeWStyleFilterSheet(
         SheetSectionLabel("Negara")
         FilterChoiceChipGroup(
             options = OriginCountry.entries,
-            label = { it.toLabel() },
+            label = { country -> when (country) {
+                OriginCountry.JAPAN -> "Jepang"
+                OriginCountry.CHINA -> "Tiongkok"
+                OriginCountry.SOUTH_KOREA -> "Korea Selatan"
+                OriginCountry.TAIWAN -> "Taiwan"
+            } },
             isSelected = { it == filters.country },
             onClick = { onFiltersChange(filters.copy(country = it.takeIf { it != filters.country })) }
         )
