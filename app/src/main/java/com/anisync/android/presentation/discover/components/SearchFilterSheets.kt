@@ -309,8 +309,7 @@ private fun AnimeWStyleFilterSheet(
                         )
                     }))
                 },
-                valueRange = 0f..200f,
-                steps = 199
+                valueRange = 0f..200f
             )
         }
 
