@@ -897,6 +897,9 @@ internal fun VideoControlsOverlay(
                                         onPlayPause()
                                     }
                                 }
+                                // A double-tap is a seek/playback gesture, not a request
+                                // to reveal the player controls. Keep the overlay hidden.
+                                controlsVisible = false
                                 lastTapTime = 0L
                             } else {
                                 controlsVisible = !controlsVisible
