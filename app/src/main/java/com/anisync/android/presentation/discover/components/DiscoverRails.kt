@@ -18,10 +18,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +45,7 @@ import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import kotlinx.coroutines.flow.collect
 import com.anisync.android.R
 import com.anisync.android.data.TitleLanguage
 import com.anisync.android.domain.LibraryEntry
@@ -104,12 +108,25 @@ fun MediaMarkerRail(
     modifier: Modifier = Modifier,
     marker: @Composable (LibraryEntry) -> String? = { null },
     sharedTransitionScope: SharedTransitionScope? = null,
-    animatedVisibilityScope: AnimatedVisibilityScope? = null
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
+    hasNextPage: Boolean = false,
+    isLoadingMore: Boolean = false,
+    onLoadMore: () -> Unit = {}
 ) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(listState, items.size, hasNextPage, isLoadingMore) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
+            .collect { lastVisible ->
+                if (hasNextPage && !isLoadingMore && items.isNotEmpty() && lastVisible >= items.size - 3) {
+                    onLoadMore()
+                }
+            }
+    }
     val placementSpec = AppMotion.rememberOffsetSpatialSpec()
     val fadeSpec = AppMotion.rememberEffectsSpec()
 
     LazyRow(
+        state = listState,
         modifier = modifier.height(DiscoverRailDefaults.height(cardWidth)),
         contentPadding = PaddingValues(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -154,13 +171,26 @@ fun TrendingRankRail(
     onItemClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
     sharedTransitionScope: SharedTransitionScope? = null,
-    animatedVisibilityScope: AnimatedVisibilityScope? = null
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
+    hasNextPage: Boolean = false,
+    isLoadingMore: Boolean = false,
+    onLoadMore: () -> Unit = {}
 ) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(listState, items.size, hasNextPage, isLoadingMore) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
+            .collect { lastVisible ->
+                if (hasNextPage && !isLoadingMore && items.isNotEmpty() && lastVisible >= items.size - 3) {
+                    onLoadMore()
+                }
+            }
+    }
     val cardWidth = 112.dp
     val placementSpec = AppMotion.rememberOffsetSpatialSpec()
     val fadeSpec = AppMotion.rememberEffectsSpec()
 
     LazyRow(
+        state = listState,
         modifier = modifier.height(DiscoverRailDefaults.height(cardWidth)),
         contentPadding = PaddingValues(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
