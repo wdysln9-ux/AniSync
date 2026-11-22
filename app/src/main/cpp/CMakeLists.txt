@@ -5,7 +5,7 @@ set(RB ${CMAKE_CURRENT_LIST_DIR}/../../../../third_party/rubberband)
 set(RBS ${RB}/src)
 
 add_library(rubberband-jni SHARED
-    ${RBS}/jni/RubberBandStretcherJNI.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/RubberBandStretcherJNI.cpp
     ${RBS}/rubberband-c.cpp
     ${RBS}/RubberBandStretcher.cpp
     ${RBS}/RubberBandLiveShifter.cpp
