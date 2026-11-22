@@ -41,6 +41,10 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
     private var hasTail = false
     private var analysisPosition = 0.0
     private var lastCandidateStart = 0
+    // Track the real input/output frame ratio. WSOLA can select nearby correlation
+    // candidates, so reporting only the requested speed slowly desynchronizes the clock.
+    private var totalMediaFramesAdvanced = 0L
+    private var totalOutputFramesProduced = 0L
 
     fun setPlaybackSpeed(speed: Float) {
         requestedSpeed = speed.coerceIn(0.5f, 4f)
@@ -64,7 +68,20 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
 
     override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
         clearState()
+        totalMediaFramesAdvanced = 0L
+        totalOutputFramesProduced = 0L
         appliedSpeed = requestedSpeed
+    }
+
+    fun getMediaDuration(playoutDuration: Long): Long {
+        val outputFrames = totalOutputFramesProduced
+        val mediaFrames = totalMediaFramesAdvanced
+        val measuredSpeed = if (outputFrames > 0L) {
+            mediaFrames.toDouble() / outputFrames.toDouble()
+        } else {
+            requestedSpeed.toDouble()
+        }
+        return (playoutDuration.toDouble() * measuredSpeed).toLong()
     }
 
     override fun onReset() {
@@ -135,10 +152,13 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
 
     private fun emitInputAsIs() {
         if (inputFrames <= 0) return
-        val byteCount = inputFrames * channelCount * 2
+        val framesToEmit = inputFrames
+        val byteCount = framesToEmit * channelCount * 2
         val output = replaceOutputBuffer(byteCount).order(ByteOrder.nativeOrder())
         for (i in 0 until inputFrames * channelCount) output.putShort(input[i])
         output.flip()
+        totalMediaFramesAdvanced += framesToEmit.toLong()
+        totalOutputFramesProduced += framesToEmit.toLong()
         inputFrames = 0
         hasTail = false
         analysisPosition = 0.0
@@ -166,6 +186,8 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
                 }
             }
             copySecondHalfToTail(0)
+            totalMediaFramesAdvanced += hopFrames.toLong()
+            totalOutputFramesProduced += hopFrames.toLong()
             hasTail = true
             analysisPosition = appliedSpeed.toDouble() * hopFrames
             lastCandidateStart = 0
@@ -205,12 +227,16 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
             }
 
             copySecondHalfToTail(candidate)
+            totalMediaFramesAdvanced += (candidate - lastCandidateStart).coerceAtLeast(0).toLong()
+            totalOutputFramesProduced += hopFrames.toLong()
             lastCandidateStart = candidate
             analysisPosition = candidate + appliedSpeed.toDouble() * hopFrames
             if (!final) pruneOldInput()
         }
 
         if (final && hasTail) {
+            totalMediaFramesAdvanced += hopFrames.toLong()
+            totalOutputFramesProduced += hopFrames.toLong()
             for (sample in tail) {
                 outputSamples.add(sample.toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort())
             }
@@ -326,7 +352,7 @@ internal class WsolaAudioProcessorChain : AudioProcessorChain {
     override fun applySkipSilenceEnabled(skipSilenceEnabled: Boolean): Boolean = false
 
     override fun getMediaDuration(playoutDuration: Long): Long =
-        (playoutDuration.toDouble() * speed).toLong()
+        processor.getMediaDuration(playoutDuration)
 
     override fun getSkippedOutputFrameCount(): Long = 0L
 }
