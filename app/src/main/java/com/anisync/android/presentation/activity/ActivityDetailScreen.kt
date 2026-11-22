@@ -378,7 +378,11 @@ fun ActivityDetailScreen(
                             item(key = "activity_body") {
                                 ThreadBodyItem(
                                     body = body,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
