@@ -175,7 +175,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
             )
         },
         floatingActionButton = { if (note == null && !trash) FloatingActionButton(onClick = {
-            val item = LocalNote(folderId = folderId.takeUnless { it == "all" } ?: data.folders.first().id)
+            val item = LocalNote(folderId = folderId.takeUnless { it == "all" } ?: data.folders.firstOrNull()?.id ?: "default")
             data = data.copy(notes = listOf(item) + data.notes); editing = item.id
         }) { Icon(Icons.Default.NoteAdd, "Buat catatan") } }
     ) { inset ->
