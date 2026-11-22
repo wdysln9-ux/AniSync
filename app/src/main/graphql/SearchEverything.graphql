@@ -55,7 +55,6 @@ query SearchEverything(
       tag_in: $tag_in,
       tag_not_in: $tag_not_in,
       minimumTagRank: $minimumTagRank,
-      minimumTagRank: $minimumTagRank,
       format_in: $format_in,
       status_in: $status_in,
       source_in: $source_in,
