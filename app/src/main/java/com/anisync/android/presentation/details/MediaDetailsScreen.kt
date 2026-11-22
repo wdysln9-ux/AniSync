@@ -563,6 +563,9 @@ fun MediaDetailsScreen(
                                     onInfoFilterClick = { filters ->
                                         viewModel.openDiscoverSearch(filters, state.details.type)
                                     },
+                                    onHeaderMetadataFilterClick = { filters ->
+                                        viewModel.openDiscoverSearch(filters, state.details.type)
+                                    },
                                     onGenreClick = { genre ->
                                         viewModel.openDiscoverSearch(
                                             com.anisync.android.domain.SearchFilters(genresIncluded = setOf(genre)),
@@ -944,6 +947,7 @@ fun DetailsPageContent(
     onRetryStats: () -> Unit,
     onRankingClick: (com.anisync.android.domain.MediaRanking) -> Unit,
     onInfoFilterClick: (com.anisync.android.domain.SearchFilters) -> Unit,
+    onHeaderMetadataFilterClick: (com.anisync.android.domain.SearchFilters) -> Unit,
     onGenreClick: (String) -> Unit,
     onTagClick: (com.anisync.android.domain.Tag) -> Unit,
     onRelationClick: (Int) -> Unit,
@@ -1223,7 +1227,8 @@ fun DetailsPageContent(
                     onTitleClick = {
                         onTabSelected(DetailsTab.OVERVIEW)
                         showTitlesSheet = true
-                    }
+                    },
+                    onMetadataFilterClick = onHeaderMetadataFilterClick
                 )
             }
 
@@ -1905,6 +1910,7 @@ fun PageHeaderSection(
     onBannerClick: () -> Unit = {},
     onScoreClick: () -> Unit = {},
     onTitleClick: () -> Unit = {},
+    onMetadataFilterClick: (com.anisync.android.domain.SearchFilters) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -1955,6 +1961,7 @@ fun PageHeaderSection(
             onCoverClick = onCoverClick,
             onScoreClick = onScoreClick,
             onTitleClick = onTitleClick,
+            onMetadataFilterClick = onMetadataFilterClick,
             titleLanguage = titleLanguage
         )
     }
@@ -2178,6 +2185,7 @@ private fun ContentRow(
     onCoverClick: () -> Unit = {},
     onScoreClick: () -> Unit = {},
     onTitleClick: () -> Unit = {},
+    onMetadataFilterClick: (com.anisync.android.domain.SearchFilters) -> Unit = {},
     titleLanguage: TitleLanguage
 ) {
     val context = LocalContext.current
@@ -2282,14 +2290,14 @@ private fun ContentRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.copyOnLongPress(secondaryTitle, titleClipLabel, copiedTitleMessage)
+                    modifier = Modifier
                 )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
             // Row 1: Format · Season Year · Duration
-            MetadataTags(details)
+            MetadataTags(details, onMetadataFilterClick)
 
             if (formattedScore != null) {
                 Spacer(modifier = Modifier.height(6.dp))
@@ -2303,33 +2311,47 @@ private fun ContentRow(
 }
 
 @Composable
-private fun MetadataTags(details: MediaDetails) {
+private fun MetadataTags(details: MediaDetails, onFilterClick: (com.anisync.android.domain.SearchFilters) -> Unit) {
+    data class MetadataPart(val text: String, val filters: com.anisync.android.domain.SearchFilters?)
     val parts = buildList {
-        details.format?.formatAsTitle()?.let { add(it) }
-        details.seasonYear?.let { year ->
-            val season = details.season?.lowercase()?.replaceFirstChar { it.uppercase() }
-            add(if (season != null) "$season $year" else year.toString())
+        details.format?.let { raw ->
+            com.anisync.android.type.MediaFormat.entries.firstOrNull { it.name == raw }?.let { format ->
+                add(MetadataPart(format.formatAsTitle(), com.anisync.android.domain.SearchFilters(formats = setOf(format))))
+            }
         }
-
-        // Series use their episode total; Movie and Music keep their runtime.
+        details.seasonYear?.let { year ->
+            val season = details.season?.let { raw ->
+                com.anisync.android.type.MediaSeason.entries.firstOrNull { it.name == raw }
+            }
+            add(MetadataPart(
+                season?.let { "${it.name.lowercase().replaceFirstChar { ch -> ch.uppercase() }} $year" } ?: year.toString(),
+                season?.let { com.anisync.android.domain.SearchFilters(
+                    season = it,
+                    yearRange = com.anisync.android.domain.IntRangeFilter(min = year, max = year)
+                ) }
+            ))
+        }
         val format = details.format?.uppercase()
         val isMovieOrMusic = format == "MOVIE" || format == "MUSIC"
         if (details.type == com.anisync.android.type.MediaType.ANIME && !isMovieOrMusic) {
-            details.episodes?.let { add(stringResource(R.string.details_episode_count, it)) }
+            details.episodes?.let { count ->
+                add(MetadataPart(stringResource(R.string.details_episode_count, count), com.anisync.android.domain.SearchFilters(
+                    episodes = com.anisync.android.domain.IntComparatorFilter(
+                        mode = com.anisync.android.domain.ComparatorMode.EXACTLY, value = count
+                    )
+                )))
+            }
         } else {
-            details.duration?.let { add(stringResource(R.string.details_duration_minutes, it)) }
+            details.duration?.let { add(MetadataPart(stringResource(R.string.details_duration_minutes, it), null)) }
         }
     }
-
     if (parts.isEmpty()) return
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         parts.forEachIndexed { index, part ->
             if (index > 0) MetadataSeparator()
-            MetadataText(part)
+            Box(modifier = if (part.filters != null) Modifier.clickable { onFilterClick(part.filters) } else Modifier) {
+                MetadataText(part.text)
+            }
         }
     }
 }
