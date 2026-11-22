@@ -70,13 +70,7 @@ fun ReviewCard(
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
     transitionPrefix: String? = null,
 ) {
-    val scoreColor = remember(review.score) {
-        when {
-            review.score >= 75 -> Color(0xFF55D879)
-            review.score >= 60 -> Color(0xFFFFC247)
-            else -> Color(0xFFFF7168)
-        }
-    }
+    val scoreColor = remember(review.score) { communityScoreTint(review.score.toDouble()) }
     val headerImageUrl = remember(review.mediaBannerUrl, review.mediaCoverUrl) {
         review.mediaBannerUrl ?: review.mediaCoverUrl
     }
