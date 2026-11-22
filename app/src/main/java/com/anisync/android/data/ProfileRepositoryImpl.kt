@@ -256,6 +256,7 @@ class ProfileRepositoryImpl @Inject constructor(
                 activeAt = user.updatedAt?.toLong()?.times(1000),
                 animeCount = stats?.count ?: 0,
                 daysWatched = daysWatched,
+                minutesWatched = minutesWatched,
                 mangaCount = mangaStats?.count ?: 0,
                 chaptersRead = mangaStats?.chaptersRead ?: 0,
                 meanScore = stats?.meanScore?.toFloat() ?: 0f,
