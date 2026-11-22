@@ -1579,31 +1579,26 @@ private fun RichTextTextKind.withHeadingLineHeight(base: TextStyle): TextStyle =
 }
 
 private fun youtubeVideoIdFromUrl(value: String): String? {
-    val url = value.trim()
-    val isYouTube = Regex(
-        """^(?:https?://)?(?:(?:www|m)\.)?(?:youtube\.com|youtube-nocookie\.com|youtu\.be)(?:/|$)""",
-        RegexOption.IGNORE_CASE
-    ).containsMatchIn(url)
+    val rawUrl = value.trim()
+    val normalizedUrl = if (rawUrl.startsWith("http://", true) ||
+        rawUrl.startsWith("https://", true)
+    ) rawUrl else "https://$rawUrl"
+    val uri = runCatching { android.net.Uri.parse(normalizedUrl) }.getOrNull() ?: return null
+    val host = uri.host?.lowercase() ?: return null
+    val isYouTube = host == "youtube.com" || host == "www.youtube.com" ||
+        host == "m.youtube.com" || host == "music.youtube.com" ||
+        host == "youtube-nocookie.com" || host == "www.youtube-nocookie.com" ||
+        host == "youtu.be" || host == "www.youtu.be"
     if (!isYouTube) return null
-    return extractYouTubeVideoId(url).takeIf { it.length == 11 }
-}
 
-private fun extractYouTubeVideoId(value: String): String {
-    var id = value
-    while (
-        id.contains("v=") || id.contains("youtu.be/") || id.contains("embed/") ||
-        id.contains("shorts/") || id.contains("live/")
-    ) {
-        id = when {
-            id.contains("v=") -> id.substringAfterLast("v=")
-            id.contains("youtu.be/") -> id.substringAfterLast("youtu.be/")
-            id.contains("embed/") -> id.substringAfterLast("embed/")
-            id.contains("shorts/") -> id.substringAfterLast("shorts/")
-            id.contains("live/") -> id.substringAfterLast("live/")
-            else -> id
-        }
-    }
-    id = id.substringBefore("&").substringBefore("?")
-    val clean = id.replace(Regex("[^a-zA-Z0-9_-]"), "")
-    return if (clean.length >= 11) clean.take(11) else clean
+    val segments = uri.pathSegments
+    val candidate = when {
+        host == "youtu.be" || host == "www.youtu.be" -> segments.firstOrNull()
+        uri.path.equals("/watch", ignoreCase = true) -> uri.getQueryParameter("v")
+        segments.size >= 2 && segments[0].lowercase() in setOf("shorts", "live", "embed", "v") ->
+            segments[1]
+        else -> null
+    } ?: return null
+
+    return candidate.takeIf { it.matches(Regex("[a-zA-Z0-9_-]{11}")) }
 }
