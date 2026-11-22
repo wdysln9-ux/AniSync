@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.anisync.android.presentation.components.communityScoreTint
 
 /**
  * A badge component that displays a score with semantic color coding.
