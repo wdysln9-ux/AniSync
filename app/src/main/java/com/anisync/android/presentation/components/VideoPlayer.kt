@@ -484,6 +484,11 @@ fun VideoPlayer(
             // part of the picture rather than a pale frame around it.
             .background(Color.Black)
     ) {
+        // Keep the ambient cinematic tint behind the actual picture. It must never dim or recolor
+        // the video itself; neutral brightness therefore remains identical to the source video.
+        if (cinematicOverlayIntensity > 0f) {
+            Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0xFFFFD6A0).copy(alpha = cinematicOverlayIntensity * 0.22f), Color.Transparent))))
+        }
         if (playerState != PlayerState.Error) {
             PlayerSurface(
                 exoPlayer = exoPlayer,
@@ -497,9 +502,6 @@ fun VideoPlayer(
             )
             if (artwork != null) {
                 Box(Modifier.fillMaxSize()) { artwork() }
-            }
-            if (cinematicOverlayIntensity > 0f) {
-                Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0xFFFFD6A0).copy(alpha = cinematicOverlayIntensity * 0.22f), Color.Transparent))))
             }
         }
 
