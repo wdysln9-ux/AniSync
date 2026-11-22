@@ -35,7 +35,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.anisync.android.domain.ForumThread
@@ -214,7 +216,11 @@ private fun ThreadAuthorBlock(
 @Composable
 fun ThreadBodyItem(
     body: ParsedRichText,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    style: TextStyle = MaterialTheme.typography.bodyLarge.copy(
+        lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.4f
+    ),
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
     Box(
         modifier = modifier
@@ -223,10 +229,8 @@ fun ThreadBodyItem(
     ) {
         RichTextRenderer(
             parsedData = body,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.4f
-            ),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = style,
+            color = color,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
     }
