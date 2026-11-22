@@ -860,34 +860,49 @@ internal fun VideoControlsOverlay(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { controlsVisible = true; poke() },
-                        onDoubleTap = { offset ->
-                            controlsVisible = true
-                            poke()
-                            val xFraction = offset.x / size.width.toFloat()
-                            when {
-                                xFraction < 0.35f || xFraction > 0.65f -> {
-                                    val forward = xFraction > 0.65f
-                                    val step = if (forward) 10_000L else -10_000L
-                                    accumulatedSeekMs = if (seekFeedback != null && seekFeedbackForward == forward) {
-                                        accumulatedSeekMs + step
-                                    } else {
-                                        step
+                    // Handle taps ourselves so the first tap is immediate. detectTapGestures
+                    // delays onTap while waiting to see whether a second tap follows.
+                    var lastTapTime = 0L
+                    var lastTapPosition = androidx.compose.ui.geometry.Offset.Zero
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val up = waitForUpOrCancellation()
+                        if (up != null) {
+                            val now = up.uptimeMillis
+                            val isDoubleTap = lastTapTime > 0L &&
+                                now - lastTapTime <= viewConfiguration.doubleTapTimeoutMillis &&
+                                (up.position - lastTapPosition).getDistance() <= viewConfiguration.touchSlop * 2f
+                            if (isDoubleTap) {
+                                val xFraction = up.position.x / size.width.toFloat()
+                                when {
+                                    xFraction < 0.35f || xFraction > 0.65f -> {
+                                        val forward = xFraction > 0.65f
+                                        val step = if (forward) 10_000L else -10_000L
+                                        accumulatedSeekMs = if (seekFeedback != null && seekFeedbackForward == forward) {
+                                            accumulatedSeekMs + step
+                                        } else {
+                                            step
+                                        }
+                                        seekFeedbackForward = forward
+                                        onSeekBy(step)
+                                        val seconds = kotlin.math.abs(accumulatedSeekMs / 1000L)
+                                        seekFeedback = (if (forward) "+" else "-") + "$seconds detik"
                                     }
-                                    seekFeedbackForward = forward
-                                    onSeekBy(step)
-                                    val seconds = kotlin.math.abs(accumulatedSeekMs / 1000L)
-                                    seekFeedback = (if (forward) "+" else "-") + "$seconds detik"
+                                    else -> {
+                                        accumulatedSeekMs = 0L
+                                        seekFeedback = null
+                                        onPlayPause()
+                                    }
                                 }
-                                else -> {
-                                    accumulatedSeekMs = 0L
-                                    seekFeedback = null
-                                    onPlayPause()
-                                }
+                                lastTapTime = 0L
+                            } else {
+                                controlsVisible = !controlsVisible
+                                poke()
+                                lastTapTime = now
+                                lastTapPosition = up.position
                             }
                         }
-                    )
+                    }
                 }
                 .pointerInput(hostWindow, audioManager) {
                     var brightnessGesture = false
@@ -968,7 +983,18 @@ internal fun VideoControlsOverlay(
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    // The visible controls layer sits above the video tap surface. Let taps
+                    // on its empty areas dismiss the controls; child buttons keep their clicks.
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = {
+                            controlsVisible = false
+                            poke()
+                        })
+                    }
+            ) {
                 // Back (fullscreen only).
                 if (onBack != null) {
                     Surface(
