@@ -968,6 +968,8 @@ fun DetailsPageContent(
     /** Height of the page's top app bar, which is where the sticky tab strip docks. */
     topBarHeight: Dp
 ) {
+    var titleSheetRequest by remember(details.id) { mutableIntStateOf(0) }
+
     val displayCharacters = remember(details.characters, titleLanguage) {
         details.characters.distinctBy { it.id }.take(10).map { character ->
             character.copy(
@@ -1165,7 +1167,11 @@ fun DetailsPageContent(
                         viewerIndex = viewerImages.indexOf(details.bannerUrl).coerceAtLeast(0)
                         showImageViewer = true
                     },
-                    onScoreClick = { showScoreInfo = true }
+                    onScoreClick = { showScoreInfo = true },
+                    onTitleClick = {
+                        onTabSelected(DetailsTab.OVERVIEW)
+                        titleSheetRequest++
+                    }
                 )
             }
 
@@ -1249,7 +1255,8 @@ fun DetailsPageContent(
                             MediaInformationSection(
                                 details = details,
                                 onStudioClick = onStudioClick,
-                                onRankingClick = onRankingClick
+                                onRankingClick = onRankingClick,
+                                openTitlesRequest = titleSheetRequest
                             )
                         }
                     }
@@ -1799,6 +1806,7 @@ fun PageHeaderSection(
     onCoverClick: () -> Unit = {},
     onBannerClick: () -> Unit = {},
     onScoreClick: () -> Unit = {},
+    onTitleClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -1847,7 +1855,9 @@ fun PageHeaderSection(
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
             onCoverClick = onCoverClick,
-            onScoreClick = onScoreClick
+            onScoreClick = onScoreClick,
+            onTitleClick = onTitleClick,
+            titleLanguage = titleLanguage
         )
     }
 }
@@ -2068,7 +2078,9 @@ private fun ContentRow(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onCoverClick: () -> Unit = {},
-    onScoreClick: () -> Unit = {}
+    onScoreClick: () -> Unit = {},
+    onTitleClick: () -> Unit = {},
+    titleLanguage: TitleLanguage
 ) {
     val context = LocalContext.current
     val coverData = details.cover.url() ?: details.coverUrl
@@ -2147,24 +2159,32 @@ private fun ContentRow(
                             boundsTransform = { _, _ -> spatialSpec },
                             resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
                         )
-                        .copyOnLongPress(displayTitle.orEmpty(), titleClipLabel, copiedTitleMessage)
+                        .copyOnLongPress(
+                            displayTitle.orEmpty(), titleClipLabel, copiedTitleMessage,
+                            onClick = onTitleClick
+                        )
                 )
             }
 
-            // Native title. It was previously reachable only by opening the Titles sheet, yet it
-            // is how a lot of viewers recognise a series.
-            val nativeTitle = remember(details.titleNative, displayTitle) {
-                details.titleNative?.takeIf { it.isNotBlank() && it != displayTitle }
+            // Show a different available title below the selected display title.
+            // Prefer English when Romaji is selected, and otherwise use the closest alternative.
+            val secondaryTitle = remember(details.titleRomaji, details.titleEnglish, details.titleNative, displayTitle, titleLanguage) {
+                val alternatives = when (titleLanguage) {
+                    TitleLanguage.ROMAJI -> listOf(details.titleEnglish, details.titleNative)
+                    TitleLanguage.ENGLISH -> listOf(details.titleRomaji, details.titleNative)
+                    TitleLanguage.NATIVE -> listOf(details.titleEnglish, details.titleRomaji)
+                }
+                alternatives.firstOrNull { !it.isNullOrBlank() && it != displayTitle }
             }
-            if (nativeTitle != null) {
+            if (secondaryTitle != null) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = nativeTitle,
+                    text = secondaryTitle,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.copyOnLongPress(nativeTitle, titleClipLabel, copiedTitleMessage)
+                    modifier = Modifier.copyOnLongPress(secondaryTitle, titleClipLabel, copiedTitleMessage)
                 )
             }
 
