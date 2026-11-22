@@ -35,6 +35,7 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -44,6 +45,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -291,21 +293,73 @@ fun RichTextHost(
     content(scope)
 
     pendingExternalUrl?.let { url ->
-        val host = android.net.Uri.parse(url).host ?: url
+        val host = android.net.Uri.parse(url).host ?: "situs eksternal"
         AlertDialog(
             onDismissRequest = { pendingExternalUrl = null },
-            title = { Text("Buka situs eksternal?") },
-            text = { Text("Kamu akan membuka situs $host") },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.OpenInNew,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Text(
+                    text = "Buka situs eksternal?",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Kamu akan meninggalkan AniSync dan membuka situs berikut:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = host,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            SelectionContainer {
+                                Text(
+                                    text = url,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = "Pastikan alamat situs ini tepercaya sebelum melanjutkan.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
                         pendingExternalUrl = null
                         runCatching { uriHandler.openUri(url) }
                     }
-                ) { Text("Buka") }
+                ) {
+                    Text("Buka situs")
+                }
             },
             dismissButton = {
-                TextButton(onClick = { pendingExternalUrl = null }) { Text("Batal") }
+                TextButton(onClick = { pendingExternalUrl = null }) {
+                    Text("Batal")
+                }
             }
         )
     }
