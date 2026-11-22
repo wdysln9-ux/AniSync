@@ -602,12 +602,41 @@ internal fun PlayerSurface(
     exoPlayer: ExoPlayer,
     active: Boolean,
     modifier: Modifier = Modifier,
-    contentScale: ContentScale = ContentScale.Fit
+    contentScale: ContentScale = ContentScale.Fit,
+    stretchScaleX: Float = 1f
 ) {
     val context = LocalContext.current
     var textureView by remember(exoPlayer) { mutableStateOf<TextureView?>(null) }
+    var videoSize by remember(exoPlayer) { mutableStateOf(exoPlayer.videoSize) }
     var backgroundFrame by remember(exoPlayer) { mutableStateOf<android.graphics.Bitmap?>(null) }
     val cinematicEnabled = PlayerPreferences.cinematicEnabled(context)
+    val latestContentScale by rememberUpdatedState(contentScale)
+    val latestStretchScaleX by rememberUpdatedState(stretchScaleX)
+    fun updateTextureTransform(view: TextureView) {
+        val width = view.width.toFloat()
+        val height = view.height.toFloat()
+        val sourceWidth = videoSize.width.toFloat() * videoSize.pixelWidthHeightRatio
+        val sourceHeight = videoSize.height.toFloat()
+        if (width <= 0f || height <= 0f || sourceWidth <= 0f || sourceHeight <= 0f) return
+        val sourceAspect = sourceWidth / sourceHeight
+        val targetAspect = width / height
+        var scaleX = 1f
+        var scaleY = 1f
+        when (latestContentScale) {
+            ContentScale.Fit -> if (sourceAspect > targetAspect) scaleY = targetAspect / sourceAspect else scaleX = sourceAspect / targetAspect
+            ContentScale.Crop -> if (sourceAspect > targetAspect) scaleX = sourceAspect / targetAspect else scaleY = targetAspect / sourceAspect
+            else -> Unit
+        }
+        val matrix = Matrix().apply { setScale(scaleX, scaleY, width / 2f, height / 2f) }
+        view.setTransform(matrix)
+    }
+    DisposableEffect(exoPlayer) {
+        val listener = object : Player.Listener {
+            override fun onVideoSizeChanged(size: VideoSize) { videoSize = size }
+        }
+        exoPlayer.addListener(listener)
+        onDispose { exoPlayer.removeListener(listener) }
+    }
     val cinematicIntensity = FullscreenVideoBridge.cinematicIntensity.floatValue
     val blur = FullscreenVideoBridge.cinematicBlur.floatValue
     val brightness = FullscreenVideoBridge.cinematicBrightness.floatValue
@@ -661,7 +690,21 @@ internal fun PlayerSurface(
                 ))
             }
         }
-        AndroidView(factory = { ctx -> TextureView(ctx).also { textureView = it } }, modifier = Modifier.fillMaxSize())
+        AndroidView(
+            factory = { ctx ->
+                TextureView(ctx).also { view ->
+                    textureView = view
+                    view.addOnLayoutChangeListener { changed, _, _, _, _, _, _, _, _ ->
+                        updateTextureTransform(changed as TextureView)
+                    }
+                }
+            },
+            update = { view ->
+                view.scaleX = latestStretchScaleX
+                updateTextureTransform(view)
+            },
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
@@ -1070,12 +1113,6 @@ internal fun VideoControlsOverlay(
                     .fillMaxSize()
                     // The visible controls layer sits above the video tap surface. Let taps
                     // on its empty areas dismiss the controls; child buttons keep their clicks.
-                    .pointerInput(Unit) {
-                        detectTapGestures(onTap = {
-                            controlsVisible = false
-                            poke()
-                        })
-                    }
             ) {
                 // Back (fullscreen only).
                 if (onBack != null) {
@@ -1117,7 +1154,10 @@ internal fun VideoControlsOverlay(
                         onDismissRequest = { playerSettingsExpanded = false },
                         title = { Text("Pengaturan pemutar") },
                         text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Column(
+                                modifier = Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
                                 Text("Mode tampilan")
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     listOf("Fit", "Isi layar", "Stretch").forEach { mode ->
@@ -1196,7 +1236,10 @@ internal fun VideoControlsOverlay(
                         onDismissRequest = { cinematicSettingsExpanded = false },
                         title = { Text("Pencahayaan sinematik") },
                         text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Column(
+                                modifier = Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                     Text("Aktifkan pencahayaan")
                                     androidx.compose.material3.Switch(checked = cinematicEnabled, onCheckedChange = { enabled -> cinematicEnabled = enabled; PlayerPreferences.setCinematicEnabled(context, enabled); onCinematicLightingChange(if (enabled) cinematicIntensity else 0f) })
@@ -1322,16 +1365,15 @@ internal fun VideoControlsOverlay(
                                     cornerRadius = radius
                                 )
                             }
-                            // AniSkip OP/ED ranges are highlighted in yellow on the timeline.
+                            // OP/ED ranges are part of the same track, not a thicker layer floating above it.
                             skipSegments.forEach { segment ->
                                 val start = (segment.startMs.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
                                 val end = (segment.endMs.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
                                 if (end > start) {
-                                    drawRoundRect(
+                                    drawRect(
                                         color = Color(0xFFFFD54F),
-                                        topLeft = androidx.compose.ui.geometry.Offset(start, top - 1.dp.toPx()),
-                                        size = androidx.compose.ui.geometry.Size(end - start, trackHeight + 2.dp.toPx()),
-                                        cornerRadius = androidx.compose.ui.geometry.CornerRadius((trackHeight + 2.dp.toPx()) / 2f)
+                                        topLeft = androidx.compose.ui.geometry.Offset(start, top),
+                                        size = androidx.compose.ui.geometry.Size(end - start, trackHeight)
                                     )
                                 }
                             }
