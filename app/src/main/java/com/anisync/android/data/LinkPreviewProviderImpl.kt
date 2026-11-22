@@ -167,7 +167,7 @@ class LinkPreviewProviderImpl @Inject constructor(
             count,
             score?.takeIf { it > 0 }?.let { "⭐ " + String.format(java.util.Locale.US, "%.1f", it / 10.0) }
         )
-        return parts.joinToString(" · ").takeIf { it.isNotBlank() }
+        return parts.joinToString(" • ").takeIf { it.isNotBlank() }
     }
 
     private fun prettySeason(raw: String): String = when (raw.uppercase()) {
