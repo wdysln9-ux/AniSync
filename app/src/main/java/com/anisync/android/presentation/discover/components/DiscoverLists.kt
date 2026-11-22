@@ -17,8 +17,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +33,7 @@ import com.anisync.android.presentation.components.MediaPosterCardDefaults
 import com.anisync.android.presentation.util.AppMotion
 import com.anisync.android.presentation.util.TransitionKeys
 import com.anisync.android.presentation.util.shimmerEffect
+import kotlinx.coroutines.flow.collect
 
 /** Card width in the Discover rows, matching the 171dp card in the design. */
 private val PosterCardWidth = 171.dp
@@ -45,13 +49,26 @@ fun HorizontalMediaList(
     transitionPrefix: String,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    cardWidth: androidx.compose.ui.unit.Dp = PosterCardWidth
+    cardWidth: androidx.compose.ui.unit.Dp = PosterCardWidth,
+    hasNextPage: Boolean = false,
+    isLoadingMore: Boolean = false,
+    onLoadMore: () -> Unit = {}
 ) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(listState, items.size, hasNextPage, isLoadingMore) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
+            .collect { lastVisible ->
+                if (hasNextPage && !isLoadingMore && items.isNotEmpty() && lastVisible >= items.size - 3) {
+                    onLoadMore()
+                }
+            }
+    }
     val placementSpec = AppMotion.rememberOffsetSpatialSpec()
     val fadeSpec = AppMotion.rememberEffectsSpec()
 
     // Pinned, so a two-line title scrolling into view cannot resize the row under the finger.
     LazyRow(
+        state = listState,
         contentPadding = PaddingValues(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.height(MediaPosterCardDefaults.rowHeight(cardWidth))
