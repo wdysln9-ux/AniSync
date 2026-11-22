@@ -591,7 +591,7 @@
     <string name="cd_studio_mark">پوسترهای مربوط به %1$s</string>
     <string name="clip_label_external_link">پیوند بیرونی (%1$s)</string>
     <string name="control_log_out">خروج از حساب</string>
-    <string name="profile_level">سطح %1$d</string>
+    <string name="profile_level">سطح %1$s</string>
     <string name="profile_active">فعال در %1$s</string>
     <string name="notifications_title">اعلان‌ها</string>
     <string name="notifications_filter_all">همه</string>
