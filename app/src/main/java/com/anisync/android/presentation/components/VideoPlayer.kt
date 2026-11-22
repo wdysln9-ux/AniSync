@@ -1114,31 +1114,52 @@ internal fun VideoControlsOverlay(
                             .height(if (wide) 40.dp else 32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Keep the stock Material slider untouched; draw only the extra buffered
-                        // segment over its inactive track, without replacing its thumb or colors.
+                        // One integrated, pill-shaped track: buffered and played portions share
+                        // the exact same thickness and rounded geometry instead of stacking a thin line.
+                        androidx.compose.foundation.Canvas(
+                            modifier = Modifier.fillMaxWidth().height(40.dp)
+                        ) {
+                            val trackHeight = 8.dp.toPx()
+                            val top = (size.height - trackHeight) / 2f
+                            val radius = androidx.compose.ui.geometry.CornerRadius(trackHeight / 2f)
+                            val playedX = size.width * fraction
+                            val bufferedX = size.width * bufferedFraction
+                            drawRoundRect(
+                                color = Color.White.copy(alpha = 0.30f),
+                                topLeft = androidx.compose.ui.geometry.Offset(0f, top),
+                                size = androidx.compose.ui.geometry.Size(size.width, trackHeight),
+                                cornerRadius = radius
+                            )
+                            if (bufferedX > 0f) {
+                                drawRoundRect(
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.42f),
+                                    topLeft = androidx.compose.ui.geometry.Offset(0f, top),
+                                    size = androidx.compose.ui.geometry.Size(bufferedX.coerceAtMost(size.width), trackHeight),
+                                    cornerRadius = radius
+                                )
+                            }
+                            if (playedX > 0f) {
+                                drawRoundRect(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    topLeft = androidx.compose.ui.geometry.Offset(0f, top),
+                                    size = androidx.compose.ui.geometry.Size(playedX.coerceAtMost(size.width), trackHeight),
+                                    cornerRadius = radius
+                                )
+                            }
+                        }
                         Slider(
                             state = seekState,
                             onValueChange = { poke(); onSeek(it) },
                             onValueChangeFinished = onSeekFinished,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color.White,
+                                activeTrackColor = Color.Transparent,
+                                inactiveTrackColor = Color.Transparent,
+                                activeTickColor = Color.Transparent,
+                                inactiveTickColor = Color.Transparent
+                            )
                         )
-                        androidx.compose.foundation.Canvas(
-                            modifier = Modifier.fillMaxWidth().height(8.dp)
-                        ) {
-                            if (bufferedFraction > fraction) {
-                                val startX = (size.width * fraction + 8.dp.toPx()).coerceAtMost(size.width)
-                                val endX = (size.width * bufferedFraction - 2.dp.toPx()).coerceAtLeast(startX)
-                                if (endX > startX) {
-                                    val trackHeight = 5.dp.toPx()
-                                    drawRoundRect(
-                                        color = Color(0xFF8BCBFF).copy(alpha = 0.72f),
-                                        topLeft = androidx.compose.ui.geometry.Offset(startX, (size.height - trackHeight) / 2f),
-                                        size = androidx.compose.ui.geometry.Size(endX - startX, trackHeight),
-                                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(trackHeight / 2f)
-                                    )
-                                }
-                            }
-                        }
                     }
 
                     Text(
