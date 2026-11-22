@@ -225,7 +225,7 @@ fun VideoPlayer(
             FullscreenVideoBridge.aniSkipSegments.value = segments
         }
     }
-    var playbackEndHandled by remember(url, headers) { mutableStateOf(false) }
+    var playbackEndHandled by remember { mutableStateOf(false) }
     var selectedAudioRenderer by remember(useWsolaAudio) {
         mutableStateOf(
             if (useWsolaAudio) EpisodeAudioRendererPreferences.get(context)
@@ -265,6 +265,12 @@ fun VideoPlayer(
     LaunchedEffect(exoPlayer, url) {
         val currentUri = exoPlayer.currentMediaItem?.localConfiguration?.uri?.toString()
         if (currentUri != url) {
+            playbackEndHandled = false
+            positionMs = 0L
+            durationMs = 0L
+            bufferedPositionMs = 0L
+            errorMessage = null
+            playerState = PlayerState.Loading
             exoPlayer.setMediaItem(MediaItem.fromUri(url))
             exoPlayer.prepare()
             exoPlayer.playWhenReady = true
