@@ -59,6 +59,7 @@ import androidx.compose.material.icons.rounded.BrokenImage
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -750,8 +751,41 @@ internal fun PlayerStatusVisuals(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(if (showShimmer) Modifier.shimmerEffect() else Modifier.background(Color.Black))
-            )
+                    .then(if (showShimmer) Modifier.shimmerEffect() else Modifier.background(Color.Black)),
+                contentAlignment = Alignment.Center
+            ) {
+                // Keep a real media-loading indicator; shimmer alone is reserved for images.
+                CircularProgressIndicator(
+                    modifier = Modifier.size(36.dp),
+                    color = Color.White,
+                    strokeWidth = 3.dp
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = isBuffering && !isLoading && errorMessage == null,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.48f),
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(30.dp),
+                            color = Color.White,
+                            strokeWidth = 3.dp
+                        )
+                    }
+                }
+            }
         }
 
         AnimatedVisibility(visible = errorMessage != null, enter = fadeIn(), exit = fadeOut()) {
