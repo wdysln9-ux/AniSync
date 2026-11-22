@@ -12,7 +12,10 @@ query GetLinkPreviews($mediaIds: [Int], $characterIds: [Int], $staffIds: [Int]) 
               color
             }
             format
+            season
             seasonYear
+            episodes
+            chapters
             type
         }
     }
