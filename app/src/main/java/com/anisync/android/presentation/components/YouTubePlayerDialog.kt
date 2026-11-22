@@ -111,28 +111,6 @@ private fun YouTubeWebView(
     videoId: String,
     modifier: Modifier = Modifier
 ) {
-    val html = """
-        <!doctype html>
-        <html>
-        <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-          <style>
-            html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; }
-            iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
-          </style>
-        </head>
-        <body>
-          <iframe
-            src="https://www.youtube.com/embed/$videoId?autoplay=1&mute=1&playsinline=1&controls=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fanisync.app"
-            title="YouTube video player"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerpolicy="origin"
-            allowfullscreen>
-          </iframe>
-        </body>
-        </html>
-    """.trimIndent()
-
     val webViewState = remember { mutableStateOf<WebView?>(null) }
 
     Box(modifier = modifier.background(Color.Black)) {
@@ -159,12 +137,11 @@ private fun YouTubeWebView(
                     webChromeClient = WebChromeClient()
                     isFocusable = true
                     isFocusableInTouchMode = true
-                    loadDataWithBaseURL(
-                        "https://anisync.app/",
-                        html,
-                        "text/html",
-                        "UTF-8",
-                        null
+                    // Load the official embed URL directly. Nesting it inside loadDataWithBaseURL
+                    // can leave WebView with an inconsistent iframe origin/referrer, which causes
+                    // some YouTube builds to render a black player or reject playback.
+                    loadUrl(
+                        "https://www.youtube.com/embed/$videoId?autoplay=0&playsinline=1&controls=1&rel=0"
                     )
                 }
             },
