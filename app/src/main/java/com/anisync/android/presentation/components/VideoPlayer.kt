@@ -1,6 +1,10 @@
 package com.anisync.android.presentation.components
 
 import android.content.Context
+import androidx.compose.material.icons.filled.Brightness6
+import android.provider.Settings as AndroidSettings
+import android.media.AudioManager
+import android.content.ContextWrapper
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -10,6 +14,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -84,6 +89,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpSize
+import kotlin.math.roundToInt
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -99,6 +105,7 @@ import androidx.media3.ui.compose.ContentFrame
 import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import com.anisync.android.R
 import com.anisync.android.presentation.util.shimmerEffect
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 
 /** Visual state of the video player. Shared with [FullscreenPlayerActivity]. */
@@ -159,6 +166,7 @@ fun VideoPlayer(
     startMuted: Boolean = true,
     loop: Boolean = true,
     autoPlay: Boolean = false,
+    useWsolaAudio: Boolean = false,
     artwork: (@Composable () -> Unit)? = null,
     sourceOptions: List<String> = emptyList(),
     onSelectSource: (Int) -> Unit = {},
@@ -166,7 +174,9 @@ fun VideoPlayer(
     onAutoNextChange: (Boolean) -> Unit = {},
     autoEnterFullscreen: Boolean = false,
     onFullscreenEntered: () -> Unit = {},
-    onCinematicLightingChange: (Float) -> Unit = {}
+    onCinematicLightingChange: (Float) -> Unit = {},
+    preloadUrl: String? = null,
+    preloadHeaders: Map<String, String> = emptyMap()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -175,6 +185,7 @@ fun VideoPlayer(
     var isPlaying by remember { mutableStateOf(false) }
     var positionMs by remember { mutableLongStateOf(0L) }
     var durationMs by remember { mutableLongStateOf(0L) }
+    var bufferedPositionMs by remember { mutableLongStateOf(0L) }
     var isScrubbing by remember { mutableStateOf(false) }
     var videoAspectRatio by remember { mutableFloatStateOf(DEFAULT_VIDEO_ASPECT) }
     var playerState by remember { mutableStateOf(PlayerState.Loading) }
@@ -183,17 +194,27 @@ fun VideoPlayer(
     // and the lifecycle observer stops pausing, so the same instance keeps playing over there.
     var handedOff by remember { mutableStateOf(false) }
     val isHandedOff by rememberUpdatedState(handedOff)
-    var cinematicOverlayIntensity by remember { mutableFloatStateOf(0f) }
+    var cinematicOverlayIntensity by remember { mutableFloatStateOf(if (PlayerPreferences.cinematicEnabled(context)) PlayerPreferences.cinematicIntensity(context) else 0f) }
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
 
     // Cached player survives scrolling; self-managed one is built+released here. Both go through
     // buildVideoExoPlayer so the OkHttp/browser-UA data source and eager prepare apply identically.
     // The self-managed instance uses the application context so it can be safely handed to the
     // fullscreen activity without leaking this composition's context.
-    val exoPlayer = if (playerCache != null) {
+    val exoPlayer = if (playerCache != null && !useWsolaAudio) {
         remember(url, headers) { playerCache.getOrCreate(url, headers) }
     } else {
-        remember(url, headers) { buildVideoExoPlayer(context.applicationContext, url, startMuted, loop, autoPlay, headers = headers) }
+        remember(url, headers, useWsolaAudio) {
+            buildVideoExoPlayer(
+                context.applicationContext,
+                url,
+                startMuted,
+                loop,
+                autoPlay,
+                headers = headers,
+                useWsolaAudio = useWsolaAudio
+            )
+        }
     }
 
     DisposableEffect(exoPlayer) {
@@ -234,25 +255,52 @@ fun VideoPlayer(
         if (exoPlayer.playbackState == Player.STATE_READY) {
             playerState = PlayerState.Ready
             if (exoPlayer.duration > 0) durationMs = exoPlayer.duration
+            bufferedPositionMs = exoPlayer.bufferedPosition.coerceAtLeast(0L)
         }
         if (exoPlayer.videoSize.width > 0 && exoPlayer.videoSize.height > 0) {
             videoAspectRatio = exoPlayer.videoSize.width.toFloat() / exoPlayer.videoSize.height.toFloat()
         }
         isPlaying = exoPlayer.isPlaying
+        exoPlayer.setPlaybackParameters(PlaybackParameters(PlayerPreferences.playbackSpeed(context), 1f))
+        exoPlayer.volume = if (PlayerPreferences.isMuted(context, startMuted)) 0f else 1f
         isMuted = exoPlayer.volume == 0f
-
         exoPlayer.addListener(listener)
 
         onDispose {
             exoPlayer.removeListener(listener)
             // Only release if self-managed; cached players are released by ExoPlayerCache.releaseAll().
-            if (playerCache == null) {
-                exoPlayer.release()
-            } else if (!isHandedOff) {
-                // The inline composition can be disposed while the same player is owned by
-                // FullscreenPlayerActivity. Do not pause it during that hand-off.
-                exoPlayer.pause()
+            if (playerCache == null || useWsolaAudio) exoPlayer.release() else exoPlayer.pause()
+        }
+    }
+
+    // Prepare the next episode only after the current stream has reached its forward-buffer
+    // target (or the end of a shorter episode). The second player shares the same disk cache,
+    // stays paused, and is released whenever the next URL changes or this player leaves.
+    LaunchedEffect(exoPlayer, preloadUrl, preloadHeaders) {
+        val nextUrl = preloadUrl?.takeIf { it.isNotBlank() && it != url } ?: return@LaunchedEffect
+        var nextPlayer: ExoPlayer? = null
+        try {
+            while (true) {
+                val total = exoPlayer.duration
+                val ahead = exoPlayer.bufferedPosition - exoPlayer.currentPosition
+                val targetReached = total > 0L &&
+                    (exoPlayer.bufferedPosition >= total - 2_000L || ahead >= 15L * 60_000L)
+                if (targetReached) break
+                delay(1_000)
             }
+            nextPlayer = buildVideoExoPlayer(
+                context.applicationContext,
+                nextUrl,
+                muted = true,
+                loop = false,
+                autoPlay = false,
+                headers = preloadHeaders,
+                useWsolaAudio = useWsolaAudio
+            )
+            // Keep it prepared and paused so its downloaded segments enter the shared disk cache.
+            awaitCancellation()
+        } finally {
+            nextPlayer?.release()
         }
     }
 
@@ -260,6 +308,7 @@ fun VideoPlayer(
     LaunchedEffect(isPlaying, isScrubbing) {
         while (isPlaying && !isScrubbing) {
             positionMs = exoPlayer.currentPosition
+            bufferedPositionMs = exoPlayer.bufferedPosition.coerceAtLeast(0L)
             val d = exoPlayer.duration
             if (d > 0) durationMs = d
             delay(250)
@@ -271,8 +320,8 @@ fun VideoPlayer(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> if (!isHandedOff) exoPlayer.pause()
-                Lifecycle.Event.ON_RESUME -> if (exoPlayer.playWhenReady && !isHandedOff) exoPlayer.play()
+                Lifecycle.Event.ON_PAUSE -> if (!handedOff) exoPlayer.pause()
+                Lifecycle.Event.ON_RESUME -> if (isPlaying && !handedOff) exoPlayer.play()
                 else -> {}
             }
         }
@@ -287,8 +336,8 @@ fun VideoPlayer(
 
     DisposableEffect(exoPlayer) {
         FullscreenVideoBridge.onPlaybackEnded = {
-            FullscreenVideoBridge.closeFullscreen?.invoke()
             currentOnPlaybackEnded()
+            FullscreenVideoBridge.closeFullscreen?.invoke()
         }
         onDispose {
             if (FullscreenVideoBridge.onPlaybackEnded != null) FullscreenVideoBridge.onPlaybackEnded = null
@@ -298,6 +347,7 @@ fun VideoPlayer(
     val onPlayPause: () -> Unit = { if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play() }
     val onToggleMute: () -> Unit = {
         isMuted = !isMuted
+        PlayerPreferences.setMuted(context, isMuted)
         exoPlayer.volume = if (isMuted) 0f else 1f
     }
     val onSeek: (Float) -> Unit = { fraction ->
@@ -372,6 +422,7 @@ fun VideoPlayer(
                 isMuted = isMuted,
                 positionMs = positionMs,
                 durationMs = durationMs,
+                bufferedPositionMs = bufferedPositionMs,
                 isFullscreen = false,
                 onPlayPause = onPlayPause,
                 onToggleMute = onToggleMute,
@@ -386,7 +437,11 @@ fun VideoPlayer(
                 sourceOptions = sourceOptions,
                 onSelectSource = onSelectSource,
                 onAutoNextChange = onAutoNextChange,
-                onCinematicLightingChange = { cinematicOverlayIntensity = it; onCinematicLightingChange(it) },
+                onCinematicLightingChange = { intensity ->
+                    cinematicOverlayIntensity = intensity
+                    FullscreenVideoBridge.cinematicIntensity.floatValue = intensity
+                    onCinematicLightingChange(intensity)
+                },
                 onToggleFullscreen = onEnterFullscreen,
                 onBack = null
             )
@@ -465,7 +520,8 @@ private const val HTTP_GONE = 410
 internal fun PlayerSurface(
     exoPlayer: ExoPlayer,
     active: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Fit
 ) {
     LaunchedEffect(exoPlayer, active) {
         if (active && exoPlayer.playbackState == Player.STATE_IDLE) exoPlayer.prepare()
@@ -473,7 +529,7 @@ internal fun PlayerSurface(
     ContentFrame(
         player = if (active) exoPlayer else null,
         surfaceType = SURFACE_TYPE_TEXTURE_VIEW,
-        contentScale = ContentScale.Fit,
+        contentScale = contentScale,
         modifier = modifier
     )
 }
@@ -588,6 +644,49 @@ internal fun PlayerStatusVisuals(
     }
 }
 
+@Composable
+private fun LevelGestureHud(
+    label: String,
+    percent: Int,
+    icon: @Composable () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = Color.Black.copy(alpha = 0.78f),
+        contentColor = Color.White,
+        tonalElevation = 6.dp,
+        shadowElevation = 12.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                Modifier.size(38.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.primary
+                ) { icon() }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.78f))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.width(92.dp).height(5.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.2f))) {
+                        Box(
+                            Modifier.fillMaxWidth(percent.coerceIn(0, 100) / 100f)
+                                .height(5.dp).clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    }
+                    Text("$percent%", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
 /**
  * The auto-hiding control surface drawn over the video. Owns its own visibility so the inline and
  * fullscreen instances hide independently. A single tap on empty space toggles the controls; the
@@ -602,6 +701,7 @@ internal fun VideoControlsOverlay(
     isMuted: Boolean,
     positionMs: Long,
     durationMs: Long,
+    bufferedPositionMs: Long = 0L,
     isFullscreen: Boolean,
     onPlayPause: () -> Unit,
     onToggleMute: () -> Unit,
@@ -613,20 +713,68 @@ internal fun VideoControlsOverlay(
     onSelectSource: (Int) -> Unit,
     onAutoNextChange: (Boolean) -> Unit = {},
     onCinematicLightingChange: (Float) -> Unit = {},
+    onResetStretch: () -> Unit = {},
+    displayMode: String = "Fit",
+    onDisplayModeChange: (String) -> Unit = {},
     onToggleFullscreen: () -> Unit,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val hostWindow = remember(context) {
+        var current = context
+        while (current !is android.app.Activity && current is ContextWrapper) current = current.baseContext
+        (current as? android.app.Activity)?.window
+    }
+    val audioManager = remember(context) { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    val originalWindowBrightness = remember(hostWindow) { hostWindow?.attributes?.screenBrightness ?: -1f }
+    var brightnessLevel by remember(hostWindow) {
+        mutableFloatStateOf(
+            if (originalWindowBrightness >= 0f) originalWindowBrightness
+            else (AndroidSettings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128) / 255f)
+        )
+    }
+    var volumeLevel by remember(audioManager) {
+        mutableFloatStateOf(
+            audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() /
+                audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+        )
+    }
+    var levelHud by remember { mutableStateOf<String?>(null) }
+    var levelHudRevision by remember { mutableIntStateOf(0) }
     var controlsVisible by remember { mutableStateOf(true) }
     // Bumped on every interaction to restart the auto-hide countdown.
     var interactions by remember { mutableIntStateOf(0) }
     var seekFeedback by remember { mutableStateOf<String?>(null) }
+    var seekFeedbackForward by remember { mutableStateOf(true) }
+    var accumulatedSeekMs by remember { mutableLongStateOf(0L) }
     var quickSettingsExpanded by remember { mutableStateOf(false) }
-    var selectedSpeed by remember { mutableFloatStateOf(1f) }
-    var autoNextEnabled by remember { mutableStateOf(true) }
-    var cinematicEnabled by remember { mutableStateOf(false) }
+    var playerSettingsExpanded by remember { mutableStateOf(false) }
+    var selectedSpeed by remember { mutableFloatStateOf(PlayerPreferences.playbackSpeed(context)) }
+    var autoNextEnabled by remember { mutableStateOf(PlayerPreferences.autoNext(context)) }
+    var cinematicEnabled by remember { mutableStateOf(PlayerPreferences.cinematicEnabled(context)) }
     var cinematicSettingsExpanded by remember { mutableStateOf(false) }
-    var cinematicIntensity by remember { mutableFloatStateOf(0.35f) }
+    var cinematicIntensity by remember { mutableFloatStateOf(PlayerPreferences.cinematicIntensity(context)) }
+
+    // Restore the window's original brightness when this player surface is disposed.
+    DisposableEffect(hostWindow) {
+        onDispose {
+            hostWindow?.let { window ->
+                window.attributes = window.attributes.apply {
+                    screenBrightness = originalWindowBrightness
+                }
+            }
+        }
+    }
+    LaunchedEffect(levelHud, levelHudRevision) {
+        if (levelHud != null) {
+            delay(1100)
+            levelHud = null
+        }
+    }
+
+    // Push the saved preference to the host player so auto-next behaves consistently after reopening.
+    LaunchedEffect(Unit) { onAutoNextChange(autoNextEnabled) }
 
     // Auto-hide while playing; idle countdown restarts whenever an interaction bumps [interactions].
     LaunchedEffect(controlsVisible, isPlaying, isBuffering, interactions) {
@@ -641,8 +789,9 @@ internal fun VideoControlsOverlay(
     }
 
     val poke: () -> Unit = { interactions++ }
-    LaunchedEffect(seekFeedback) { if (seekFeedback != null) { delay(650); seekFeedback = null } }
+    LaunchedEffect(seekFeedback) { if (seekFeedback != null) { delay(850); seekFeedback = null; accumulatedSeekMs = 0L } }
     val fraction = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
+    val bufferedFraction = if (durationMs > 0) (bufferedPositionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Controls are laid out against the surface they sit on, not the device: a tablet's
@@ -665,18 +814,178 @@ internal fun VideoControlsOverlay(
         val timeStyle = if (wide) MaterialTheme.typography.titleSmall
         else MaterialTheme.typography.labelSmall
 
-        // Tap layer: toggles control visibility (sits below the controls, which consume their own taps).
+        // Single tap reveals/hides controls. Double tap: left/right seeks cumulatively,
+        // while the centre pauses or resumes instead of seeking.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
-                    detectTapGestures(onTap = { controlsVisible = !controlsVisible }, onDoubleTap = { offset -> controlsVisible = true; poke(); val forward = offset.x >= size.width / 2f; onSeekBy(if (forward) 10_000L else -10_000L); seekFeedback = if (forward) "+10 detik" else "-10 detik" })
+                    detectTapGestures(
+                        onTap = { controlsVisible = !controlsVisible },
+                        onDoubleTap = { offset ->
+                            controlsVisible = true
+                            poke()
+                            val xFraction = offset.x / size.width.toFloat()
+                            when {
+                                xFraction < 0.35f || xFraction > 0.65f -> {
+                                    val forward = xFraction > 0.65f
+                                    val step = if (forward) 10_000L else -10_000L
+                                    accumulatedSeekMs = if (seekFeedback != null && seekFeedbackForward == forward) {
+                                        accumulatedSeekMs + step
+                                    } else {
+                                        step
+                                    }
+                                    seekFeedbackForward = forward
+                                    onSeekBy(step)
+                                    val seconds = kotlin.math.abs(accumulatedSeekMs / 1000L)
+                                    seekFeedback = (if (forward) "+" else "-") + "$seconds detik"
+                                }
+                                else -> {
+                                    accumulatedSeekMs = 0L
+                                    seekFeedback = null
+                                    onPlayPause()
+                                }
+                            }
+                        }
+                    )
+                }
+                .pointerInput(hostWindow, audioManager) {
+                    var brightnessGesture = false
+                    detectVerticalDragGestures(
+                        onDragStart = { offset ->
+                            brightnessGesture = offset.x < size.width / 2f
+                            levelHud = if (brightnessGesture) "brightness" else "volume"
+                            controlsVisible = true
+                            poke()
+                        },
+                        onVerticalDrag = { change, dragAmount ->
+                            change.consume()
+                            val delta = -dragAmount / size.height.coerceAtLeast(1).toFloat() * 1.6f
+                            if (brightnessGesture) {
+                                brightnessLevel = (brightnessLevel + delta).coerceIn(0.01f, 1f)
+                                hostWindow?.let { window ->
+                                    window.attributes = window.attributes.apply {
+                                        screenBrightness = brightnessLevel
+                                    }
+                                }
+                            } else {
+                                val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+                                val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                                val next = (current + delta * maxVolume).roundToInt().coerceIn(0, maxVolume)
+                                if (next != current) {
+                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, next, 0)
+                                    volumeLevel = next.toFloat() / maxVolume
+                                }
+                            }
+                            levelHudRevision++
+                            poke()
+                        }
+                    )
                 }
         )
 
-        AnimatedVisibility(visible = seekFeedback != null, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.align(Alignment.Center)) {
+        // Vertical swipe zones: left adjusts screen brightness, right adjusts media volume.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .pointerInput(hostWindow, audioManager) {
+                    var brightnessGesture = false
+                    detectVerticalDragGestures(
+                        onDragStart = { offset ->
+                            brightnessGesture = offset.x < size.width / 2f
+                            levelHud = if (brightnessGesture) "brightness" else "volume"
+                            controlsVisible = true
+                            poke()
+                        },
+                        onVerticalDrag = { change, dragAmount ->
+                            change.consume()
+                            val delta = -dragAmount / size.height.coerceAtLeast(1).toFloat() * 1.6f
+                            if (brightnessGesture) {
+                                brightnessLevel = (brightnessLevel + delta).coerceIn(0.01f, 1f)
+                                hostWindow?.let { window ->
+                                    window.attributes = window.attributes.apply {
+                                        screenBrightness = brightnessLevel
+                                    }
+                                }
+                            } else {
+                                val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+                                val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                                val next = (current + delta * maxVolume).roundToInt().coerceIn(0, maxVolume)
+                                if (next != current) {
+                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, next, 0)
+                                    volumeLevel = next.toFloat() / maxVolume
+                                }
+                            }
+                            levelHudRevision++
+                            poke()
+                        }
+                    )
+                }
+        )
+
+        AnimatedVisibility(
+            visible = levelHud == "brightness",
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopStart).padding(start = edgePadding, top = edgePadding)
+        ) {
+            LevelGestureHud(
+                label = "Kecerahan",
+                percent = (brightnessLevel * 100).roundToInt(),
+                icon = { Icon(Icons.Filled.Brightness6, contentDescription = null) }
+            )
+        }
+        AnimatedVisibility(
+            visible = levelHud == "volume",
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopEnd).padding(end = edgePadding, top = edgePadding)
+        ) {
+            LevelGestureHud(
+                label = "Volume",
+                percent = (volumeLevel * 100).roundToInt(),
+                icon = { Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null) }
+            )
+        }        AnimatedVisibility(
+            visible = levelHud == "brightness",
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopStart).padding(start = edgePadding, top = edgePadding)
+        ) {
+            LevelGestureHud(
+                label = "Kecerahan",
+                percent = (brightnessLevel * 100).roundToInt(),
+                icon = { Icon(Icons.Filled.Brightness6, contentDescription = null) }
+            )
+        }
+        AnimatedVisibility(
+            visible = levelHud == "volume",
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopEnd).padding(end = edgePadding, top = edgePadding)
+        ) {
+            LevelGestureHud(
+                label = "Volume",
+                percent = (volumeLevel * 100).roundToInt(),
+                icon = { Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null) }
+            )
+        }
+
+        AnimatedVisibility(
+            visible = seekFeedback != null,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(if (seekFeedbackForward) Alignment.CenterEnd else Alignment.CenterStart)
+                .padding(horizontal = edgePadding)
+        ) {
             Surface(shape = RoundedCornerShape(24.dp), color = Color.Black.copy(alpha = 0.72f), contentColor = Color.White) {
-                Text(text = seekFeedback.orEmpty(), modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = seekFeedback.orEmpty(),
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
         AnimatedVisibility(
@@ -706,7 +1015,6 @@ internal fun VideoControlsOverlay(
                         contentColor = Color.White,
                         modifier = Modifier
                             .align(Alignment.TopStart)
-                            .statusBarsPadding()
                             .padding(edgePadding)
                             .size(buttonSize)
                     ) {
@@ -727,7 +1035,6 @@ internal fun VideoControlsOverlay(
                     contentColor = Color.White,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .then(if (isFullscreen) Modifier.statusBarsPadding() else Modifier)
                         .padding(edgePadding)
                         .size(buttonSize)
                 ) {
@@ -735,6 +1042,85 @@ internal fun VideoControlsOverlay(
                         Icon(Icons.Default.Settings, contentDescription = "Pengaturan pemutar", modifier = Modifier.size(buttonIconSize))
                     }
                 }
+                if (playerSettingsExpanded) {
+                    AlertDialog(
+                        onDismissRequest = { playerSettingsExpanded = false },
+                        title = { Text("Pengaturan pemutar") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("Mode tampilan")
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    listOf("Fit", "Isi layar", "Stretch").forEach { mode ->
+                                        TextButton(onClick = { onDisplayModeChange(mode); poke() }) {
+                                            Text(if (displayMode == mode) "✓ $mode" else mode)
+                                        }
+                                    }
+                                }
+                                Text("Kecepatan pemutaran · ${selectedSpeed}x")
+                                Slider(
+                                    value = selectedSpeed,
+                                    onValueChange = { selectedSpeed = it; PlayerPreferences.setPlaybackSpeed(context, it); onSetPlaybackSpeed(it) },
+                                    valueRange = 0.5f..4f,
+                                    steps = 13
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Putar episode berikutnya otomatis")
+                                    androidx.compose.material3.Switch(
+                                        checked = autoNextEnabled,
+                                        onCheckedChange = { autoNextEnabled = it; PlayerPreferences.setAutoNext(context, it); onAutoNextChange(it); poke() }
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(if (isMuted) "Suara mati" else "Suara aktif")
+                                    androidx.compose.material3.Switch(
+                                        checked = !isMuted,
+                                        onCheckedChange = { onToggleMute(); poke() }
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Pencahayaan sinematik")
+                                    androidx.compose.material3.Switch(
+                                        checked = cinematicEnabled,
+                                        onCheckedChange = { enabled ->
+                                            cinematicEnabled = enabled
+                                            PlayerPreferences.setCinematicEnabled(context, enabled)
+                                            onCinematicLightingChange(if (enabled) cinematicIntensity else 0f)
+                                        }
+                                    )
+                                }
+                                Text("Intensitas cahaya · ${(cinematicIntensity * 100).toInt()}%")
+                                Slider(
+                                    value = cinematicIntensity,
+                                    onValueChange = { cinematicIntensity = it; PlayerPreferences.setCinematicIntensity(context, it); if (cinematicEnabled) onCinematicLightingChange(it) },
+                                    valueRange = 0.05f..0.8f,
+                                    enabled = cinematicEnabled
+                                )
+                                TextButton(onClick = { onResetStretch(); poke() }) { Text("Reset Stretch") }
+                                Text(
+                                    "Cubit layar dengan dua jari untuk mengatur lebar video. Garis rasio dan snap akan muncul selama pengaturan.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { playerSettingsExpanded = false }) { Text("Selesai") }
+                        }
+                    )
+                }
+
                 if (cinematicSettingsExpanded) {
                     AlertDialog(
                         onDismissRequest = { cinematicSettingsExpanded = false },
@@ -743,10 +1129,10 @@ internal fun VideoControlsOverlay(
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                     Text("Aktifkan pencahayaan")
-                                    androidx.compose.material3.Switch(checked = cinematicEnabled, onCheckedChange = { enabled -> cinematicEnabled = enabled; onCinematicLightingChange(if (enabled) cinematicIntensity else 0f) })
+                                    androidx.compose.material3.Switch(checked = cinematicEnabled, onCheckedChange = { enabled -> cinematicEnabled = enabled; PlayerPreferences.setCinematicEnabled(context, enabled); onCinematicLightingChange(if (enabled) cinematicIntensity else 0f) })
                                 }
                                 Text("Intensitas cahaya")
-                                Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it; if (cinematicEnabled) onCinematicLightingChange(it) }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
+                                Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it; PlayerPreferences.setCinematicIntensity(context, it); if (cinematicEnabled) onCinematicLightingChange(it) }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
                                 Text("Atur kekuatan efek pencahayaan di sekitar pemutar.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         },
@@ -755,9 +1141,10 @@ internal fun VideoControlsOverlay(
                 }
 
                 DropdownMenu(expanded = quickSettingsExpanded, onDismissRequest = { quickSettingsExpanded = false }) {
+                    DropdownMenuItem(text = { Text("Pengaturan lengkap") }, onClick = { quickSettingsExpanded = false; playerSettingsExpanded = true; poke() })
                     DropdownMenuItem(text = { Text("Kecepatan") }, onClick = {})
                     listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 3f, 4f).forEach { speed ->
-                        DropdownMenuItem(text = { Text("${if (selectedSpeed == speed) "✓ " else ""}${speed}x") }, onClick = { selectedSpeed = speed; onSetPlaybackSpeed(speed); poke() })
+                        DropdownMenuItem(text = { Text("${if (selectedSpeed == speed) "✓ " else ""}${speed}x") }, onClick = { selectedSpeed = speed; PlayerPreferences.setPlaybackSpeed(context, speed); onSetPlaybackSpeed(speed); poke() })
                     }
                     if (sourceOptions.isNotEmpty()) {
                         DropdownMenuItem(text = { Text("Ganti sumber") }, onClick = {})
@@ -765,7 +1152,7 @@ internal fun VideoControlsOverlay(
                             DropdownMenuItem(text = { Text(label) }, onClick = { onSelectSource(index); quickSettingsExpanded = false; poke() })
                         }
                     }
-                    DropdownMenuItem(text = { Text("${if (autoNextEnabled) "✓ " else ""}Putar episode berikutnya otomatis") }, onClick = { autoNextEnabled = !autoNextEnabled; onAutoNextChange(autoNextEnabled); poke() })
+                    DropdownMenuItem(text = { Text("${if (autoNextEnabled) "✓ " else ""}Putar episode berikutnya otomatis") }, onClick = { autoNextEnabled = !autoNextEnabled; PlayerPreferences.setAutoNext(context, autoNextEnabled); onAutoNextChange(autoNextEnabled); poke() })
                     DropdownMenuItem(text = { Text("Pencahayaan sinematik · Pengaturan") }, onClick = { quickSettingsExpanded = false; cinematicSettingsExpanded = true; poke() })
                     DropdownMenuItem(text = { Text("${if (isMuted) "Aktifkan suara" else "Bisukan"}") }, onClick = { onToggleMute(); poke() })
                 }
@@ -797,8 +1184,7 @@ internal fun VideoControlsOverlay(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .then(if (isFullscreen) Modifier.navigationBarsPadding() else Modifier)
-                        .padding(start = edgePadding, end = edgePadding / 3, bottom = 4.dp),
+                                                .padding(start = edgePadding, end = edgePadding / 3, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -809,26 +1195,39 @@ internal fun VideoControlsOverlay(
 
                     val seekState = remember { SliderState(fraction) }
                     seekState.value = fraction
-                    Slider(
-                        state = seekState,
-                        onValueChange = { poke(); onSeek(it) },
-                        onValueChangeFinished = onSeekFinished,
-                        thumb = {
-                            SliderDefaults.Thumb(
-                                interactionSource = remember { MutableInteractionSource() },
-                                thumbSize = if (wide) DpSize(16.dp, 16.dp) else DpSize(12.dp, 12.dp),
-                                colors = SliderDefaults.colors(thumbColor = MaterialTheme.colorScheme.primary)
-                            )
-                        },
-                        colors = SliderDefaults.colors(
-                            activeTrackColor = MaterialTheme.colorScheme.primary,
-                            inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                        ),
+                    Box(
                         modifier = Modifier
                             .weight(1f)
                             .padding(horizontal = if (wide) 12.dp else 8.dp)
-                            .height(if (wide) 40.dp else 32.dp)
-                    )
+                            .height(if (wide) 40.dp else 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Keep the stock Material slider untouched; draw only the extra buffered
+                        // segment over its inactive track, without replacing its thumb or colors.
+                        Slider(
+                            state = seekState,
+                            onValueChange = { poke(); onSeek(it) },
+                            onValueChangeFinished = onSeekFinished,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        androidx.compose.foundation.Canvas(
+                            modifier = Modifier.fillMaxWidth().height(4.dp)
+                        ) {
+                            if (bufferedFraction > fraction) {
+                                val startX = (size.width * fraction + 7.dp.toPx()).coerceAtMost(size.width)
+                                val endX = size.width * bufferedFraction
+                                if (endX > startX) {
+                                    drawLine(
+                                        color = Color.White.copy(alpha = 0.55f),
+                                        start = androidx.compose.ui.geometry.Offset(startX, size.height / 2f),
+                                        end = androidx.compose.ui.geometry.Offset(endX, size.height / 2f),
+                                        strokeWidth = 4.dp.toPx(),
+                                        cap = androidx.compose.ui.graphics.StrokeCap.Round
+                                    )
+                                }
+                            }
+                        }
+                    }
 
                     Text(
                         text = formatTime(durationMs),

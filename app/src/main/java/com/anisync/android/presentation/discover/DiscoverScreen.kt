@@ -29,6 +29,8 @@ import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
@@ -175,8 +177,6 @@ fun DiscoverScreen(
     val titleLanguage by viewModel.titleLanguage.collectAsStateWithLifecycle()
 
     val coroutineScope = rememberCoroutineScope()
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
     val scrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
 
     val currentMediaType = uiState.mediaType
@@ -289,10 +289,6 @@ fun DiscoverScreen(
                 attempts++
                 if (searchBarState.currentValue != SearchBarValue.Expanded) delay(100)
             }
-            // Browse tabs open the search results programmatically. Keep the overlay open,
-            // but do not summon the keyboard; only a direct tap on the search field should do that.
-            focusManager.clearFocus(force = true)
-            keyboardController?.hide()
         }
     }
 
@@ -943,7 +939,6 @@ private fun DiscoverSearchOverlay(
     var openedFilter by remember { mutableStateOf<FilterId?>(null) }
     val category = state.activeCategory
     val focusManager = LocalFocusManager.current
-
     val fieldCollapse = rememberSearchFieldCollapse(searchBarState)
     // A spinner, an error or an empty result has nothing to scroll, so nothing else could bring
     // the field back.
@@ -965,6 +960,21 @@ private fun DiscoverSearchOverlay(
                     onSearch = { onAction(DiscoverAction.OnSearch(textFieldState.text.toString())) },
                     modifier = fieldCollapse.field.weight(1f)
                 )
+                IconButton(
+                    onClick = {
+                        val next = if (state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID)
+                            com.anisync.android.data.DiscoverViewMode.LIST
+                        else com.anisync.android.data.DiscoverViewMode.GRID
+                        onAction(DiscoverAction.OnViewModeChange(next))
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID)
+                            Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
+                        contentDescription = if (state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID)
+                            "Ubah ke tampilan daftar" else "Ubah ke tampilan grid"
+                    )
+                }
                 if (category.hasMediaFilters()) {
                     IconButton(
                         onClick = {
@@ -1061,16 +1071,7 @@ private fun SearchResultsContent(
                 modifier = Modifier.padding(top = if (category.hasMediaFilters()) 0.dp else 16.dp, bottom = 8.dp),
                 categories = state.railCategories,
                 activeCategory = category,
-                isGrid = isGrid,
-                onCategoryChange = { onAction(DiscoverAction.OnCategoryChange(it)) },
-                onGridChange = { grid ->
-                    onAction(
-                        DiscoverAction.OnViewModeChange(
-                            if (grid) com.anisync.android.data.DiscoverViewMode.GRID
-                            else com.anisync.android.data.DiscoverViewMode.LIST
-                        )
-                    )
-                }
+                onCategoryChange = { onAction(DiscoverAction.OnCategoryChange(it)) }
             )
         }
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -1173,10 +1174,7 @@ private fun SearchResults(
     com.anisync.android.presentation.discover.components.SearchResults(
         activeCategory = state.activeCategory,
         isGrid = isGrid,
-        anime = if (state.searchFilters.hideMyAnime) {
-            val myMediaIds = LocalLibraryStatuses.current.keys
-            state.searchAnime.filterNot { it.mediaId in myMediaIds }
-        } else state.searchAnime,
+        anime = state.searchAnime,
         manga = state.searchManga,
         grouped = state.groupedResults,
         paging = state.searchPaging,

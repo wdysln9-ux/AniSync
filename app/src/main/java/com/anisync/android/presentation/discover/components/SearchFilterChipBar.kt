@@ -59,7 +59,16 @@ fun SearchFilterChipBar(
             }
             add(label to filters.copy(yearRange = IntRangeFilter()))
         }
-        filters.season?.let { add(it.toLabel().orEmpty() to filters.copy(season = null)) }
+        filters.season?.let { season ->
+            val label = when (season) {
+                com.anisync.android.type.MediaSeason.WINTER -> "Winter"
+                com.anisync.android.type.MediaSeason.SPRING -> "Spring"
+                com.anisync.android.type.MediaSeason.SUMMER -> "Summer"
+                com.anisync.android.type.MediaSeason.FALL -> "Fall"
+                else -> season.toLabel().orEmpty()
+            }
+            add(label to filters.copy(season = null))
+        }
         filters.formats.forEach { value ->
             add(value.toLabel().orEmpty() to filters.copy(formats = filters.formats - value))
         }
@@ -80,27 +89,31 @@ fun SearchFilterChipBar(
             add(label to filters.copy(country = null))
         }
         filters.score.takeIf { it.isActive }?.let { value ->
-            val amount = value.value ?: return@let
-            val label = when (value.mode) {
-                ComparatorMode.AT_LEAST -> "Skor ≥ $amount"
-                ComparatorMode.AT_MOST -> "Skor ≤ $amount"
-                ComparatorMode.EXACTLY -> "Skor = $amount"
-                ComparatorMode.ANY -> "Skor $amount"
+            val amount = value.value ?: 0
+            val label = when {
+                value.maxValue != null && amount > 0 -> "Skor $amount–${value.maxValue}"
+                value.maxValue != null -> "Skor ≤ ${value.maxValue}"
+                value.mode == ComparatorMode.AT_LEAST -> "Skor ≥ $amount"
+                value.mode == ComparatorMode.AT_MOST -> "Skor ≤ $amount"
+                value.mode == ComparatorMode.EXACTLY -> "Skor = $amount"
+                else -> "Skor $amount"
             }
             add(label to filters.copy(score = IntComparatorFilter()))
         }
         filters.episodes.takeIf { it.isActive }?.let { value ->
-            val amount = value.value ?: return@let
-            val label = when (value.mode) {
-                ComparatorMode.AT_LEAST -> "Episode ≥ $amount"
-                ComparatorMode.AT_MOST -> "Episode ≤ $amount"
-                ComparatorMode.EXACTLY -> "Episode = $amount"
-                ComparatorMode.ANY -> "Episode $amount"
+            val amount = value.value ?: 0
+            val label = when {
+                value.maxValue != null && amount > 0 -> "Episode $amount–${value.maxValue}"
+                value.maxValue != null -> "Episode ≤ ${value.maxValue}"
+                value.mode == ComparatorMode.AT_LEAST -> "Episode ≥ $amount"
+                value.mode == ComparatorMode.AT_MOST -> "Episode ≤ $amount"
+                value.mode == ComparatorMode.EXACTLY -> "Episode = $amount"
+                else -> "Episode $amount"
             }
             add(label to filters.copy(episodes = IntComparatorFilter()))
         }
         if (filters.hideMyAnime) {
-            add("Hide My Anime" to filters.copy(hideMyAnime = false))
+            add("Sembunyikan Daftar" to filters.copy(hideMyAnime = false))
         }
         if (filters.sort != SearchSort()) {
             add("Urutan: ${filters.sort.column.label()}" to filters.copy(sort = SearchSort()))

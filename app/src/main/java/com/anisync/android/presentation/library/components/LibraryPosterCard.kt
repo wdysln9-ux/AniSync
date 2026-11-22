@@ -466,7 +466,7 @@ private fun ScorePosterBadge(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(Color.Black.copy(alpha = 0.55f))
+            .background(Color.Black.copy(alpha = 0.50f))
             .padding(horizontal = 6.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp)
@@ -500,7 +500,8 @@ private fun ScorePosterBadge(
 internal fun PosterStateChip(
     entry: LibraryEntry,
     aired: Int?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    backgroundAlpha: Float = 0.55f
 ) {
     val behind = if (aired != null && entry.progress < aired) aired - entry.progress else 0
     val countdown = entry.dynamicTimeUntilAiring
@@ -518,7 +519,7 @@ internal fun PosterStateChip(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(Color.Black.copy(alpha = 0.55f))
+            .background(Color.Black.copy(alpha = backgroundAlpha))
             .padding(horizontal = 6.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)

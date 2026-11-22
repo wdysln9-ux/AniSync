@@ -3,12 +3,11 @@ name: AniSync Stable ARM64 Release (Latest Only)
 on:
   push:
     branches:
+      - main
       - feature/cloudstream-watch
+      - feature/cloudstream-mpv-player
   workflow_dispatch:
 
-# Build the CloudStream watch sheet and player controls together with the ARM64 release.
-# Keep only the newest build for this branch. A new commit automatically cancels
-# an older run that is still compiling or stuck.
 concurrency:
   group: anisync-stable-arm64-${{ github.ref }}
   cancel-in-progress: true

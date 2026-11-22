@@ -96,6 +96,7 @@ import com.anisync.android.ui.theme.toDescription
 import com.anisync.android.ui.theme.toDisplayName
 import com.materialkolor.PaletteStyle
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private const val DISPLAY_SIZE_SETTLE_FRAMES = 12
 
@@ -223,24 +224,31 @@ fun LookAndFeelScreen(
     val choices: @Composable ColumnScope.() -> Unit = {
         SettingsSectionLabel(stringResource(R.string.settings_section_display_size))
         SettingsGroup {
-            SettingsBlock(
-                modifier = Modifier
-                    .selectableGroup()
-                    .onGloballyPositioned { displaySizeTilesY = it.positionInRoot().y }
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DisplaySize.entries.forEach { size ->
-                        DisplaySizeTile(
-                            size = size,
-                            current = uiState.displaySize,
-                            selected = uiState.displaySize == size,
-                            onClick = {
-                                if (size != uiState.displaySize) {
-                                    displaySizeAnchorY = displaySizeTilesY
-                                    viewModel.onAction(SettingsAction.SetDisplaySize(size))
-                                }
-                            }
+            SettingsBlock(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Ukuran tampilan", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        Text("${(uiState.displaySize.scale * 100f).roundToInt()}%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Slider(
+                        state = rememberControlledSliderState(
+                            value = uiState.displaySize.scale,
+                            valueRange = DisplaySize.MIN_SCALE..DisplaySize.MAX_SCALE
+                        ),
+                        onValueChange = { value ->
+                            val percent = (value * 100f).roundToInt().coerceIn(30, 200)
+                            displaySizeAnchorY = displaySizeTilesY
+                            viewModel.onAction(SettingsAction.SetDisplaySize(DisplaySize(percent / 100f)))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = SliderDefaults.colors(
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary
                         )
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("30%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("200%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -450,50 +458,6 @@ private fun RowScope.ThemeModeTile(mode: ThemeMode, selected: Boolean, onClick: 
                 tint = if (selected) LocalContentColor.current else MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(text = stringResource(label), style = MaterialTheme.typography.labelLarge)
-        }
-    }
-}
-
-/**
- * "Aa" as it will look at [size]. The page is already drawn at [current], so the sample is sized
- * relative to it and the selected tile always shows text at today's size.
- */
-@Composable
-private fun RowScope.DisplaySizeTile(
-    size: DisplaySize,
-    current: DisplaySize,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    val label = when (size) {
-        DisplaySize.SMALL -> R.string.display_size_small
-        DisplaySize.DEFAULT -> R.string.display_size_default
-        DisplaySize.LARGE -> R.string.display_size_large
-        DisplaySize.LARGER -> R.string.display_size_larger
-    }
-    SettingsChoiceTile(selected = selected, onClick = onClick, modifier = Modifier.weight(1f)) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(vertical = 12.dp)
-        ) {
-            // Fixed height, so the four tiles stay level while their samples differ in size.
-            Box(modifier = Modifier.height(44.dp), contentAlignment = Alignment.Center) {
-                Text(
-                    text = stringResource(R.string.display_size_sample),
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontSize = (24f * size.scale / current.scale).sp
-                    ),
-                    maxLines = 1,
-                    modifier = Modifier.clearAndSetSemantics { }
-                )
-            }
-            Text(
-                text = stringResource(label),
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
         }
     }
 }

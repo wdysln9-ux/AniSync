@@ -17,8 +17,8 @@ val ADULT_GENRES = setOf("Hentai")
  */
 enum class OriginCountry(val code: String) {
     JAPAN("JP"),
-    CHINA("CN"),
     SOUTH_KOREA("KR"),
+    CHINA("CN"),
     TAIWAN("TW")
 }
 
@@ -47,9 +47,11 @@ enum class ComparatorMode { ANY, AT_LEAST, AT_MOST, EXACTLY }
 @Immutable
 data class IntComparatorFilter(
     val mode: ComparatorMode = ComparatorMode.ANY,
-    val value: Int? = null
+    val value: Int? = null,
+    /** Optional upper bound used by the Discover score/episode range sliders. */
+    val maxValue: Int? = null
 ) {
-    val isActive: Boolean get() = mode != ComparatorMode.ANY && value != null
+    val isActive: Boolean get() = maxValue != null || (mode != ComparatorMode.ANY && value != null)
 }
 
 @Immutable
@@ -69,9 +71,7 @@ data class SearchFilters(
     val chapters: IntComparatorFilter = IntComparatorFilter(),
     val country: OriginCountry? = null,
     val adultMode: AdultMode = AdultMode.ANY,
-    val hideMyAnime: Boolean = false,
-    /** Minimum AniList tag rank (0–100); zero leaves the threshold disabled. */
-    val minimumTagRank: Int = 0
+    val hideMyAnime: Boolean = false
 ) {
     /** A changed sort counts: ordering everything by score with nothing typed is a search. */
     val hasActiveFilters: Boolean get() = sort != SearchSort() || hasNarrowingFilters

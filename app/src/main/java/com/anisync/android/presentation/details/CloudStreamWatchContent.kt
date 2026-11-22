@@ -20,6 +20,7 @@ import com.anisync.android.cloudstream.CloudStreamRuntime
 import com.anisync.android.presentation.components.VideoPlayer
 import com.anisync.android.presentation.details.components.ThemeSheet
 import com.anisync.android.presentation.details.components.SheetLabel
+import com.anisync.android.presentation.details.components.ThemeSheetIdentity
 import com.anisync.android.presentation.details.components.SourceChip
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -67,6 +68,7 @@ internal fun CloudStreamWatchContent(
     var streams by remember { mutableStateOf<List<Map<String, Any?>>>(emptyList()) }
     var subtitles by remember { mutableStateOf<List<Map<String, Any?>>>(emptyList()) }
     var selectedStream by remember { mutableStateOf<Map<String, Any?>?>(null) }
+    var preloadStream by remember { mutableStateOf<Map<String, Any?>?>(null) }
     var resolving by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Menyiapkan Auto Resolve…") }
     var error by remember { mutableStateOf<String?>(null) }
@@ -175,11 +177,40 @@ internal fun CloudStreamWatchContent(
         if (malId != null && malId > 0) metadata = withContext(Dispatchers.IO) { loadAniZip(malId) }
     }
 
+    suspend fun resolvePreloadSource(chosen: Map<String, Any?>): Map<String, Any?>? {
+        val hit = selected ?: return null
+        val number = (chosen["episode"] as? Number)?.toInt()
+        val detail = anime ?: return null
+        val eps = (detail["episodes"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
+        val match = eps.firstOrNull { item ->
+            val n = (item["episode"] as? Number)?.toInt()
+            if (number != null && n != null) n == number else item["name"]?.toString() == chosen["name"]?.toString()
+        } ?: return null
+        val data = match["data"]?.toString().orEmpty()
+        if (data.isBlank()) return null
+        return try {
+            val first = withContext(Dispatchers.IO) { CloudStreamRuntime.resolve(hit.provider, data, true) }
+            var links = (first["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
+            var done = first["done"] == true
+            val started = System.currentTimeMillis()
+            while (!done && links.isEmpty() && System.currentTimeMillis() - started < 28_000L) {
+                delay(650)
+                val next = withContext(Dispatchers.IO) { CloudStreamRuntime.pollLinks(hit.provider, data) }
+                links = (next["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
+                done = next["done"] == true
+            }
+            links.firstOrNull { !it["url"]?.toString().isNullOrBlank() }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
     fun playEpisode(chosen: Map<String, Any?>) {
         episode = chosen
         streams = emptyList()
         subtitles = emptyList()
         selectedStream = null
+        preloadStream = null
         sheet = true
         resolving = true
         status = "Mencari sumber video…"
@@ -187,7 +218,17 @@ internal fun CloudStreamWatchContent(
             val number = (chosen["episode"] as? Number)?.toInt()
             val cacheKey = "$mediaId:${number ?: chosen["data"] ?: chosen["name"]}"
             val cachedStreams = CloudStreamWatchCache.streams[cacheKey]
-            if (cachedStreams != null) { streams = cachedStreams.first; subtitles = cachedStreams.second; selectedStream = cachedStreams.first.firstOrNull(); resolving = false; return@launch }
+            if (cachedStreams != null) {
+                streams = cachedStreams.first
+                subtitles = cachedStreams.second
+                selectedStream = cachedStreams.first.firstOrNull()
+                resolving = false
+                val currentIndex = episodes.indexOfFirst { it === chosen || it == chosen }
+                episodes.getOrNull(currentIndex + 1)?.let { nextEpisode ->
+                    launch { preloadStream = resolvePreloadSource(nextEpisode) }
+                }
+                return@launch
+            }
             val candidates = listOfNotNull(selected) + hits.filter { it != selected }
             var success = false
             for (hit in candidates) {
@@ -231,6 +272,15 @@ internal fun CloudStreamWatchContent(
             }
             if (!success) error = "Tidak ada provider yang berhasil menyediakan video untuk episode ini."
             resolving = false
+            if (success) {
+                val currentIndex = episodes.indexOfFirst { it === chosen || it == chosen }
+                val nextEpisode = episodes.getOrNull(currentIndex + 1)
+                if (nextEpisode != null) {
+                    launch {
+                        preloadStream = resolvePreloadSource(nextEpisode)
+                    }
+                }
+            }
         }
     }
 
@@ -343,87 +393,108 @@ internal fun CloudStreamWatchContent(
         val number = (current["episode"] as? Number)?.toInt()
         val meta = number?.let { metadata[it] }
         ThemeSheet(onDismiss = { sheet = false; episode = null }) {
-            // Mirrors ThemeDetail's exact sheet sequence: player, identity, detail sections, footer.
-            if (selectedStream != null) {
-                val stream = selectedStream!!
-                val url = stream["url"]?.toString()
-                if (!url.isNullOrBlank()) {
-                    VideoPlayer(
-                        url = url,
-                        headers = (stream["headers"] as? Map<*, *>)?.entries?.associate {
-                            it.key.toString() to it.value.toString()
-                        }.orEmpty(),
-                        modifier = Modifier.fillMaxWidth(),
-                        playerCache = null,
-                        startMuted = false,
-                        loop = false,
-                        autoPlay = true,
-                        onAutoNextChange = { autoNextEnabled = it },
-                        autoEnterFullscreen = autoNextFullscreen,
-                        onFullscreenEntered = { autoNextFullscreen = false },
-                        onPlaybackEnded = {
-                            if (autoNextEnabled) {
-                                autoNextFullscreen = false
-                                val index = episodes.indexOfFirst { it === current || it == current }
-                                episodes.getOrNull(index + 1)?.let { next ->
-                                    autoNextFullscreen = true
-                                    playEpisode(next)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (selectedStream != null) {
+                    val stream = selectedStream!!
+                    val url = stream["url"]?.toString()
+                    if (!url.isNullOrBlank()) {
+                        VideoPlayer(
+                            url = url,
+                            headers = (stream["headers"] as? Map<*, *>)?.entries?.associate {
+                                it.key.toString() to it.value.toString()
+                            }.orEmpty(),
+                            modifier = Modifier.fillMaxWidth(),
+                            playerCache = null,
+                            startMuted = false,
+                            loop = false,
+                            autoPlay = true,
+                            useWsolaAudio = true,
+                            onAutoNextChange = { autoNextEnabled = it },
+                            autoEnterFullscreen = autoNextFullscreen,
+                            onFullscreenEntered = { autoNextFullscreen = false },
+                            preloadUrl = preloadStream?.get("url")?.toString(),
+                            preloadHeaders = (preloadStream?.get("headers") as? Map<*, *>)?.entries?.associate {
+                                it.key.toString() to it.value.toString()
+                            }.orEmpty(),
+                            onPlaybackEnded = {
+                                if (autoNextEnabled) {
+                                    autoNextFullscreen = false
+                                    val index = episodes.indexOfFirst { it === current || it == current }
+                                    episodes.getOrNull(index + 1)?.let { next ->
+                                        autoNextFullscreen = true
+                                        playEpisode(next)
+                                    }
                                 }
                             }
+                        )
+                    }
+                } else if (resolving) {
+                    Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
+
+                ThemeSheetIdentity(
+                    badge = "Episode ${number ?: "?"}",
+                    title = mediaTitle,
+                    subtitle = meta?.title ?: current["name"]?.toString()
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SheetLabel("Ringkasan episode")
+                    Text(
+                        meta?.summary?.takeIf(String::isNotBlank)
+                            ?: "Ringkasan episode belum tersedia dari AniZip.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SheetLabel("Video")
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        streams.forEach { source ->
+                            val name = source["name"]?.toString() ?: "Server"
+                            val quality = source["quality"]?.toString()
+                            SourceChip(
+                                label = listOfNotNull(name, quality).joinToString(" · "),
+                                isSelected = selectedStream === source,
+                                onClick = { selectedStream = source }
+                            )
                         }
-                    )
+                    }
+                    if (streams.isEmpty() && !resolving) {
+                        Text(
+                            "Belum ada sumber video yang tersedia.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-            } else if (resolving) {
-                Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+
+                if (subtitles.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SheetLabel("Subtitle")
+                        Text(
+                            subtitles.mapNotNull { it["lang"]?.toString() }.distinct().joinToString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-            }
 
-            Text("Episode ${number ?: "?"}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Text(mediaTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(meta?.title ?: current["name"]?.toString().orEmpty(), style = MaterialTheme.typography.titleMedium)
-
-            Spacer(Modifier.height(16.dp))
-            SheetLabel("Ringkasan episode")
-            Text(
-                meta?.summary?.takeIf(String::isNotBlank) ?: "Ringkasan episode belum tersedia dari AniZip.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(Modifier.height(16.dp))
-            SheetLabel("Video")
-            androidx.compose.foundation.layout.FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                streams.forEach { source ->
-                    val name = source["name"]?.toString() ?: "Server"
-                    val quality = source["quality"]?.toString()
-                    SourceChip(
-                        label = listOfNotNull(name, quality).joinToString(" · "),
-                        isSelected = selectedStream === source,
-                        onClick = { selectedStream = source }
-                    )
-                }
-            }
-            if (streams.isEmpty() && !resolving) {
-                Text("Belum ada sumber video yang tersedia.", style = MaterialTheme.typography.bodySmall)
-            }
-            if (subtitles.isNotEmpty()) {
                 Text(
-                    "Subtitle tersedia: " + subtitles.mapNotNull { it["lang"]?.toString() }.distinct().joinToString(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "Data judul dari AniList, metadata episode dari AniZip, dan video dari provider CloudStream.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
-
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Data judul dari AniList, metadata episode dari AniZip, dan video dari provider CloudStream.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
         }
     }
 }

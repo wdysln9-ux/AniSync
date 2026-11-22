@@ -549,6 +549,48 @@ private fun ThemeIdentity(theme: MediaTheme) {
     }
 }
 
+
+/**
+ * Shared identity block for detail sheets. Keep its badge, title, subtitle and spacing aligned
+ * with the identity block used by OP/ED panels.
+ */
+@Composable
+internal fun ThemeSheetIdentity(
+    badge: String,
+    title: String,
+    subtitle: String?
+) {
+    Column {
+        Surface(
+            color = MaterialTheme.colorScheme.primaryContainer,
+            shape = RoundedCornerShape(50)
+        ) {
+            Text(
+                text = badge,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        if (!subtitle.isNullOrBlank()) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
 @Composable
 internal fun SheetLabel(text: String) {
     Text(

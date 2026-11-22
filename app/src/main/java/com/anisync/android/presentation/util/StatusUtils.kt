@@ -126,8 +126,8 @@ fun LibraryPriority.toIcon(): ImageVector = ImageVector.vectorResource(toIconRes
 @Composable
 fun MediaStatus.toLabel(): String {
     return when (this) {
-        MediaStatus.RELEASING -> stringResource(R.string.media_status_releasing)
-        MediaStatus.FINISHED -> stringResource(R.string.media_status_finished)
+        MediaStatus.RELEASING -> "Tayang"
+        MediaStatus.FINISHED -> "Selesai"
         MediaStatus.NOT_YET_RELEASED -> stringResource(R.string.media_status_not_yet_released)
         MediaStatus.CANCELLED -> stringResource(R.string.media_status_cancelled)
         MediaStatus.HIATUS -> stringResource(R.string.media_status_hiatus)

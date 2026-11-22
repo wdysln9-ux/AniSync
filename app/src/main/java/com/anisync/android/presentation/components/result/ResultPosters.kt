@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
@@ -22,10 +23,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -63,8 +66,7 @@ import com.anisync.android.util.getTitle
 
 /**
  * A title in Discover search, as the Library grid card draws one. The bottom-end corner is the list
- * tab when the title is tracked and Add to list when it is not, and the countdown takes the other
- * bottom corner on anything with a schedule.
+ * tab when the title is tracked and Add to list when it is not; the airing countdown is top-right.
  */
 @Composable
 fun DiscoverResultPoster(
@@ -100,15 +102,58 @@ fun DiscoverResultPoster(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            // Without a list entry nothing is waiting to be watched, so the chip only ever counts
-            // down to the next episode.
+            // Score badge: no filled container, with both the star and value using the
+            // same score-tier color as AnimeW.
+            entry.communityScoreLabel()?.let { score ->
+                val scoreColor = when {
+                    (entry.averageScore ?: 0) >= 75 -> Color(0xFF4CAF50)
+                    (entry.averageScore ?: 0) >= 70 -> Color(0xFFFFD54F)
+                    (entry.averageScore ?: 0) >= 60 -> Color(0xFFFF9800)
+                    else -> Color(0xFFF44336)
+                }
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = scoreColor,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = score,
+                        color = scoreColor,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+            // Episode count sits at the lower-left corner, also without a filled background.
+            entry.totalEpisodes?.takeIf { it > 1 }?.let { episodeCount ->
+                Text(
+                    text = "Ep $episodeCount",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                )
+            }
+            // Keep the next-episode countdown in the upper-left corner, opposite the score.
             PosterStateChip(
                 entry = entry,
                 aired = null,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(10.dp)
-                    .widthIn(max = (maxWidth - 76.dp).coerceAtLeast(0.dp))
+                modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+                backgroundAlpha = 0.6f
             )
             if (listStatus != null) {
                 ListIndicator(
@@ -124,11 +169,7 @@ fun DiscoverResultPoster(
             }
         }
         PosterText(title = title) {
-            val score = entry.communityScoreLabel()
-            PosterFacts(
-                facts = entry.formatAndYear(),
-                value = score?.let { { PosterIconValue(Icons.Default.Star, StarGold, it, iconSize = 15.dp) } }
-            )
+            PosterFacts(facts = entry.formatAndYear(), value = null)
         }
     }
 }

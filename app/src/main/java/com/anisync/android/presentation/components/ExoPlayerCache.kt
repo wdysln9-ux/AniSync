@@ -2,6 +2,10 @@ package com.anisync.android.presentation.components
 
 import android.content.Context
 import android.util.Log
+import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
+import java.io.File
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -18,6 +22,7 @@ import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.upstream.Loader
@@ -127,24 +132,34 @@ internal fun buildVideoExoPlayer(
     autoPlay: Boolean = false,
     cache: Cache? = null,
     headers: Map<String, String> = emptyMap(),
+    useWsolaAudio: Boolean = false,
 ): ExoPlayer {
     val loadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
-            1500, // minBufferMs: minimum buffered before playback starts
-            5000, // maxBufferMs: maximum buffered
-            500,  // bufferForPlaybackMs
-            1500  // bufferForPlaybackAfterRebufferMs
+            30_000,       // Start/continue with a meaningful 30-second forward buffer.
+            15 * 60_000,  // Allow up to 15 minutes ahead for long-form episodes on slow networks.
+            5_000,        // Avoid declaring playback ready with only a couple of seconds.
+            10_000        // Rebuffer with a larger safety margin than the old 5-second setting.
         )
-        // 4 MB cap holds a typical short AniList clip in full, so the REPEAT_MODE_ONE loop
-        // replays from memory instead of re-downloading every pass, while bounding total
-        // memory across the (max 6) cached players.
-        .setTargetBufferBytes(4 * 1024 * 1024)
+        // Keep several minutes behind the playhead available for backward seeking.
+        .setBackBuffer(4 * 60_000, true)
+        // The disk cache holds downloaded segments; prioritize time so buffering is not
+        // prematurely constrained by a small sample-queue byte threshold.
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
-    return ExoPlayer.Builder(context)
+    // Test Android AudioTrack's playback-parameter path instead of Media3's application-side
+    // Sonic time-stretching. The platform implementation is device-dependent, so compare
+    // speech clarity, artifacts, A/V sync, and stability at 2x, 3x, and 4x on real hardware.
+    // Keep float output disabled so this path uses the normal PCM output chain.
+    val renderersFactory = DefaultRenderersFactory(context)
+        .setEnableAudioFloatOutput(false)
+        .setEnableAudioOutputPlaybackParameters(true)
+
+    val diskCache = cache ?: SharedVideoDiskCache.get(context)
+    return ExoPlayer.Builder(context, renderersFactory)
         .setLoadControl(loadControl)
-        .setMediaSourceFactory(DefaultMediaSourceFactory(videoDataSourceFactory(cache, headers)))
+        .setMediaSourceFactory(DefaultMediaSourceFactory(videoDataSourceFactory(diskCache, headers)))
         .build().apply {
             setMediaItem(MediaItem.fromUri(url))
             repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
@@ -160,6 +175,24 @@ internal fun buildVideoExoPlayer(
             })
             prepare()
         }
+}
+
+/**
+ * Shared persistent cache for streamed video. The LRU evictor keeps the directory below 1.2 GB
+ * and removes least-recently-used media when space is needed.
+ */
+@OptIn(UnstableApi::class)
+internal object SharedVideoDiskCache {
+    private const val MAX_CACHE_BYTES = 1_200L * 1024L * 1024L
+    @Volatile private var instance: SimpleCache? = null
+
+    fun get(context: Context): Cache = instance ?: synchronized(this) {
+        instance ?: SimpleCache(
+            File(context.applicationContext.cacheDir, "stream-video-cache"),
+            LeastRecentlyUsedCacheEvictor(MAX_CACHE_BYTES),
+            StandaloneDatabaseProvider(context.applicationContext)
+        ).also { instance = it }
+    }
 }
 
 @OptIn(UnstableApi::class)

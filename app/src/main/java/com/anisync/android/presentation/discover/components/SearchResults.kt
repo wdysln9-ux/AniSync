@@ -41,10 +41,8 @@ import com.anisync.android.domain.ResultCategory
 import com.anisync.android.domain.SearchResult
 import com.anisync.android.presentation.components.AppCircularProgressIndicator
 import com.anisync.android.presentation.components.OnSearchSurface
-import com.anisync.android.presentation.components.PinnedRail
 import com.anisync.android.presentation.components.RailChip
 import com.anisync.android.presentation.components.revealChip
-import com.anisync.android.presentation.components.ViewModeToggle
 import com.anisync.android.presentation.components.result.DiscoverResultPoster
 import com.anisync.android.presentation.components.result.DiscoverResultRow
 import com.anisync.android.presentation.components.result.PersonResultPoster
@@ -72,9 +70,7 @@ private val PosterWidth = 150.dp
 fun SearchResultsRail(
     categories: List<ResultCategory>,
     activeCategory: ResultCategory,
-    isGrid: Boolean,
     onCategoryChange: (ResultCategory) -> Unit,
-    onGridChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -84,9 +80,10 @@ fun SearchResultsRail(
         if (selectedIndex >= 0) listState.revealChip(selectedIndex)
     }
     OnSearchSurface {
-        PinnedRail(
-            pinned = { ViewModeToggle(isGrid = isGrid, onGridChange = onGridChange) },
-            listState = listState,
+        LazyRow(
+            state = listState,
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = modifier
         ) {
             items(categories, key = { it.name }) { category ->

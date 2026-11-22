@@ -101,7 +101,6 @@ class SearchRepositoryImpl @Inject constructor(
                     genre_not_in = filters.genresExcluded.toOptionalList(),
                     tag_in = filters.tagsIncluded.toOptionalList(),
                     tag_not_in = filters.tagsExcluded.toOptionalList(),
-                    minimumTagRank = if (filters.minimumTagRank > 0) Optional.present(filters.minimumTagRank) else Optional.absent(),
                     format_in = filters.formats.toOptionalList(),
                     status_in = filters.statuses.toOptionalList(),
                     source_in = filters.sources.toOptionalList(),
@@ -120,7 +119,8 @@ class SearchRepositoryImpl @Inject constructor(
                     chapters_lesser = filters.chapters.lesser(),
                     countryOfOrigin = filters.country?.let { Optional.present(it.code) }
                         ?: Optional.absent(),
-                    isAdult = resolveAdultFilter(filters.adultMode, quickSearch = true)
+                    isAdult = resolveAdultFilter(filters.adultMode, quickSearch = true),
+                    onList = if (type == MediaType.ANIME && filters.hideMyAnime) Optional.present(false) else Optional.absent()
                 )
             )
                 .fetchPolicy(FetchPolicy.NetworkOnly)
@@ -241,7 +241,6 @@ class SearchRepositoryImpl @Inject constructor(
                         genre_not_in = filters.genresExcluded.toOptionalList(),
                         tag_in = filters.tagsIncluded.toOptionalList(),
                         tag_not_in = filters.tagsExcluded.toOptionalList(),
-                        minimumTagRank = if (filters.minimumTagRank > 0) Optional.present(filters.minimumTagRank) else Optional.absent(),
                         format_in = filters.formats.toOptionalList(),
                         status_in = filters.statuses.toOptionalList(),
                         source_in = filters.sources.toOptionalList(),
@@ -260,7 +259,8 @@ class SearchRepositoryImpl @Inject constructor(
                         chapters_lesser = filters.chapters.lesser(),
                         countryOfOrigin = filters.country?.let { Optional.present(it.code) }
                             ?: Optional.absent(),
-                        isAdult = resolveAdultFilter(filters.adultMode, quickSearch = false)
+                        isAdult = resolveAdultFilter(filters.adultMode, quickSearch = false),
+                        animeOnList = if (filters.hideMyAnime) Optional.present(false) else Optional.absent()
                     )
                 )
                     .fetchPolicy(FetchPolicy.NetworkOnly)
@@ -466,9 +466,12 @@ class SearchRepositoryImpl @Inject constructor(
         } else Optional.absent()
 
     private fun com.anisync.android.domain.IntComparatorFilter.lesser(): Optional<Int?> =
-        if (mode == com.anisync.android.domain.ComparatorMode.AT_MOST && value != null) {
-            Optional.present(value + 1)
-        } else Optional.absent()
+        when {
+            maxValue != null -> Optional.present(maxValue + 1)
+            mode == com.anisync.android.domain.ComparatorMode.AT_MOST && value != null ->
+                Optional.present(value + 1)
+            else -> Optional.absent()
+        }
 }
 
 /** A moderator still serving. AniList's website shows their role where a donator badge would go. */

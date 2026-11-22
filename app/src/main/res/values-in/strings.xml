@@ -41,7 +41,6 @@
     <string name="status_rereading">Membaca ulang</string>
     <string name="discover_spotlight_rank">#1</string>
     <string name="discover_airing_now">TAYANG</string>
-    <string name="discover_browse_recommendations">Rekomendasi</string>
     <string name="discover_browse_seasonal">Musiman</string>
     <string name="discover_browse_studios">Studio</string>
     <string name="discover_browse_genres">Genre</string>
@@ -113,7 +112,7 @@
     <string name="discover_section_trending">Sedang tren</string>
     <string name="discover_section_airing_today">Tayang hari ini</string>
     <string name="discover_section_releasing_now">Sedang rilis</string>
-    <string name="discover_section_popular">Rekomendasi</string>
+    <string name="discover_section_popular">Terpopuler sepanjang masa</string>
     <string name="discover_section_not_yet_released">Belum rilis</string>
     <string name="discover_section_newly_added">Baru di AniList</string>
     <string name="discover_section_reviews">Ulasan terbaru</string>
@@ -1384,7 +1383,7 @@
     <string name="library_episode_count">%1$d eps</string>
     <string name="library_chapter_count">%1$d bab</string>
     <string name="library_sort_by_label">Urutkan berdasarkan</string>
-    <string name="library_filter_airing_status">Status</string>
+    <string name="library_filter_airing_status">Status tayang</string>
     <string name="library_filter_format">Format</string>
     <string name="library_episodes_behind_short">Sisa %1$d</string>
     <string name="library_progress_out">%1$d / %2$d tayang</string>
@@ -1747,12 +1746,12 @@
     <string name="a11y_filter_off">Nonaktif</string>
     <string name="a11y_filter_included">Disertakan</string>
     <string name="a11y_filter_excluded">Dikecualikan</string>
-    <string name="library_filter_exclude_hint">Ketuk untuk menyertakan, ketuk lagi untuk mengecualikan. Tekan lama untuk mengecualikan.</string>
+    <string name="library_filter_exclude_hint">Ketuk untuk menyertakan, tekan lama untuk mengecualikan.</string>
     <string name="filter_hint_with_counts">%1$s. %2$s</string>
     <string name="filter_chip_value">%1$s · %2$s</string>
     <string name="filter_chip_value_more">%1$s · %2$s +%3$d</string>
     <string name="filter_value_more">%1$s +%2$d</string>
-    <string name="filter_publishing_status">Status</string>
+    <string name="filter_publishing_status">Status publikasi</string>
     <string name="filter_year_and_season">Tahun dan musim</string>
     <string name="filter_more_title">Filter lainnya</string>
     <string name="filter_source">Sumber</string>
