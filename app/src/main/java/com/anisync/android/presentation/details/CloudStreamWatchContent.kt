@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.*\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.GridView\nimport androidx.compose.material.icons.filled.Sort\nimport androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -349,26 +349,84 @@ internal fun CloudStreamWatchContent(
         }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         if (anime != null && episodes.isNotEmpty()) {
-            Text("${episodes.size} episode", style = MaterialTheme.typography.titleMedium)
-            LazyColumn(Modifier.fillMaxWidth().height(560.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(episodes, key = { (it["data"] ?: it["episode"] ?: it.hashCode()).toString() }) { item ->
-                    val n = (item["episode"] as? Number)?.toInt()
-                    val meta = n?.let { metadata[it] }
-                    val title = meta?.title?.takeIf(String::isNotBlank) ?: item["name"]?.toString()?.takeIf(String::isNotBlank) ?: "Episode ${n ?: "?"}"
-                    Card(
-                        onClick = { playEpisode(item) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .graphicsLayer { alpha = if (n != null && trackedProgress != null && n <= trackedProgress) 0.48f else 1f },
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            var newestFirst by rememberSaveable(mediaId) { mutableStateOf(false) }
+            var gridMode by rememberSaveable(mediaId) { mutableStateOf(false) }
+            val displayedEpisodes = remember(episodes, newestFirst) {
+                if (newestFirst) episodes.sortedByDescending { (it["episode"] as? Number)?.toInt() ?: Int.MIN_VALUE }
+                else episodes.sortedBy { (it["episode"] as? Number)?.toInt() ?: Int.MAX_VALUE }
+            }
+            val episodeRows = remember(displayedEpisodes, gridMode) {
+                if (gridMode) displayedEpisodes.chunked(2) else displayedEpisodes.map(::listOf)
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("${episodes.size} episode", style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        onClick = { newestFirst = !newestFirst },
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh
                     ) {
-                        Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            AsyncImage(model = meta?.image ?: item["posterUrl"]?.toString(), contentDescription = null, modifier = Modifier.size(112.dp, 66.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Text("${n ?: "?"}. ${title}", style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                Text(meta?.releaseDate ?: "Tanggal rilis belum tersedia", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f))
+                        Icon(
+                            imageVector = Icons.Filled.Sort,
+                            contentDescription = if (newestFirst) "Urutkan episode paling lama" else "Urutkan episode paling baru",
+                            modifier = Modifier.padding(11.dp).size(20.dp)
+                        )
+                    }
+                    Surface(
+                        onClick = { gridMode = !gridMode },
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ) {
+                        Icon(
+                            imageVector = if (gridMode) Icons.Filled.ViewAgenda else Icons.Filled.GridView,
+                            contentDescription = if (gridMode) "Tampilan daftar" else "Tampilan grid",
+                            modifier = Modifier.padding(11.dp).size(20.dp)
+                        )
+                    }
+                }
+            }
+            LazyColumn(Modifier.fillMaxWidth().height(560.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(episodeRows, key = { row -> (row.firstOrNull()?.let { it["data"] ?: it["episode"] ?: it.hashCode() } ?: "empty").toString() }) { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { item ->
+                            val n = (item["episode"] as? Number)?.toInt()
+                            val meta = n?.let { metadata[it] }
+                            val title = meta?.title?.takeIf(String::isNotBlank) ?: item["name"]?.toString()?.takeIf(String::isNotBlank) ?: "Episode ${n ?: "?"}"
+                            Card(
+                                onClick = { playEpisode(item) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .then(if (gridMode) Modifier.height(178.dp) else Modifier)
+                                    .graphicsLayer { alpha = if (n != null && trackedProgress != null && n <= trackedProgress) 0.48f else 1f },
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                            ) {
+                                if (gridMode) {
+                                    AsyncImage(
+                                        model = meta?.image ?: item["posterUrl"]?.toString(),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxWidth().height(112.dp).clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Column(Modifier.fillMaxWidth().padding(9.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Text("Episode ${n ?: "?"}", style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(title, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    }
+                                } else {
+                                    Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        AsyncImage(model = meta?.image ?: item["posterUrl"]?.toString(), contentDescription = null, modifier = Modifier.size(112.dp, 66.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
+                                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                            Text("${n ?: "?"}. ${title}", style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                            Text(meta?.releaseDate ?: "Tanggal rilis belum tersedia", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f))
+                                        }
+                                    }
+                                }
                             }
                         }
+                        if (gridMode && row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }
