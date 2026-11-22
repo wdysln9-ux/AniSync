@@ -127,6 +127,10 @@ query SearchEverything(
         medium
       }
       favourites
+      dateOfBirth {
+        month
+        day
+      }
     }
   }
   staff: Page(page: $page, perPage: $perPage) @include(if: $wantEntities) {
@@ -145,6 +149,10 @@ query SearchEverything(
       }
       primaryOccupations
       favourites
+      dateOfBirth {
+        month
+        day
+      }
     }
   }
   users: Page(page: $page, perPage: $perPage) @include(if: $wantEntities) {
