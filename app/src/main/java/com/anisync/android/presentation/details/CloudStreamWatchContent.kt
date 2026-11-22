@@ -224,13 +224,38 @@ internal fun CloudStreamWatchContent(
         }
     }
 
-    fun playEpisode(chosen: Map<String, Any?>, preferredServerName: String? = null) {
+    fun playEpisode(
+        chosen: Map<String, Any?>,
+        preferredServerName: String? = null,
+        preloadedSource: Map<String, Any?>? = null
+    ) {
         episode = chosen
+        sheet = true
+        error = null
+
+        // Auto Next already resolved this source in the background. Reuse it immediately and
+        // keep the existing episode panel/player composed instead of showing the first-open loader.
+        if (preloadedSource != null && !preloadedSource["url"]?.toString().isNullOrBlank()) {
+            val previousStreams = streams
+            streams = (previousStreams.filterNot { sameServer(it, preloadedSource["name"]?.toString()) } + preloadedSource)
+            selectedStream = preloadedSource
+            subtitles = emptyList()
+            preloadStream = null
+            resolving = false
+            status = "Memutar episode berikutnya…"
+            val nextIndex = episodes.indexOfFirst { it === chosen || it == chosen }
+            episodes.getOrNull(nextIndex + 1)?.let { nextEpisode ->
+                scope.launch {
+                    preloadStream = resolvePreloadSource(nextEpisode, preloadedSource["name"]?.toString())
+                }
+            }
+            return
+        }
+
         streams = emptyList()
         subtitles = emptyList()
         selectedStream = null
         preloadStream = null
-        sheet = true
         resolving = true
         status = "Mencari sumber video…"
         scope.launch {
@@ -515,7 +540,12 @@ internal fun CloudStreamWatchContent(
                                     autoNextFullscreen = FullscreenVideoBridge.isFullscreen
                                     val index = episodes.indexOfFirst { it === current || it == current }
                                     episodes.getOrNull(index + 1)?.let { next ->
-                                        playEpisode(next, selectedStream?.get("name")?.toString())
+                                        val readyNextSource = preloadStream
+                                    playEpisode(
+                                        next,
+                                        selectedStream?.get("name")?.toString(),
+                                        readyNextSource
+                                    )
                                     }
                                 }
                             }
