@@ -64,8 +64,8 @@ enum class BrowseChip {
  */
 fun browseChipsFor(type: MediaType): List<BrowseChip> = if (type == MediaType.ANIME) {
     listOf(
-        BrowseChip.RECOMMENDATIONS,
         BrowseChip.SEASONAL,
+        BrowseChip.RECOMMENDATIONS,
         BrowseChip.GENRES,
         BrowseChip.TOP_100,
         BrowseChip.SCHEDULE,
