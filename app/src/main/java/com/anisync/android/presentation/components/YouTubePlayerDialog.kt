@@ -99,7 +99,6 @@ fun YouTubePlayerDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(16f / 9f)
-                            .clip(RoundedCornerShape(12.dp))
                     )
                 }
             }
@@ -125,10 +124,10 @@ private fun YouTubeWebView(
         </head>
         <body>
           <iframe
-            src="https://www.youtube-nocookie.com/embed/$videoId?autoplay=1&playsinline=1&rel=0"
+            src="https://www.youtube.com/embed/$videoId?autoplay=1&mute=1&playsinline=1&controls=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fanisync.app"
             title="YouTube video player"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerpolicy="strict-origin-when-cross-origin"
+            referrerpolicy="origin"
             allowfullscreen>
           </iframe>
         </body>
@@ -151,6 +150,7 @@ private fun YouTubeWebView(
                     settings.domStorageEnabled = true
                     settings.mediaPlaybackRequiresUserGesture = false
                     settings.loadsImagesAutomatically = true
+                    settings.databaseEnabled = true
                     settings.javaScriptCanOpenWindowsAutomatically = false
                     settings.setSupportMultipleWindows(false)
                     settings.allowContentAccess = false
@@ -158,6 +158,8 @@ private fun YouTubeWebView(
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                     webViewClient = WebViewClient()
                     webChromeClient = WebChromeClient()
+                    isFocusable = true
+                    isFocusableInTouchMode = true
                     loadDataWithBaseURL(
                         "https://anisync.app/",
                         html,
