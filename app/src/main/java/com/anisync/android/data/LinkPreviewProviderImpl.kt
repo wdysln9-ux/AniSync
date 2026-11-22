@@ -40,7 +40,14 @@ class LinkPreviewProviderImpl @Inject constructor(
                     title = entity.titleUserPreferred,
                     imageUrl = entity.coverUrl,
                     coverColor = entity.coverColor,
-                    subtitle = buildMediaSubtitle(entity.format, entity.seasonYear ?: entity.year)
+                    subtitle = buildMediaSubtitle(
+                        format = entity.format,
+                        season = entity.season,
+                        year = entity.seasonYear ?: entity.year,
+                        type = entity.mediaType?.name,
+                        episodes = entity.episodes,
+                        chapters = entity.chapters
+                    )
                 )
             } else {
                 uncachedMediaIds.add(link.id)
@@ -79,7 +86,14 @@ class LinkPreviewProviderImpl @Inject constructor(
                         title = media.title?.userPreferred ?: return@forEach,
                         imageUrl = media.coverImage?.large,
                         coverColor = media.coverImage?.color,
-                        subtitle = buildMediaSubtitle(media.format?.rawValue, media.seasonYear)
+                        subtitle = buildMediaSubtitle(
+                            format = media.format?.rawValue,
+                            season = media.season?.rawValue,
+                            year = media.seasonYear,
+                            type = media.type?.name,
+                            episodes = media.episodes,
+                            chapters = media.chapters
+                        )
                     )
                 }
 
@@ -122,10 +136,38 @@ class LinkPreviewProviderImpl @Inject constructor(
         return result
     }
 
-    /** Media secondary line, e.g. "TV · 2024". Either part may be missing. */
-    private fun buildMediaSubtitle(format: String?, year: Int?): String? {
-        val parts = listOfNotNull(format?.let(::prettyFormat), year?.toString())
+    /** Media secondary line, e.g. "TV · Summer 2024 · 12 Episode". */
+    private fun buildMediaSubtitle(
+        format: String?,
+        season: String?,
+        year: Int?,
+        type: String?,
+        episodes: Int?,
+        chapters: Int?
+    ): String? {
+        val seasonAndYear = listOfNotNull(
+            season?.let(::prettySeason),
+            year?.toString()
+        ).joinToString(" ").takeIf { it.isNotBlank() }
+        val count = when (type?.uppercase()) {
+            "ANIME" -> episodes?.takeIf { it > 0 }?.let { "$it Episode" }
+            "MANGA" -> chapters?.takeIf { it > 0 }?.let { "$it Chapter" }
+            else -> null
+        }
+        val parts = listOfNotNull(
+            format?.let(::prettyFormat),
+            seasonAndYear,
+            count
+        )
         return parts.joinToString(" · ").takeIf { it.isNotBlank() }
+    }
+
+    private fun prettySeason(raw: String): String = when (raw.uppercase()) {
+        "WINTER" -> "Winter"
+        "SPRING" -> "Spring"
+        "SUMMER" -> "Summer"
+        "FALL" -> "Fall"
+        else -> raw.lowercase().replaceFirstChar { it.uppercase() }
     }
 
     private fun prettyFormat(raw: String): String = when (raw.uppercase()) {
