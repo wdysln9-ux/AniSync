@@ -292,10 +292,11 @@ private fun StudioDetailsContent(
     val uriHandler = LocalUriHandler.current
     val listStatuses = LocalLibraryStatuses.current
 
-    // A studio has no banner of its own, so the hero borrows the one from the work it is best
-    // known for and says so, exactly as the person screens do.
+    // A studio has no banner of its own, so the hero borrows the banner from its
+    // fifth-most-popular work (the API catalogue is already ordered by popularity).
     val backdrop = remember(studio.media, titleLanguage) {
-        studio.media.firstOrNull { it.bannerUrl != null }
+        studio.media.getOrNull(4)
+            ?.takeIf { it.bannerUrl != null }
             ?.let { it.bannerUrl to it.getTitle(titleLanguage) }
     }
     // Work the studio led comes first: a co-production is a poor face for the studio, and the
