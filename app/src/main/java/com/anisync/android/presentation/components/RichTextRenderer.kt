@@ -997,7 +997,8 @@ private fun RenderSingleBlock(
                 is RichTextBlock.Video -> {
                     VideoPlayer(
                         url = block.url,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        startMuted = false
                     )
                 }
             }
