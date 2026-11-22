@@ -148,16 +148,12 @@ internal fun buildVideoExoPlayer(
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
-    // CloudStream episode playback uses the dedicated WSOLA processor so high speeds
-    // preserve pitch and avoid the device-dependent AudioTrack rate-conversion path.
-    // Other embedded clips keep Media3's standard renderer configuration.
-    val renderersFactory = if (useWsolaAudio) {
-        WsolaRenderersFactory(context)
-    } else {
-        DefaultRenderersFactory(context)
-            .setEnableAudioFloatOutput(false)
-            .setEnableAudioOutputPlaybackParameters(true)
-    }
+    // Use Media3's built-in Sonic time-stretch processor for playback speed.
+    // Keep AudioTrack output-rate adjustment disabled: on some devices it introduces
+    // audible latency/artifacts, while Sonic processes decoded PCM in the player pipeline.
+    val renderersFactory = DefaultRenderersFactory(context)
+        .setEnableAudioFloatOutput(false)
+        .setEnableAudioOutputPlaybackParameters(false)
 
     val diskCache = cache ?: SharedVideoDiskCache.get(context)
     return ExoPlayer.Builder(context, renderersFactory)
