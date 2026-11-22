@@ -162,6 +162,16 @@ private fun MediaLinkCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+
+            preview?.score?.let { score ->
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "${score.coerceIn(0, 100)}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
