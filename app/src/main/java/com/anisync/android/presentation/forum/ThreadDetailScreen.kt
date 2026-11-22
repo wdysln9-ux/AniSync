@@ -257,13 +257,17 @@ fun ThreadDetailScreen(
         }
     }
 
-    val visibleComments by remember {
+    val visibleComments by remember(flatComments, anchorCommentId, commentDetailMode) {
         derivedStateOf {
             val collapsed = collapsedIds
             val focusId = drillDownStack.lastOrNull()
             flatComments.filter { flat ->
-                flat.ancestorIds.none { it in collapsed } &&
-                        (focusId == null || flat.comment.id == focusId || focusId in flat.ancestorIds)
+                val belongsToSelectedComment = !commentDetailMode ||
+                    (anchorCommentId != null &&
+                        (flat.comment.id == anchorCommentId || anchorCommentId in flat.ancestorIds))
+                belongsToSelectedComment &&
+                    flat.ancestorIds.none { it in collapsed } &&
+                    (focusId == null || flat.comment.id == focusId || focusId in flat.ancestorIds)
             }
         }
     }
