@@ -417,15 +417,16 @@ private fun ProfileIdentityDetails(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val level = remember(profile.animeCount, profile.mangaCount) {
-                (profile.animeCount + profile.mangaCount) / 10
+            val level = remember(profile.minutesWatched) {
+                (profile.minutesWatched.coerceAtLeast(0) / 60)
             }
+            val formattedLevel = rememberIntegerFormat().format(level)
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 shape = CircleShape
             ) {
                 Text(
-                    text = stringResource(R.string.profile_level, level),
+                    text = stringResource(R.string.profile_level, formattedLevel),
                     style = MaterialTheme.typography.labelLarge.emphasis(),
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
