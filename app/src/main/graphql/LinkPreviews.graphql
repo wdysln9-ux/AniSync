@@ -16,6 +16,8 @@ query GetLinkPreviews($mediaIds: [Int], $characterIds: [Int], $staffIds: [Int]) 
             seasonYear
             episodes
             chapters
+            averageScore: weightedScore
+            genres
             type
         }
     }
