@@ -35,8 +35,10 @@ add_library(rubberband-jni SHARED
 )
 
 target_include_directories(rubberband-jni PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/compat
     ${RB}
     ${RBS}
+    ${RBS}/common
     ${RBS}/ext/kissfft
 )
 target_compile_features(rubberband-jni PRIVATE cxx_std_17)
