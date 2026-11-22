@@ -1116,9 +1116,6 @@ fun DetailsPageContent(
     // app bar, so the two never read as duplicates. Both positions come from real measurements, not
     // a scroll-offset lookup, so a resize can't make them drift.
     val density = LocalDensity.current
-    val swipeAnimationScope = rememberCoroutineScope()
-    var pageDragOffset by remember { mutableFloatStateOf(0f) }
-    var pageSwipeAnimating by remember { mutableStateOf(false) }
     // The dock line is the app bar's measured height, which the Scaffold hands down. It cannot be
     // rebuilt from the status bar inset, because the bar only draws under the status bar when the
     // page fills the window: in a two-pane detail pane the pane already starts below it, and adding
@@ -1127,6 +1124,8 @@ fun DetailsPageContent(
     val dockPx = with(density) { topBarHeight.roundToPx() }.toFloat()
     var contentTopWindow by remember { mutableFloatStateOf(0f) }
     var inlineTabsTopWindow by remember { mutableFloatStateOf(Float.MAX_VALUE) }
+    var inlineTabsBottomWindow by remember { mutableFloatStateOf(Float.MAX_VALUE) }
+    var pinnedTabsBottomWindow by remember { mutableFloatStateOf(Float.MAX_VALUE) }
     // Coming back to the page below the tabs never lays the in-list strip out, so its top is never
     // measured and the pinned copy goes by the list's position instead. The tabs are item 2.
     val tabsDocked by remember {
@@ -1141,62 +1140,46 @@ fun DetailsPageContent(
             .onGloballyPositioned { contentTopWindow = it.boundsInWindow().top }
     ) {
         val swipeThresholdPx = with(density) { 56.dp.toPx() }
+        val fallbackTabsBottom = dockPx + with(density) { 56.dp.toPx() }
+        val swipeContentStartPx = if (tabsDocked) {
+            (pinnedTabsBottomWindow - contentTopWindow)
+                .takeIf { it.isFinite() && it > 0f } ?: fallbackTabsBottom
+        } else {
+            (inlineTabsBottomWindow - contentTopWindow)
+                .takeIf { it.isFinite() && it > 0f } ?: Float.MAX_VALUE
+        }
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                // The page follows the finger while dragging, then completes the slide before
-                // swapping tabs and brings the next page in from the opposite edge.
-                .graphicsLayer { translationX = pageDragOffset }
-                .pointerInput(availableTabs, effectiveTab, swipeThresholdPx) {
+                // Horizontal paging starts only below the tab strip. The header, tracker and tabs
+                // stay fixed while the user swipes between the tab contents.
+                .pointerInput(availableTabs, effectiveTab, swipeThresholdPx, swipeContentStartPx) {
                     var horizontalDrag = 0f
+                    var swipeStartedInContent = false
                     detectHorizontalDragGestures(
-                        onDragStart = {
+                        onDragStart = { offset ->
                             horizontalDrag = 0f
-                            pageSwipeAnimating = false
-                            pageDragOffset = 0f
+                            swipeStartedInContent = offset.y >= swipeContentStartPx
                         },
                         onDragEnd = {
-                            val currentIndex = availableTabs.indexOf(effectiveTab)
-                            val nextTab = when {
-                                horizontalDrag <= -swipeThresholdPx && currentIndex in 0 until availableTabs.lastIndex ->
-                                    availableTabs[currentIndex + 1]
-                                horizontalDrag >= swipeThresholdPx && currentIndex > 0 ->
-                                    availableTabs[currentIndex - 1]
-                                else -> null
-                            }
-                            val width = size.width.toFloat().coerceAtLeast(1f)
-                            swipeAnimationScope.launch {
-                                pageSwipeAnimating = true
-                                val exitTarget = when {
-                                    nextTab == null -> 0f
-                                    horizontalDrag < 0f -> -width
-                                    else -> width
+                            if (swipeStartedInContent) {
+                                val currentIndex = availableTabs.indexOf(effectiveTab)
+                                val nextTab = when {
+                                    horizontalDrag <= -swipeThresholdPx && currentIndex in 0 until availableTabs.lastIndex ->
+                                        availableTabs[currentIndex + 1]
+                                    horizontalDrag >= swipeThresholdPx && currentIndex > 0 ->
+                                        availableTabs[currentIndex - 1]
+                                    else -> null
                                 }
-                                animate(
-                                    initialValue = pageDragOffset,
-                                    targetValue = exitTarget,
-                                    animationSpec = tween(durationMillis = if (nextTab == null) 180 else 150)
-                                ) { value, _ -> pageDragOffset = value }
-
-                                if (nextTab != null) {
-                                    onTabSelected(nextTab)
-                                    pageDragOffset = if (horizontalDrag < 0f) width else -width
-                                    animate(
-                                        initialValue = pageDragOffset,
-                                        targetValue = 0f,
-                                        animationSpec = tween(durationMillis = 220)
-                                    ) { value, _ -> pageDragOffset = value }
-                                }
-                                pageDragOffset = 0f
-                                pageSwipeAnimating = false
+                                nextTab?.let(onTabSelected)
                             }
+                            swipeStartedInContent = false
                         },
+                        onDragCancel = { swipeStartedInContent = false },
                         onHorizontalDrag = { change, dragAmount ->
-                            if (!pageSwipeAnimating) {
+                            if (swipeStartedInContent) {
                                 horizontalDrag += dragAmount
-                                val width = size.width.toFloat().coerceAtLeast(1f)
-                                pageDragOffset = (pageDragOffset + dragAmount).coerceIn(-width * 0.72f, width * 0.72f)
                                 change.consume()
                             }
                         }
@@ -1284,7 +1267,10 @@ fun DetailsPageContent(
                     color = MaterialTheme.colorScheme.background,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .onGloballyPositioned { inlineTabsTopWindow = it.boundsInWindow().top }
+                        .onGloballyPositioned {
+                            inlineTabsTopWindow = it.boundsInWindow().top
+                            inlineTabsBottomWindow = it.boundsInWindow().bottom
+                        }
                 ) {
                     DetailsTabsButtonGroup(
                         tabs = availableTabs,
@@ -1749,6 +1735,7 @@ fun DetailsPageContent(
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
                     .graphicsLayer { translationY = dockPx }
+                    .onGloballyPositioned { pinnedTabsBottomWindow = it.boundsInWindow().bottom }
             ) {
                 DetailsTabsButtonGroup(
                     tabs = availableTabs,
