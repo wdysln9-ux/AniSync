@@ -956,6 +956,16 @@ private fun DiscoverSearchOverlay(
     actions: SearchResultActions
 ) {
     var openedFilter by remember { mutableStateOf<FilterId?>(null) }
+    var scrollFilterToBottom by remember { mutableStateOf(false) }
+    var consumedGenreFilterRequest by rememberSaveable { mutableLongStateOf(0L) }
+    LaunchedEffect(state.openGenreFilterRequest) {
+        if (state.openGenreFilterRequest > consumedGenreFilterRequest) {
+            consumedGenreFilterRequest = state.openGenreFilterRequest
+            onAction(DiscoverAction.LoadTaxonomy)
+            scrollFilterToBottom = true
+            openedFilter = FilterId.ALL
+        }
+    }
     LaunchedEffect(searchBarState.currentValue) {
         onAction(
             DiscoverAction.OnSearchActiveChange(
@@ -1010,6 +1020,7 @@ private fun DiscoverSearchOverlay(
                     IconButton(
                         onClick = {
                             onAction(DiscoverAction.LoadTaxonomy)
+                            scrollFilterToBottom = false
                             openedFilter = FilterId.ALL
                         }
                     ) {
@@ -1066,6 +1077,7 @@ private fun DiscoverSearchOverlay(
     com.anisync.android.presentation.util.WindowModalSheetScope {
         SearchFilterSheetHost(
             openedFilter = openedFilter,
+            scrollToBottomOnOpen = scrollFilterToBottom,
             filters = state.searchFilters,
             category = category,
             hasQuery = state.searchQuery.isNotBlank(),
@@ -1074,7 +1086,10 @@ private fun DiscoverSearchOverlay(
             tags = taxonomy.tags,
             showAdultContent = showAdultContent,
             onFiltersChange = { onAction(DiscoverAction.UpdateFilters(it)) },
-            onDismiss = { openedFilter = null }
+            onDismiss = {
+                openedFilter = null
+                scrollFilterToBottom = false
+            }
         )
     }
 }
