@@ -534,7 +534,7 @@ fun AniSyncNavHost(
                     },
                     onCommentClick = { threadId, commentId, threadTitle, profileColor ->
                         navController.navigate(
-                            ForumThreadDetail(threadId, threadTitle, commentId, profileColor = profileColor)
+                            ForumThreadDetail(threadId, threadTitle, commentId, profileColor = profileColor, commentDetailMode = true)
                         )
                     },
                     onActivityClick = navigateToProfileActivity,
@@ -1191,6 +1191,7 @@ fun AniSyncNavHost(
                             threadId = route.threadId,
                             threadTitle = route.threadTitle,
                             targetCommentId = if (route.commentId != 0) route.commentId else null,
+                            commentDetailMode = route.commentDetailMode,
                             onBackClick = { navController.popBackStack() },
                             onUserClick = navigateToUserProfile,
                             onEditThread = {
