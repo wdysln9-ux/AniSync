@@ -264,7 +264,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
             if (visible.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(if (trash) "Sampah masih kosong" else if (archived) "Belum ada arsip" else "Belum ada catatan. Tekan + untuk mulai.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp, bottom = 90.dp),
+            } else LazyColumn(contentPadding = PaddingValues(start = 16.dp, top = 6.dp, end = 16.dp, bottom = 90.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(visible, key = { it.id }) { item ->
                     var menu by remember { mutableStateOf(false) }
