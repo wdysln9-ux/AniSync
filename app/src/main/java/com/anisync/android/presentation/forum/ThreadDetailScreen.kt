@@ -101,6 +101,7 @@ import com.anisync.android.presentation.components.LocalExoPlayerCache
 import com.anisync.android.presentation.components.SectionHeader
 import com.anisync.android.presentation.components.rememberExoPlayerCache
 import com.anisync.android.presentation.forum.components.FoldedAncestorStrip
+import com.anisync.android.presentation.forum.components.ForumThreadCard
 import com.anisync.android.presentation.forum.components.PageJumperBottomSheet
 import com.anisync.android.presentation.forum.components.ThreadCommentsBar
 import com.anisync.android.presentation.forum.components.SkeletonLine
@@ -144,6 +145,7 @@ fun ThreadDetailScreen(
     onBackClick: () -> Unit,
     onUserClick: (String) -> Unit,
     targetCommentId: Int? = null,
+    commentDetailMode: Boolean = false,
     navigationIcon: ImageVector = Icons.AutoMirrored.Filled.ArrowBack,
     onEditThread: (threadId: Int) -> Unit = {},
     onTrailLabel: (TrailLabel) -> Unit = {},
@@ -242,7 +244,12 @@ fun ThreadDetailScreen(
         if (focusRootId == null) null
         else flatComments.firstOrNull { it.comment.id == focusRootId }
     }
-    val depthOffset = focusFlat?.depth ?: 0
+    val commentFocusFlat = remember(flatComments, anchorCommentId) {
+        if (commentDetailMode && anchorCommentId != null) {
+            flatComments.firstOrNull { it.comment.id == anchorCommentId }
+        } else null
+    }
+    val depthOffset = if (commentDetailMode) commentFocusFlat?.depth ?: 0 else focusFlat?.depth ?: 0
 
     val drillDownBreadcrumbs = remember(flatComments, drillDownStack) {
         drillDownStack.mapNotNull { id ->
@@ -303,7 +310,7 @@ fun ThreadDetailScreen(
         val targetIndex = visibleComments.indexOfFirst { it.comment.id == anchor }
         if (targetIndex >= 0) {
             lastScrolledAnchor = anchor
-            val headerItems = computeHeaderItemCount(
+            val headerItems = if (commentDetailMode) 1 else computeHeaderItemCount(
                 hasParsedBody = uiState.parsedBody != null,
                 hasDrillDown = drillDownStack.isNotEmpty(),
                 hasPagePill = uiState.lastPage > 1 || uiState.totalComments > 0,
@@ -489,21 +496,30 @@ fun ThreadDetailScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp) // Expressive vertical spacing
                         ) {
                             item(key = "thread_header_top") {
-                                ThreadHeaderTop(
-                                    thread = thread,
-                                    onUserClick = onUserClick,
-                                    onTitleHeight = { titleHeightPx = it },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                                if (commentDetailMode) {
+                                    ForumThreadCard(
+                                        thread = thread,
+                                        onClick = {},
+                                        onUserClick = onUserClick,
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
+                                } else {
+                                    ThreadHeaderTop(
+                                        thread = thread,
+                                        onUserClick = onUserClick,
+                                        onTitleHeight = { titleHeightPx = it },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
 
-                            uiState.parsedBody?.let { body ->
+                            if (!commentDetailMode) uiState.parsedBody?.let { body ->
                                 item(key = "thread_body") {
                                     ThreadBodyItem(body = body, modifier = Modifier.fillMaxWidth())
                                 }
                             }
 
-                            item(key = "thread_header_stats") {
+                            if (!commentDetailMode) item(key = "thread_header_stats") {
                                 ThreadHeaderStats(
                                     thread = thread,
                                     onLikeClick = {
@@ -525,7 +541,7 @@ fun ThreadDetailScreen(
                                 )
                             }
 
-                            item(key = "comments_bar") {
+                            if (!commentDetailMode) item(key = "comments_bar") {
                                 ThreadCommentsBar(
                                     commentsOnPage = commentsOnPage,
                                     currentPage = uiState.loadedPageRange?.last ?: 1,
@@ -577,7 +593,7 @@ fun ThreadDetailScreen(
                                 }
                             }
 
-                            if (uiState.hasEarlierComments) {
+                            if (!commentDetailMode && uiState.hasEarlierComments) {
                                 item(key = "load_earlier") {
                                     val perPage = uiState.perPage.coerceAtLeast(1)
                                     val pagesAbove =
