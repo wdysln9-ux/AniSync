@@ -646,43 +646,33 @@ internal fun PlayerStatusVisuals(
 
 @Composable
 private fun LevelGestureHud(
-    label: String,
     percent: Int,
     icon: @Composable () -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(22.dp),
-        color = Color.Black.copy(alpha = 0.78f),
-        contentColor = Color.White,
-        tonalElevation = 6.dp,
-        shadowElevation = 12.dp
+        shape = RoundedCornerShape(50),
+        color = Color.Black.copy(alpha = 0.58f),
+        contentColor = Color.White
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.material3.LocalContentColor provides Color.White
+            ) { icon() }
             Box(
-                Modifier.size(38.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
+                Modifier.width(104.dp).height(5.dp).clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.24f))
             ) {
-                androidx.compose.runtime.CompositionLocalProvider(
-                    androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.primary
-                ) { icon() }
+                Box(
+                    Modifier.fillMaxWidth(percent.coerceIn(0, 100) / 100f)
+                        .height(5.dp).clip(CircleShape)
+                        .background(Color.White)
+                )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.78f))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(Modifier.width(92.dp).height(5.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.2f))) {
-                        Box(
-                            Modifier.fillMaxWidth(percent.coerceIn(0, 100) / 100f)
-                                .height(5.dp).clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
-                        )
-                    }
-                    Text("$percent%", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                }
-            }
+            Text("$percent%", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -855,8 +845,7 @@ internal fun VideoControlsOverlay(
                         onDragStart = { offset ->
                             brightnessGesture = offset.x < size.width / 2f
                             levelHud = if (brightnessGesture) "brightness" else "volume"
-                            controlsVisible = true
-                            poke()
+                            controlsVisible = false
                         },
                         onVerticalDrag = { change, dragAmount ->
                             change.consume()
@@ -878,7 +867,6 @@ internal fun VideoControlsOverlay(
                                 }
                             }
                             levelHudRevision++
-                            poke()
                         }
                     )
                 }
@@ -888,10 +876,9 @@ internal fun VideoControlsOverlay(
             visible = levelHud == "brightness",
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.align(Alignment.TopStart).padding(start = edgePadding, top = edgePadding)
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = edgePadding)
         ) {
             LevelGestureHud(
-                label = "Kecerahan",
                 percent = (brightnessLevel * 100).roundToInt(),
                 icon = { Icon(Icons.Filled.Brightness6, contentDescription = null) }
             )
@@ -900,10 +887,9 @@ internal fun VideoControlsOverlay(
             visible = levelHud == "volume",
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.align(Alignment.TopEnd).padding(end = edgePadding, top = edgePadding)
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = edgePadding)
         ) {
             LevelGestureHud(
-                label = "Volume",
                 percent = (volumeLevel * 100).roundToInt(),
                 icon = { Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null) }
             )
@@ -932,19 +918,7 @@ internal fun VideoControlsOverlay(
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.35f),
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.45f)
-                            )
-                        )
-                    )
-            ) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 // Back (fullscreen only).
                 if (onBack != null) {
                     Surface(
@@ -1149,18 +1123,18 @@ internal fun VideoControlsOverlay(
                             modifier = Modifier.fillMaxSize()
                         )
                         androidx.compose.foundation.Canvas(
-                            modifier = Modifier.fillMaxWidth().height(4.dp)
+                            modifier = Modifier.fillMaxWidth().height(8.dp)
                         ) {
                             if (bufferedFraction > fraction) {
-                                val startX = (size.width * fraction + 7.dp.toPx()).coerceAtMost(size.width)
-                                val endX = size.width * bufferedFraction
+                                val startX = (size.width * fraction + 8.dp.toPx()).coerceAtMost(size.width)
+                                val endX = (size.width * bufferedFraction - 2.dp.toPx()).coerceAtLeast(startX)
                                 if (endX > startX) {
-                                    drawLine(
-                                        color = Color.White.copy(alpha = 0.55f),
-                                        start = androidx.compose.ui.geometry.Offset(startX, size.height / 2f),
-                                        end = androidx.compose.ui.geometry.Offset(endX, size.height / 2f),
-                                        strokeWidth = 4.dp.toPx(),
-                                        cap = androidx.compose.ui.graphics.StrokeCap.Round
+                                    val trackHeight = 5.dp.toPx()
+                                    drawRoundRect(
+                                        color = Color(0xFF8BCBFF).copy(alpha = 0.72f),
+                                        topLeft = androidx.compose.ui.geometry.Offset(startX, (size.height - trackHeight) / 2f),
+                                        size = androidx.compose.ui.geometry.Size(endX - startX, trackHeight),
+                                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(trackHeight / 2f)
                                     )
                                 }
                             }
