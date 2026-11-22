@@ -2,6 +2,7 @@ package com.anisync.android.presentation.components
 
 import androidx.compose.ui.graphics.Color
 import com.anisync.android.domain.ScoreFormat
+import com.anisync.android.domain.max
 
 /**
  * AnimeW-style score tint. The score badge keeps its dark background; only
