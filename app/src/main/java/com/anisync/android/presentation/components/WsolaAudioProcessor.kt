@@ -56,13 +56,14 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
         }
         sampleRate = inputAudioFormat.sampleRate
         channelCount = inputAudioFormat.channelCount
-        // WSOLA's overlap window is 20 ms. The full analysis segment is two
-        // overlap windows: one for the current crossfade and one retained as tail.
-        windowFrames = max(512, (sampleRate * 0.040f).toInt())
+        // Use a 20 ms analysis window (10 ms overlap/hop) to avoid the long
+        // startup look-ahead that made the previous 40 ms window lag behind video.
+        windowFrames = max(256, (sampleRate * 0.020f).toInt())
         if (windowFrames % 2 != 0) windowFrames++
         hopFrames = windowFrames / 2
-        // Match scaletempo2's default +/- search interval (30 ms).
-        searchFrames = max(1, (sampleRate * 0.030f).toInt())
+        // A 15 ms search is enough for nearby waveform alignment while keeping
+        // the processor responsive on lower-end phones.
+        searchFrames = max(1, (sampleRate * 0.015f).toInt())
         return inputAudioFormat
     }
 
@@ -257,7 +258,7 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
     private fun findBestCandidate(lower: Int, upper: Int): Int {
         var bestStart = lower
         var bestScore = -Double.MAX_VALUE
-        val stride = 2
+        val stride = 4
         var start = lower
         while (start <= upper) {
             // Use one channel to choose a shared offset for every channel. This
@@ -278,7 +279,7 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
                 oldSquare += oldValue * oldValue
                 newSquare += newValue * newValue
                 samples++
-                frame += 4
+                frame += 8
             }
             val covariance = dot - oldSum * newSum / max(1, samples)
             val oldEnergy = oldSquare - oldSum * oldSum / max(1, samples)
@@ -339,12 +340,11 @@ internal class WsolaAudioProcessor : BaseAudioProcessor() {
 @UnstableApi
 internal class WsolaAudioProcessorChain : AudioProcessorChain {
     private val processor = WsolaAudioProcessor()
-    @Volatile private var speed = 1f
 
     override fun getAudioProcessors(): Array<AudioProcessor> = arrayOf(processor)
 
     override fun applyPlaybackParameters(playbackParameters: PlaybackParameters): PlaybackParameters {
-        speed = playbackParameters.speed.coerceIn(0.5f, 4f)
+        val speed = playbackParameters.speed.coerceIn(0.5f, 4f)
         processor.setPlaybackSpeed(speed)
         return PlaybackParameters(speed, 1f)
     }
