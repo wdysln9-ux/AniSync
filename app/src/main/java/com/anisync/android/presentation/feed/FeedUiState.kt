@@ -73,6 +73,7 @@ sealed interface FeedAction {
     data class ToggleSubscribe(val activityId: Int) : FeedAction
     data class ToggleLike(val activityId: Int) : FeedAction
     data class ToggleReplies(val activityId: Int) : FeedAction
+    data class RetryReplies(val activityId: Int) : FeedAction
     data class UpdateReplyDraft(val activityId: Int, val text: String) : FeedAction
     data class SubmitInlineReply(val activityId: Int) : FeedAction
     data class DeleteActivity(val activityId: Int) : FeedAction
