@@ -456,7 +456,7 @@ fun VideoPlayer(
             onRetry = onRetry
         )
 
-        if (playerState == PlayerState.Ready || playerState == PlayerState.Buffering) {
+        if (playerState == PlayerState.Ready || playerState == PlayerState.Buffering || playerState == PlayerState.Error) {
             VideoControlsOverlay(
                 isPlaying = isPlaying,
                 isBuffering = playerState == PlayerState.Buffering,
@@ -478,6 +478,7 @@ fun VideoPlayer(
                 audioRenderer = if (useWsolaAudio) selectedAudioRenderer else null,
                 onSelectAudioRenderer = { renderer ->
                     pendingRendererResumeMs = exoPlayer.currentPosition.coerceAtLeast(0L)
+                    playerState = PlayerState.Loading
                     EpisodeAudioRendererPreferences.set(context, renderer)
                     selectedAudioRenderer = renderer
                 },
