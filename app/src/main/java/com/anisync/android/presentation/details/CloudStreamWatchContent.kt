@@ -84,6 +84,7 @@ internal fun CloudStreamWatchContent(
     var sheet by remember { mutableStateOf(false) }
     var autoNextEnabled by remember { mutableStateOf(true) }
     var autoNextFullscreen by remember { mutableStateOf(false) }
+    var episodePopupVisible by remember { mutableStateOf(false) }
     var manualQuery by remember(mediaTitle) { mutableStateOf(mediaTitle) }
 
     fun loadHit(hit: ResolveHit) {
@@ -535,6 +536,13 @@ internal fun CloudStreamWatchContent(
         val current = episode!!
         val number = (current["episode"] as? Number)?.toInt()
         val meta = number?.let { metadata[it] }
+        LaunchedEffect(sheet, number) {
+            episodePopupVisible = sheet && number != null
+            if (sheet && number != null) {
+                delay(10_000L)
+                episodePopupVisible = false
+            }
+        }
         ThemeSheet(onDismiss = { sheet = false; episode = null }) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -544,6 +552,7 @@ internal fun CloudStreamWatchContent(
                     val stream = selectedStream!!
                     val url = stream["url"]?.toString()
                     if (!url.isNullOrBlank()) {
+                        Box(Modifier.fillMaxWidth()) {
                         VideoPlayer(
                             url = url,
                             headers = (stream["headers"] as? Map<*, *>)?.entries?.associate {
@@ -585,6 +594,23 @@ internal fun CloudStreamWatchContent(
                                 }
                             }
                         )
+                        if (episodePopupVisible) {
+                            Surface(
+                                modifier = Modifier.align(Alignment.TopCenter).padding(top = 14.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                                tonalElevation = 6.dp
+                            ) {
+                                Text(
+                                    "Episode ${number ?: "?"}",
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                        }
                     }
                 } else if (resolving) {
                     Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
