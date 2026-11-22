@@ -132,7 +132,8 @@ private const val MAX_DISPLAY_ASPECT = 2.4f // ~21:9
 internal const val DEFAULT_VIDEO_ASPECT = 16f / 9f
 
 internal fun VideoSize.displayAspectRatio(): Float {
-    val raw = (width.toFloat() * pixelWidthHeightRatio) / height.coerceAtLeast(1).toFloat()
+    if (width <= 0 || height <= 0) return DEFAULT_VIDEO_ASPECT
+    val raw = (width.toFloat() * pixelWidthHeightRatio) / height.toFloat()
     return if (unappliedRotationDegrees % 180 != 0) 1f / raw else raw
 }
 
