@@ -242,11 +242,6 @@ private fun LibrarySearchResults(
                     showListIndicator = showListTab,
                     showPriority = true,
                     onClick = { onResultClick(entry.mediaId) },
-                    onIncrement = if (entry.canIncrement()) {
-                        { onIncrement(entry.mediaId) }
-                    } else {
-                        null
-                    },
                     onEdit = { onEdit(entry) }
                 )
             }

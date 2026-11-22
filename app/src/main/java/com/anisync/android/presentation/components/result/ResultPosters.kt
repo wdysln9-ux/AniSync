@@ -51,12 +51,14 @@ import com.anisync.android.presentation.library.components.PosterTitle
 import com.anisync.android.presentation.library.components.PosterValueText
 import com.anisync.android.presentation.util.LocalLibraryStatuses
 import com.anisync.android.presentation.util.TransitionKeys
-import com.anisync.android.presentation.util.bouncyClickable
+import com.anisync.android.presentation.util.LocalLibraryEntryEditor
+import com.anisync.android.presentation.util.bouncyCombinedClickable
 import com.anisync.android.presentation.util.communityScoreLabel
 import com.anisync.android.presentation.util.formatAndYear
 import com.anisync.android.presentation.util.selectedPaneItem
 import com.anisync.android.ui.theme.ExpressiveShapes
 import com.anisync.android.ui.theme.StarGold
+import com.anisync.android.type.MediaType
 import com.anisync.android.util.getTitle
 
 /**
@@ -75,11 +77,12 @@ fun DiscoverResultPoster(
 ) {
     val title = entry.getTitle(titleLanguage)
     val listStatus = LocalLibraryStatuses.current[entry.mediaId]
+    val onEditEntry = LocalLibraryEntryEditor.current
     val coverUrl = entry.cover.url() ?: entry.coverUrl
     val cacheKey = TransitionKeys.imageCacheKey(TransitionKeys.DISCOVER, entry.mediaId) +
         "-" + LocalCoverQuality.current.name + TransitionKeys.coverVersion(coverUrl)
 
-    PosterFrame(title = title, onClick = onClick, selected = selected, modifier = modifier) {
+    PosterFrame(title = title, onClick = onClick, onLongClick = if (entry.type == MediaType.ANIME) ({ onEditEntry(entry) }) else null, selected = selected, modifier = modifier) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
@@ -217,6 +220,7 @@ private fun PosterFrame(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     selected: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val shape = ExpressiveShapes.mediaCover
@@ -227,10 +231,12 @@ private fun PosterFrame(
         modifier = modifier
             .fillMaxWidth()
             .selectedPaneItem(selected, shape)
-            .bouncyClickable(
+            .bouncyCombinedClickable(
                 onClick = onClick,
+                onLongClick = onLongClick,
                 role = Role.Button,
                 onClickLabel = stringResource(R.string.a11y_action_open_details, title),
+                onLongClickLabel = stringResource(R.string.a11y_action_edit_entry),
                 clipShape = shape
             )
     ) {

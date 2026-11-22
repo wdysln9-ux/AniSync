@@ -41,6 +41,8 @@ import com.anisync.android.presentation.navigation.SettingsOpenSourceLicenses
 import com.anisync.android.presentation.navigation.SettingsRecapBuilder
 import com.anisync.android.presentation.navigation.SettingsRecaps
 import com.anisync.android.presentation.navigation.SettingsStorage
+import com.anisync.android.presentation.settings.CloudStreamSettingsScreen
+import com.anisync.android.presentation.navigation.SettingsCloudStream
 import com.anisync.android.presentation.navigation.SettingsSupport
 import com.anisync.android.presentation.navigation.SettingsUpdates
 import com.anisync.android.presentation.navigation.TwoPaneListDetailScaffold
@@ -105,6 +107,7 @@ enum class SettingsCategory {
     General,
     LookAndFeel,
     AniList,
+    CloudStream,
     Notifications,
     Recaps,
     Storage,
@@ -119,6 +122,7 @@ private fun SettingsCategory.toPaneRoute(): Any = when (this) {
     SettingsCategory.General -> SettingsGeneral
     SettingsCategory.LookAndFeel -> SettingsLookAndFeel
     SettingsCategory.AniList -> SettingsAniList
+    SettingsCategory.CloudStream -> SettingsCloudStream
     SettingsCategory.Notifications -> SettingsNotifications
     SettingsCategory.Recaps -> SettingsRecaps
     SettingsCategory.Storage -> SettingsStorage
@@ -196,6 +200,9 @@ private fun SettingsDetailPane(
             )
         }
         composable<SettingsLanguage> { LanguageScreen(onBackClick = popOrClose) }
+        composable<SettingsCloudStream> {
+            CloudStreamSettingsScreen(onBackClick = popOrClose)
+        }
         composable<SettingsAniList> {
             AniListSettingsScreen(
                 onLogout = { navController.navigate(Login) { popUpTo(0) { inclusive = true } } },

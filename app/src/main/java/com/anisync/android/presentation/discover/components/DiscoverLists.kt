@@ -44,7 +44,8 @@ fun HorizontalMediaList(
     // in several Discover rows at once, and duplicate keys would misdirect the return morph.
     transitionPrefix: String,
     sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    cardWidth: androidx.compose.ui.unit.Dp = PosterCardWidth
 ) {
     val placementSpec = AppMotion.rememberOffsetSpatialSpec()
     val fadeSpec = AppMotion.rememberEffectsSpec()
@@ -53,7 +54,7 @@ fun HorizontalMediaList(
     LazyRow(
         contentPadding = PaddingValues(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.height(MediaPosterCardDefaults.rowHeight(PosterCardWidth))
+        modifier = Modifier.height(MediaPosterCardDefaults.rowHeight(cardWidth))
     ) {
         itemsIndexed(
             items,
@@ -69,7 +70,7 @@ fun HorizontalMediaList(
                 animatedVisibilityScope = animatedVisibilityScope,
                 transitionPrefix = transitionPrefix,
                 modifier = Modifier
-                    .width(PosterCardWidth)
+                    .width(cardWidth)
                     .animateItem(
                         fadeInSpec = fadeSpec,
                         fadeOutSpec = fadeSpec,

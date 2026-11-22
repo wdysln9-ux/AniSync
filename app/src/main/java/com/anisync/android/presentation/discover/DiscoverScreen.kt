@@ -28,6 +28,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
@@ -108,6 +109,7 @@ import com.anisync.android.presentation.discover.components.HorizontalMediaList
 import com.anisync.android.presentation.util.TransitionKeys
 import com.anisync.android.presentation.discover.components.RecentReviewsRow
 import com.anisync.android.presentation.navigation.TwoPaneListDetailScaffold
+import com.anisync.android.presentation.util.LocalLibraryStatuses
 import com.anisync.android.presentation.util.LocalAdaptiveInfo
 import com.anisync.android.presentation.util.LocalMainNavBarInset
 import com.anisync.android.presentation.util.toLabel
@@ -173,6 +175,8 @@ fun DiscoverScreen(
     val titleLanguage by viewModel.titleLanguage.collectAsStateWithLifecycle()
 
     val coroutineScope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val scrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
 
     val currentMediaType = uiState.mediaType
@@ -285,6 +289,10 @@ fun DiscoverScreen(
                 attempts++
                 if (searchBarState.currentValue != SearchBarValue.Expanded) delay(100)
             }
+            // Browse tabs open the search results programmatically. Keep the overlay open,
+            // but do not summon the keyboard; only a direct tap on the search field should do that.
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
         }
     }
 
@@ -819,7 +827,8 @@ private fun LazyListScope.discoverSection(
                 titleLanguage = titleLanguage,
                 transitionPrefix = TransitionKeys.DISCOVER_POPULAR,
                 sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope
+                animatedVisibilityScope = animatedVisibilityScope,
+                cardWidth = 148.dp
             )
         }
 
@@ -869,7 +878,7 @@ private fun LazyListScope.discoverSection(
 private fun DiscoverSection.skeletonCardWidth(): Dp = when (this) {
     DiscoverSection.TRENDING -> 112.dp
     DiscoverSection.AIRING_TODAY, DiscoverSection.RELEASING_NOW -> 132.dp
-    DiscoverSection.POPULAR -> 171.dp
+    DiscoverSection.POPULAR -> 148.dp
     DiscoverSection.NOT_YET_RELEASED, DiscoverSection.NEWLY_ADDED -> 148.dp
     DiscoverSection.REVIEWS -> 310.dp
 }
@@ -947,14 +956,29 @@ private fun DiscoverSearchOverlay(
         state = searchBarState,
         anchor = searchAnchor,
         inputField = {
-            SearchInputField(
-                searchBarState = searchBarState,
-                textFieldState = textFieldState,
-                mediaType = state.mediaType,
-                coroutineScope = coroutineScope,
-                onSearch = { onAction(DiscoverAction.OnSearch(textFieldState.text.toString())) },
-                modifier = fieldCollapse.field
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SearchInputField(
+                    searchBarState = searchBarState,
+                    textFieldState = textFieldState,
+                    mediaType = state.mediaType,
+                    coroutineScope = coroutineScope,
+                    onSearch = { onAction(DiscoverAction.OnSearch(textFieldState.text.toString())) },
+                    modifier = fieldCollapse.field.weight(1f)
+                )
+                if (category.hasMediaFilters()) {
+                    IconButton(
+                        onClick = {
+                            onAction(DiscoverAction.LoadTaxonomy)
+                            openedFilter = FilterId.ALL
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = "Filter pencarian"
+                        )
+                    }
+                }
+            }
         }
     ) {
         HideKeyboardOnCollapse(fieldCollapse)
@@ -969,12 +993,7 @@ private fun DiscoverSearchOverlay(
             if (category.hasMediaFilters()) {
                 SearchFilterChipBar(
                     filters = state.searchFilters,
-                    category = category,
-                    onChipTap = { filterId ->
-                        onAction(DiscoverAction.LoadTaxonomy)
-                        openedFilter = filterId
-                    },
-                    onClear = { onAction(DiscoverAction.ClearFilters) }
+                    onFiltersChange = { onAction(DiscoverAction.UpdateFilters(it)) }
                 )
             }
             if (WhatsNewItem.DISCOVER_SEARCH_FILTERS in rememberActiveWhatsNew()) {
@@ -1154,7 +1173,10 @@ private fun SearchResults(
     com.anisync.android.presentation.discover.components.SearchResults(
         activeCategory = state.activeCategory,
         isGrid = isGrid,
-        anime = state.searchAnime,
+        anime = if (state.searchFilters.hideMyAnime) {
+            val myMediaIds = LocalLibraryStatuses.current.keys
+            state.searchAnime.filterNot { it.mediaId in myMediaIds }
+        } else state.searchAnime,
         manga = state.searchManga,
         grouped = state.groupedResults,
         paging = state.searchPaging,

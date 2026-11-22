@@ -215,7 +215,18 @@ fun RichTextHost(
     content: @Composable (RichTextRenderScope) -> Unit
 ) {
     var viewerInitialIndex by remember { mutableStateOf<Int?>(null) }
+    var youtubeVideoId by remember { mutableStateOf<String?>(null) }
     val linkRouter = rememberAniLinkRouter()
+
+    // Route YouTube URLs to the native in-app embed player; keep AniList and other links
+    // on the existing centralized router.
+    val onLinkClick: (String) -> Unit = remember(linkRouter) {
+        { rawUrl ->
+            val videoId = youtubeVideoIdFromUrl(rawUrl)
+            if (videoId != null) youtubeVideoId = videoId
+            else linkRouter.navigate(rawUrl)
+        }
+    }
 
     val previewProvider = LocalLinkPreviewProvider.current
     val previews = remember { mutableStateMapOf<LinkPreviewKey, LinkPreview>() }
@@ -232,9 +243,9 @@ fun RichTextHost(
     // keep stable identity across recompositions. Previously a per-recomposition
     // UriHandler override changed the LocalUriHandler value on every recomposition,
     // tearing down the Text link pointer-input node mid-gesture and dropping taps.
-    val linkListener = remember(linkRouter) {
+    val linkListener = remember(onLinkClick) {
         LinkInteractionListener { link ->
-            if (link is LinkAnnotation.Clickable) linkRouter.navigate(link.tag)
+            if (link is LinkAnnotation.Clickable) onLinkClick(link.tag)
         }
     }
 
@@ -255,7 +266,7 @@ fun RichTextHost(
                 val idx = parsedData.imageUrls.indexOf(url)
                 if (idx >= 0) viewerInitialIndex = idx
             },
-            onLinkClick = { linkRouter.navigate(it) },
+            onLinkClick = onLinkClick,
             linkListener = linkListener
         )
     }
@@ -267,6 +278,13 @@ fun RichTextHost(
             imageUrls = parsedData.imageUrls,
             initialIndex = index,
             onDismiss = { viewerInitialIndex = null }
+        )
+    }
+
+    youtubeVideoId?.let { videoId ->
+        YouTubePlayerDialog(
+            videoId = videoId,
+            onDismiss = { youtubeVideoId = null }
         )
     }
 }
@@ -1466,17 +1484,32 @@ private fun RichTextTextKind.withHeadingLineHeight(base: TextStyle): TextStyle =
     RichTextTextKind.Heading5 -> base.copy(lineHeight = 22.sp)
 }
 
+private fun youtubeVideoIdFromUrl(value: String): String? {
+    val url = value.trim()
+    val isYouTube = Regex(
+        """^(?:https?://)?(?:(?:www|m)\.)?(?:youtube\.com|youtube-nocookie\.com|youtu\.be)(?:/|$)""",
+        RegexOption.IGNORE_CASE
+    ).containsMatchIn(url)
+    if (!isYouTube) return null
+    return extractYouTubeVideoId(url).takeIf { it.length == 11 }
+}
+
 private fun extractYouTubeVideoId(value: String): String {
     var id = value
-    while (id.contains("v=") || id.contains("youtu.be/") || id.contains("embed/")) {
+    while (
+        id.contains("v=") || id.contains("youtu.be/") || id.contains("embed/") ||
+        id.contains("shorts/") || id.contains("live/")
+    ) {
         id = when {
             id.contains("v=") -> id.substringAfterLast("v=")
             id.contains("youtu.be/") -> id.substringAfterLast("youtu.be/")
             id.contains("embed/") -> id.substringAfterLast("embed/")
+            id.contains("shorts/") -> id.substringAfterLast("shorts/")
+            id.contains("live/") -> id.substringAfterLast("live/")
             else -> id
         }
     }
     id = id.substringBefore("&").substringBefore("?")
     val clean = id.replace(Regex("[^a-zA-Z0-9_-]"), "")
-    return if (clean.length >= 11) clean.takeLast(11) else clean
+    return if (clean.length >= 11) clean.take(11) else clean
 }

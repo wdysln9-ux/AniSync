@@ -1,6 +1,7 @@
 query GetMediaDetails($id: Int) {
     Media(id: $id) {
         id
+        idMal
         title {
             romaji
             english

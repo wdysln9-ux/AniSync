@@ -18,6 +18,8 @@ fun SearchSort.toMediaSort(type: MediaType, titleLanguage: TitleLanguage, hasQue
     val manga = type == MediaType.MANGA
     fun pick(up: MediaSort, down: MediaSort) = if (descending) down else up
     return when (column) {
+        // AniList has no RANDOM MediaSort; the repository randomizes page selection across the full result set.
+        SearchSortColumn.RANDOM -> MediaSort.POPULARITY_DESC
         SearchSortColumn.BEST_MATCH ->
             if (hasQuery) MediaSort.SEARCH_MATCH else SearchSort().toMediaSort(type, titleLanguage, false)
         SearchSortColumn.POPULARITY -> pick(MediaSort.POPULARITY, MediaSort.POPULARITY_DESC)

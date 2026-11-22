@@ -41,7 +41,12 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.rounded.BrokenImage
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -64,6 +69,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,6 +89,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
@@ -147,11 +154,19 @@ private val WIDE_CONTROLS_MIN_WIDTH = 600.dp
 fun VideoPlayer(
     url: String,
     modifier: Modifier = Modifier,
+    headers: Map<String, String> = emptyMap(),
     playerCache: ExoPlayerCache? = LocalExoPlayerCache.current,
     startMuted: Boolean = true,
     loop: Boolean = true,
     autoPlay: Boolean = false,
-    artwork: (@Composable () -> Unit)? = null
+    artwork: (@Composable () -> Unit)? = null,
+    sourceOptions: List<String> = emptyList(),
+    onSelectSource: (Int) -> Unit = {},
+    onPlaybackEnded: () -> Unit = {},
+    onAutoNextChange: (Boolean) -> Unit = {},
+    autoEnterFullscreen: Boolean = false,
+    onFullscreenEntered: () -> Unit = {},
+    onCinematicLightingChange: (Float) -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -167,15 +182,18 @@ fun VideoPlayer(
     // True while the player has been handed to the fullscreen activity; the inline surface detaches
     // and the lifecycle observer stops pausing, so the same instance keeps playing over there.
     var handedOff by remember { mutableStateOf(false) }
+    val isHandedOff by rememberUpdatedState(handedOff)
+    var cinematicOverlayIntensity by remember { mutableFloatStateOf(0f) }
+    val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
 
     // Cached player survives scrolling; self-managed one is built+released here. Both go through
     // buildVideoExoPlayer so the OkHttp/browser-UA data source and eager prepare apply identically.
     // The self-managed instance uses the application context so it can be safely handed to the
     // fullscreen activity without leaking this composition's context.
     val exoPlayer = if (playerCache != null) {
-        remember(url) { playerCache.getOrCreate(url) }
+        remember(url, headers) { playerCache.getOrCreate(url, headers) }
     } else {
-        remember(url) { buildVideoExoPlayer(context.applicationContext, url, startMuted, loop, autoPlay) }
+        remember(url, headers) { buildVideoExoPlayer(context.applicationContext, url, startMuted, loop, autoPlay, headers = headers) }
     }
 
     DisposableEffect(exoPlayer) {
@@ -191,6 +209,7 @@ fun VideoPlayer(
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED && !isHandedOff) currentOnPlaybackEnded()
                 if (playbackState == Player.STATE_READY) {
                     val d = exoPlayer.duration
                     if (d > 0) durationMs = d
@@ -227,7 +246,13 @@ fun VideoPlayer(
         onDispose {
             exoPlayer.removeListener(listener)
             // Only release if self-managed; cached players are released by ExoPlayerCache.releaseAll().
-            if (playerCache == null) exoPlayer.release() else exoPlayer.pause()
+            if (playerCache == null) {
+                exoPlayer.release()
+            } else if (!isHandedOff) {
+                // The inline composition can be disposed while the same player is owned by
+                // FullscreenPlayerActivity. Do not pause it during that hand-off.
+                exoPlayer.pause()
+            }
         }
     }
 
@@ -246,8 +271,8 @@ fun VideoPlayer(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> if (!handedOff) exoPlayer.pause()
-                Lifecycle.Event.ON_RESUME -> if (isPlaying && !handedOff) exoPlayer.play()
+                Lifecycle.Event.ON_PAUSE -> if (!isHandedOff) exoPlayer.pause()
+                Lifecycle.Event.ON_RESUME -> if (exoPlayer.playWhenReady && !isHandedOff) exoPlayer.play()
                 else -> {}
             }
         }
@@ -259,6 +284,16 @@ fun VideoPlayer(
     val fullscreenLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { handedOff = false }
+
+    DisposableEffect(exoPlayer) {
+        FullscreenVideoBridge.onPlaybackEnded = {
+            FullscreenVideoBridge.closeFullscreen?.invoke()
+            currentOnPlaybackEnded()
+        }
+        onDispose {
+            if (FullscreenVideoBridge.onPlaybackEnded != null) FullscreenVideoBridge.onPlaybackEnded = null
+        }
+    }
 
     val onPlayPause: () -> Unit = { if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play() }
     val onToggleMute: () -> Unit = {
@@ -284,13 +319,20 @@ fun VideoPlayer(
     val onEnterFullscreen: () -> Unit = {
         FullscreenVideoBridge.player = exoPlayer
         handedOff = true
+        onFullscreenEntered()
         fullscreenLauncher.launch(
             Intent(context, FullscreenPlayerActivity::class.java)
                 .putExtra(FullscreenPlayerActivity.EXTRA_ASPECT, videoAspectRatio)
         )
     }
 
-    val displayAspect = videoAspectRatio.coerceIn(MIN_DISPLAY_ASPECT, MAX_DISPLAY_ASPECT)
+    LaunchedEffect(playerState, autoEnterFullscreen, handedOff) {
+        if (autoEnterFullscreen && playerState == PlayerState.Ready && !handedOff) onEnterFullscreen()
+    }
+
+    // Keep the source's real aspect ratio: the frame always takes the full available width,
+    // then grows vertically for portrait video instead of cropping it into a fixed 4:5 box.
+    val displayAspect = videoAspectRatio.coerceAtLeast(0.1f)
 
     Box(
         modifier = modifier
@@ -309,6 +351,9 @@ fun VideoPlayer(
             )
             if (artwork != null) {
                 Box(Modifier.fillMaxSize()) { artwork() }
+            }
+            if (cinematicOverlayIntensity > 0f) {
+                Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0xFFFFD6A0).copy(alpha = cinematicOverlayIntensity * 0.22f), Color.Transparent))))
             }
         }
 
@@ -331,7 +376,17 @@ fun VideoPlayer(
                 onPlayPause = onPlayPause,
                 onToggleMute = onToggleMute,
                 onSeek = onSeek,
+                onSeekBy = { delta ->
+                    val target = (exoPlayer.currentPosition + delta).coerceIn(0L, durationMs.coerceAtLeast(0L))
+                    exoPlayer.seekTo(target)
+                    positionMs = target
+                },
                 onSeekFinished = onSeekFinished,
+                onSetPlaybackSpeed = { exoPlayer.setPlaybackParameters(PlaybackParameters(it, 1f)) },
+                sourceOptions = sourceOptions,
+                onSelectSource = onSelectSource,
+                onAutoNextChange = onAutoNextChange,
+                onCinematicLightingChange = { cinematicOverlayIntensity = it; onCinematicLightingChange(it) },
                 onToggleFullscreen = onEnterFullscreen,
                 onBack = null
             )
@@ -551,7 +606,13 @@ internal fun VideoControlsOverlay(
     onPlayPause: () -> Unit,
     onToggleMute: () -> Unit,
     onSeek: (Float) -> Unit,
+    onSeekBy: (Long) -> Unit,
     onSeekFinished: () -> Unit,
+    onSetPlaybackSpeed: (Float) -> Unit,
+    sourceOptions: List<String>,
+    onSelectSource: (Int) -> Unit,
+    onAutoNextChange: (Boolean) -> Unit = {},
+    onCinematicLightingChange: (Float) -> Unit = {},
     onToggleFullscreen: () -> Unit,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier
@@ -559,6 +620,13 @@ internal fun VideoControlsOverlay(
     var controlsVisible by remember { mutableStateOf(true) }
     // Bumped on every interaction to restart the auto-hide countdown.
     var interactions by remember { mutableIntStateOf(0) }
+    var seekFeedback by remember { mutableStateOf<String?>(null) }
+    var quickSettingsExpanded by remember { mutableStateOf(false) }
+    var selectedSpeed by remember { mutableFloatStateOf(1f) }
+    var autoNextEnabled by remember { mutableStateOf(true) }
+    var cinematicEnabled by remember { mutableStateOf(false) }
+    var cinematicSettingsExpanded by remember { mutableStateOf(false) }
+    var cinematicIntensity by remember { mutableFloatStateOf(0.35f) }
 
     // Auto-hide while playing; idle countdown restarts whenever an interaction bumps [interactions].
     LaunchedEffect(controlsVisible, isPlaying, isBuffering, interactions) {
@@ -573,6 +641,7 @@ internal fun VideoControlsOverlay(
     }
 
     val poke: () -> Unit = { interactions++ }
+    LaunchedEffect(seekFeedback) { if (seekFeedback != null) { delay(650); seekFeedback = null } }
     val fraction = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -601,10 +670,15 @@ internal fun VideoControlsOverlay(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
-                    detectTapGestures(onTap = { controlsVisible = !controlsVisible })
+                    detectTapGestures(onTap = { controlsVisible = !controlsVisible }, onDoubleTap = { offset -> controlsVisible = true; poke(); val forward = offset.x >= size.width / 2f; onSeekBy(if (forward) 10_000L else -10_000L); seekFeedback = if (forward) "+10 detik" else "-10 detik" })
                 }
         )
 
+        AnimatedVisibility(visible = seekFeedback != null, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.align(Alignment.Center)) {
+            Surface(shape = RoundedCornerShape(24.dp), color = Color.Black.copy(alpha = 0.72f), contentColor = Color.White) {
+                Text(text = seekFeedback.orEmpty(), modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+        }
         AnimatedVisibility(
             visible = controlsVisible,
             enter = fadeIn(),
@@ -646,7 +720,7 @@ internal fun VideoControlsOverlay(
                     }
                 }
 
-                // Mute (top-end).
+                // Quick Settings (top-end), replacing the old mute shortcut.
                 Surface(
                     shape = CircleShape,
                     color = Color.Black.copy(alpha = 0.5f),
@@ -657,15 +731,43 @@ internal fun VideoControlsOverlay(
                         .padding(edgePadding)
                         .size(buttonSize)
                 ) {
-                    IconButton(onClick = { poke(); onToggleMute() }) {
-                        Crossfade(targetState = isMuted, label = "mute_crossfade") { muted ->
-                            Icon(
-                                imageVector = if (muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
-                                contentDescription = if (muted) stringResource(R.string.unmute) else stringResource(R.string.mute),
-                                modifier = Modifier.size(buttonIconSize)
-                            )
+                    IconButton(onClick = { poke(); quickSettingsExpanded = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Pengaturan pemutar", modifier = Modifier.size(buttonIconSize))
+                    }
+                }
+                if (cinematicSettingsExpanded) {
+                    AlertDialog(
+                        onDismissRequest = { cinematicSettingsExpanded = false },
+                        title = { Text("Pencahayaan sinematik") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Aktifkan pencahayaan")
+                                    androidx.compose.material3.Switch(checked = cinematicEnabled, onCheckedChange = { enabled -> cinematicEnabled = enabled; onCinematicLightingChange(if (enabled) cinematicIntensity else 0f) })
+                                }
+                                Text("Intensitas cahaya")
+                                Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it; if (cinematicEnabled) onCinematicLightingChange(it) }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
+                                Text("Atur kekuatan efek pencahayaan di sekitar pemutar.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        },
+                        confirmButton = { TextButton(onClick = { cinematicSettingsExpanded = false }) { Text("Selesai") } }
+                    )
+                }
+
+                DropdownMenu(expanded = quickSettingsExpanded, onDismissRequest = { quickSettingsExpanded = false }) {
+                    DropdownMenuItem(text = { Text("Kecepatan") }, onClick = {})
+                    listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 3f, 4f).forEach { speed ->
+                        DropdownMenuItem(text = { Text("${if (selectedSpeed == speed) "✓ " else ""}${speed}x") }, onClick = { selectedSpeed = speed; onSetPlaybackSpeed(speed); poke() })
+                    }
+                    if (sourceOptions.isNotEmpty()) {
+                        DropdownMenuItem(text = { Text("Ganti sumber") }, onClick = {})
+                        sourceOptions.forEachIndexed { index, label ->
+                            DropdownMenuItem(text = { Text(label) }, onClick = { onSelectSource(index); quickSettingsExpanded = false; poke() })
                         }
                     }
+                    DropdownMenuItem(text = { Text("${if (autoNextEnabled) "✓ " else ""}Putar episode berikutnya otomatis") }, onClick = { autoNextEnabled = !autoNextEnabled; onAutoNextChange(autoNextEnabled); poke() })
+                    DropdownMenuItem(text = { Text("Pencahayaan sinematik · Pengaturan") }, onClick = { quickSettingsExpanded = false; cinematicSettingsExpanded = true; poke() })
+                    DropdownMenuItem(text = { Text("${if (isMuted) "Aktifkan suara" else "Bisukan"}") }, onClick = { onToggleMute(); poke() })
                 }
 
                 // Centre play / pause (hidden while buffering — the spinner shows instead).

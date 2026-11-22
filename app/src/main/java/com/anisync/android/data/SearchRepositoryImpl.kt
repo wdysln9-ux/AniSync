@@ -19,6 +19,7 @@ import com.anisync.android.domain.SearchFilters
 import com.anisync.android.domain.SearchPage
 import com.anisync.android.domain.SearchRepository
 import com.anisync.android.domain.SearchResult
+import com.anisync.android.domain.SearchSort
 import com.anisync.android.fragment.MediaCardFields
 import com.anisync.android.type.MediaSort
 import com.anisync.android.type.MediaType
@@ -30,6 +31,7 @@ import com.apollographql.cache.normalized.doNotStore
 import com.apollographql.cache.normalized.fetchPolicy
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.concurrent.ConcurrentHashMap
 
 @Singleton
 class SearchRepositoryImpl @Inject constructor(
@@ -62,6 +64,18 @@ class SearchRepositoryImpl @Inject constructor(
 
     /** A re-triggered identical search joins the request in flight instead of issuing a second. */
     private val inflight = InflightTracker()
+    private val randomPageSelections = ConcurrentHashMap<String, MutableSet<Int>>()
+
+    /** Pick a page from the full filtered AniList result set, without shuffling only the loaded page. */
+    private fun randomPage(key: String, totalPages: Int, logicalPage: Int): Int =
+        synchronized(randomPageSelections) {
+            val used = randomPageSelections.getOrPut(key) { mutableSetOf() }
+            if (logicalPage == 1) used.clear()
+            if (used.size >= totalPages) used.clear()
+            val selected = (1..totalPages).filterNot { it in used }.random()
+            used.add(selected)
+            selected
+        }
 
     private suspend fun <T> dedupe(key: String, block: suspend () -> T): T =
         inflight.deduplicate(key, block = block)
@@ -74,17 +88,20 @@ class SearchRepositoryImpl @Inject constructor(
         perPage: Int
     ): Result<SearchPage> {
         return safeApiCall {
-            val response = apolloClient.query(
+            val randomSort = filters.sort.column == com.anisync.android.domain.SearchSortColumn.RANDOM
+            val randomKey = "media:$type:$query:${filters.copy(sort = SearchSort())}:$perPage"
+            suspend fun fetchPage(requestPage: Int) = apolloClient.query(
                 SearchMediaQuery(
                     search = if (query.isBlank()) Optional.absent() else Optional.present(query),
                     type = Optional.present(type),
-                    page = Optional.present(page),
+                    page = Optional.present(requestPage),
                     perPage = Optional.present(perPage),
                     sort = Optional.present(listOf(filters.sortFor(type, query))),
                     genre_in = filters.genresIncluded.toOptionalList(),
                     genre_not_in = filters.genresExcluded.toOptionalList(),
                     tag_in = filters.tagsIncluded.toOptionalList(),
                     tag_not_in = filters.tagsExcluded.toOptionalList(),
+                    minimumTagRank = if (filters.minimumTagRank > 0) Optional.present(filters.minimumTagRank) else Optional.absent(),
                     format_in = filters.formats.toOptionalList(),
                     status_in = filters.statuses.toOptionalList(),
                     source_in = filters.sources.toOptionalList(),
@@ -110,14 +127,22 @@ class SearchRepositoryImpl @Inject constructor(
                 .doNotStore(true)
                 .execute()
 
+            val firstResponse = if (randomSort) fetchPage(1) else null
+            val total = firstResponse?.data?.Page?.pageInfo?.total ?: 0
+            val totalPages = ((total + perPage - 1) / perPage).coerceAtLeast(1)
+            val selectedPage = if (randomSort) randomPage(randomKey, totalPages, page) else page
+            val response = if (randomSort) {
+                if (selectedPage == 1) firstResponse!! else fetchPage(selectedPage)
+            } else fetchPage(page)
+
             val pageData = response.data?.Page
             val pageInfo = pageData?.pageInfo
             val entries = pageData?.media?.filterNotNull()?.map { it.toLibraryEntry() } ?: emptyList()
             SearchPage(
                 entries = entries,
                 total = pageInfo?.total ?: entries.size,
-                hasNextPage = pageInfo?.hasNextPage ?: false,
-                currentPage = pageInfo?.currentPage ?: page
+                hasNextPage = if (randomSort) page * perPage < (pageInfo?.total ?: entries.size) else pageInfo?.hasNextPage ?: false,
+                currentPage = if (randomSort) page else pageInfo?.currentPage ?: page
             )
         }
     }
@@ -199,10 +224,12 @@ class SearchRepositoryImpl @Inject constructor(
         val key = "all:$query:${filters.hashCode()}:$page:$perPage:$wantAnime:$wantManga:$wantEntities:$wantStudios"
         return dedupe(key) {
             safeApiCall {
-                val response = apolloClient.query(
+                val randomSort = filters.sort.column == com.anisync.android.domain.SearchSortColumn.RANDOM
+                val randomKey = "all:$query:${filters.copy(sort = SearchSort())}:$perPage:$wantAnime:$wantManga"
+                suspend fun fetchPage(requestPage: Int) = apolloClient.query(
                     SearchEverythingQuery(
                         search = if (query.isBlank()) Optional.absent() else Optional.present(query),
-                        page = Optional.present(page),
+                        page = Optional.present(requestPage),
                         perPage = Optional.present(perPage),
                         wantAnime = wantAnime,
                         wantManga = wantManga,
@@ -214,6 +241,7 @@ class SearchRepositoryImpl @Inject constructor(
                         genre_not_in = filters.genresExcluded.toOptionalList(),
                         tag_in = filters.tagsIncluded.toOptionalList(),
                         tag_not_in = filters.tagsExcluded.toOptionalList(),
+                        minimumTagRank = if (filters.minimumTagRank > 0) Optional.present(filters.minimumTagRank) else Optional.absent(),
                         format_in = filters.formats.toOptionalList(),
                         status_in = filters.statuses.toOptionalList(),
                         source_in = filters.sources.toOptionalList(),
@@ -235,8 +263,20 @@ class SearchRepositoryImpl @Inject constructor(
                         isAdult = resolveAdultFilter(filters.adultMode, quickSearch = false)
                     )
                 )
-                    .fetchPolicy(FetchPolicy.NetworkFirst)
+                    .fetchPolicy(FetchPolicy.NetworkOnly)
                     .execute()
+
+                val firstResponse = if (randomSort) fetchPage(1) else null
+                val firstData = firstResponse?.data
+                val total = maxOf(
+                    if (wantAnime) firstData?.anime?.pageInfo?.total ?: 0 else 0,
+                    if (wantManga) firstData?.manga?.pageInfo?.total ?: 0 else 0
+                )
+                val totalPages = ((total + perPage - 1) / perPage).coerceAtLeast(1)
+                val selectedPage = if (randomSort) randomPage(randomKey, totalPages, page) else page
+                val response = if (randomSort) {
+                    if (selectedPage == 1) firstResponse!! else fetchPage(selectedPage)
+                } else fetchPage(page)
 
                 val data = response.data
 
@@ -289,8 +329,8 @@ class SearchRepositoryImpl @Inject constructor(
                 SearchEverythingResult(
                     anime = animeEntries,
                     manga = mangaEntries,
-                    animeHasNextPage = data?.anime?.pageInfo?.hasNextPage ?: false,
-                    mangaHasNextPage = data?.manga?.pageInfo?.hasNextPage ?: false,
+                    animeHasNextPage = if (randomSort) page * perPage < (data?.anime?.pageInfo?.total ?: animeEntries.size) else data?.anime?.pageInfo?.hasNextPage ?: false,
+                    mangaHasNextPage = if (randomSort) page * perPage < (data?.manga?.pageInfo?.total ?: mangaEntries.size) else data?.manga?.pageInfo?.hasNextPage ?: false,
                     animeTotal = data?.anime?.pageInfo?.total ?: animeEntries.size,
                     mangaTotal = data?.manga?.pageInfo?.total ?: mangaEntries.size,
                     charactersHasNextPage = data?.characters?.pageInfo?.hasNextPage ?: false,

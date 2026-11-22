@@ -305,6 +305,7 @@ class DetailsRepositoryImpl @Inject constructor(
 
             val details = MediaDetails(
                 id = media.id ?: 0,
+                idMal = media.idMal,
                 titleRomaji = titleRomaji,
                 titleEnglish = titleEnglish,
                 titleNative = titleNative,

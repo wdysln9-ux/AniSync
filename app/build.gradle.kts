@@ -4,8 +4,6 @@ import com.android.build.api.artifact.ArtifactTransformationRequest
 import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.variant.FilterConfiguration
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.io.FileInputStream
-import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -90,9 +88,8 @@ android {
         abi {
             isEnable = true
             reset()
-            include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
-            isUniversalApk =
-                true // Creates a fat APK with all ABIs for users who don't know their phone's specs
+            include("arm64-v8a")
+            isUniversalApk = false
         }
     }
 
@@ -141,35 +138,20 @@ android {
         }
     }
 
-    signingConfigs {
-        create("release") {
-            val keystorePropertiesFile = rootProject.file("keystore.properties")
-            if (keystorePropertiesFile.exists()) {
-                val keystoreProperties = Properties()
-                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-                storeFile = file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-            } else {
-                storeFile = file(System.getenv("KEYSTORE_FILE") ?: "release.keystore")
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
-            }
-        }
-    }
-
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // CloudStream loads extension APIs and plugin classes dynamically/reflection-based.
+            // Keep the Release APK unminified, matching Debug runtime behavior.
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
             buildConfigField("Boolean", "IS_DEBUG_BUILD", "false")
-            signingConfig = signingConfigs.getByName("release")
+            // Keep the Release variant installable without repository secrets.
+            // GitHub runner provides Gradle's default debug keystore.
+            signingConfig = signingConfigs.getByName("debug")
             vcsInfo { include = false }
         }
         debug {
@@ -293,6 +275,25 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.biometric.compose)
+
+    // Bundled CloudStream API used to execute .cs3 extension packages natively.
+    implementation("com.github.recloudstream.cloudstream:library:v4.8.0")
+    implementation("org.apache.commons:commons-compress:1.27.1")
+    compileOnly("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.1")
+    implementation("io.reactivex:rxjava:1.3.8")
+    implementation("uy.kohesive.injekt:injekt-core:1.16.1")
+    implementation("com.squareup.okhttp3:okhttp-dnsoverhttps:5.5.0")
+    implementation("com.squareup.okhttp3:okhttp-brotli:5.5.0")
+    implementation("com.squareup.okhttp3:okhttp-zstd:5.5.0")
+    compileOnly("com.github.Blatzar:NiceHttp:0.4.17")
+    runtimeOnly("io.ktor:ktor-http:3.2.3")
+    implementation("androidx.preference:preference-ktx:1.2.1")
+    implementation("androidx.webkit:webkit:1.11.0")
+    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.media3:media3-exoplayer-hls:1.11.1")
+    implementation("androidx.media3:media3-exoplayer-dash:1.11.1")
+    implementation("androidx.media3:media3-exoplayer-smoothstreaming:1.11.1")
+    runtimeOnly("io.ktor:ktor-http:3.2.3")
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
