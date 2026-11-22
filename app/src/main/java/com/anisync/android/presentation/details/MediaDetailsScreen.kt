@@ -84,6 +84,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -1148,19 +1149,20 @@ fun DetailsPageContent(
             (inlineTabsBottomWindow - contentTopWindow)
                 .takeIf { it.isFinite() && it > 0f } ?: Float.MAX_VALUE
         }
+        val currentSwipeContentStartPx by rememberUpdatedState(swipeContentStartPx)
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 // Horizontal paging starts only below the tab strip. The header, tracker and tabs
                 // stay fixed while the user swipes between the tab contents.
-                .pointerInput(availableTabs, effectiveTab, swipeThresholdPx, swipeContentStartPx) {
+                .pointerInput(availableTabs, effectiveTab, swipeThresholdPx) {
                     var horizontalDrag = 0f
                     var swipeStartedInContent = false
                     detectHorizontalDragGestures(
                         onDragStart = { offset ->
                             horizontalDrag = 0f
-                            swipeStartedInContent = offset.y >= swipeContentStartPx
+                            swipeStartedInContent = offset.y >= currentSwipeContentStartPx
                         },
                         onDragEnd = {
                             if (swipeStartedInContent) {
