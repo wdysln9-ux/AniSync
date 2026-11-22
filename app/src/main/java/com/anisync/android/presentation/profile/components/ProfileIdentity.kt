@@ -98,6 +98,23 @@ import com.anisync.android.presentation.components.UserAvatar
 import com.anisync.android.presentation.components.WhatsNewPill
 import com.anisync.android.presentation.components.bannerScrimBrush
 import com.anisync.android.presentation.components.bannerScrimHeight
+import com.anisync.android.presentation.components.menu.Menu
+import com.anisync.android.presentation.components.menu.MenuScope
+import com.anisync.android.presentation.components.navigation.BackTrailButton
+import com.anisync.android.presentation.components.rememberActiveWhatsNew
+import com.anisync.android.presentation.util.copyOnLongPress
+import com.anisync.android.presentation.util.formatMonthYear
+import com.anisync.android.presentation.util.openUrl
+import com.anisync.android.presentation.util.pluralStringResourceOrDefault
+import com.anisync.android.presentation.util.rememberCopyToClipboard
+import com.anisync.android.presentation.util.rememberHapticFeedback
+import com.anisync.android.ui.theme.emphasis
+import com.anisync.android.util.AniListUrls
+import com.anisync.android.util.ShareUtils
+import java.time.Instant
+import java.time.YearMonth
+import java.time.ZoneId
+import com.anisync.android.presentation.util.rememberIntegerFormat
 
 private fun formatLastSeenWhatsApp(timestampMillis: Long): String {
     val now = Calendar.getInstance()
@@ -123,23 +140,6 @@ private fun formatLastSeenWhatsApp(timestampMillis: Long): String {
     }
 }
 
-import com.anisync.android.presentation.components.menu.Menu
-import com.anisync.android.presentation.components.menu.MenuScope
-import com.anisync.android.presentation.components.navigation.BackTrailButton
-import com.anisync.android.presentation.components.rememberActiveWhatsNew
-import com.anisync.android.presentation.util.copyOnLongPress
-import com.anisync.android.presentation.util.formatMonthYear
-import com.anisync.android.presentation.util.openUrl
-import com.anisync.android.presentation.util.pluralStringResourceOrDefault
-import com.anisync.android.presentation.util.rememberCopyToClipboard
-import com.anisync.android.presentation.util.rememberHapticFeedback
-import com.anisync.android.ui.theme.emphasis
-import com.anisync.android.util.AniListUrls
-import com.anisync.android.util.ShareUtils
-import java.time.Instant
-import java.time.YearMonth
-import java.time.ZoneId
-import com.anisync.android.presentation.util.rememberIntegerFormat
 
 /**
  * Header pieces shared by the phone header ([ProfileTopSection]) and the wide identity column
