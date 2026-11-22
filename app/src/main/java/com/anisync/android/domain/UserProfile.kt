@@ -35,6 +35,8 @@ data class UserProfile(
     val moderatorRoles: List<String> = emptyList(),
     val createdAt: Long? = null,
     val previousNames: List<PreviousName> = emptyList(),
+    /** Total anime episodes watched from AniList. */
+    val episodesWatched: Int = 0,
     /** Total anime watch time from AniList, in minutes. */
     val minutesWatched: Int = 0
 )
