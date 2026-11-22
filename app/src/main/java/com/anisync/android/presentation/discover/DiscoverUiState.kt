@@ -161,17 +161,7 @@ data class DiscoverUiState(
      * before its results arrive, so the rail already says what is being searched.
      */
     val railCategories: List<ResultCategory>
-        get() = ResultCategory.entries.filter { category ->
-            category == ResultCategory.ALL || category == activeCategory || when (category) {
-                ResultCategory.ANIME -> searchAnime.isNotEmpty()
-                ResultCategory.MANGA -> searchManga.isNotEmpty()
-                ResultCategory.CHARACTERS -> groupedResults.characters.isNotEmpty()
-                ResultCategory.STAFF -> groupedResults.staff.isNotEmpty()
-                ResultCategory.USERS -> groupedResults.users.isNotEmpty()
-                ResultCategory.STUDIOS -> groupedResults.studios.isNotEmpty()
-                ResultCategory.ALL -> true
-            }
-        }
+        get() = ResultCategory.entries
 
     /** Titles the filters leave in the category on screen, for a filter sheet's footer. */
     val matchingTitles: Int
