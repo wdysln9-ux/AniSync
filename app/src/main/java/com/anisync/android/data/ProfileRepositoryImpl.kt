@@ -253,7 +253,7 @@ class ProfileRepositoryImpl @Inject constructor(
                 bannerUrl = user.bannerImage,
                 about = user.about,
                 aboutMarkdown = user.aboutRaw,
-                activeAt = activities.maxOfOrNull { it.timestamp }?.times(1000L),
+                activeAt = activities.maxOfOrNull { it.timestamp },
                 animeCount = stats?.count ?: 0,
                 daysWatched = daysWatched,
                 minutesWatched = minutesWatched,
