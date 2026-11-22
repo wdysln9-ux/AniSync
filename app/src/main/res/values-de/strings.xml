@@ -406,7 +406,7 @@
     <string name="studio_main_studio_chip">Hauptstudio</string>
     <string name="clip_label_external_link">Externer Link (%1$s)</string>
     <string name="control_log_out">Abmelden</string>
-    <string name="profile_level">Level %1$d</string>
+    <string name="profile_level">Level %1$s</string>
     <string name="profile_active">Aktiv %1$s</string>
     <string name="notifications_title">Benachrichtigungen</string>
     <string name="notifications_filter_all">Alle</string>
