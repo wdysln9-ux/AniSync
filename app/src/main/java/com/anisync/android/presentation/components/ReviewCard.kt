@@ -72,9 +72,9 @@ fun ReviewCard(
 ) {
     val scoreColor = remember(review.score) {
         when {
-            review.score >= 75 -> Color(0xFF4CAF50) // Green
-            review.score >= 50 -> Color(0xFFFFC107) // Amber
-            else -> Color(0xFFFF5722) // Red-orange
+            review.score >= 75 -> Color(0xFF55D879)
+            review.score >= 60 -> Color(0xFFFFC247)
+            else -> Color(0xFFFF7168)
         }
     }
     val headerImageUrl = remember(review.mediaBannerUrl, review.mediaCoverUrl) {
@@ -231,7 +231,7 @@ fun ReviewCard(
     }
 }
 
-/** Score chip: a star + the numeric score on a solid score-coloured pill. */
+/** Score chip: a dark pill with the star and numeric score tinted by rating. */
 @Composable
 private fun ScorePill(
     score: Int,
@@ -240,7 +240,7 @@ private fun ScorePill(
 ) {
     Row(
         modifier = modifier
-            .background(scoreColor, RoundedCornerShape(percent = 50))
+            .background(Color.Black.copy(alpha = 0.62f), RoundedCornerShape(percent = 50))
             .padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -248,14 +248,14 @@ private fun ScorePill(
         Icon(
             imageVector = Icons.Filled.Star,
             contentDescription = null,
-            tint = Color.White,
+            tint = scoreColor,
             modifier = Modifier.size(12.dp)
         )
         Text(
             text = score.toString(),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            color = Color.White,
+            color = scoreColor,
             fontSize = 11.sp
         )
     }
