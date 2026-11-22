@@ -109,6 +109,7 @@ internal object PlayerPreferences {
 @OptIn(UnstableApi::class)
 internal object FullscreenVideoBridge {
     var player: ExoPlayer? = null
+    @Volatile var isFullscreen: Boolean = false
     var closeFullscreen: (() -> Unit)? = null
     var onPlaybackEnded: (() -> Unit)? = null
     val cinematicIntensity = mutableFloatStateOf(0f)
@@ -166,6 +167,7 @@ class FullscreenPlayerActivity : ComponentActivity() {
             return
         }
 
+        FullscreenVideoBridge.isFullscreen = true
         setContent {
             AppTheme(darkTheme = true) {
                 FullscreenVideoContent(
@@ -180,6 +182,7 @@ class FullscreenPlayerActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         // Release the shared reference; the inline player keeps its own and reattaches on return.
+        FullscreenVideoBridge.isFullscreen = false
         FullscreenVideoBridge.player = null
         FullscreenVideoBridge.closeFullscreen = null
     }
@@ -225,6 +228,7 @@ private fun FullscreenVideoContent(
     var aspect by remember {
         mutableFloatStateOf(aspectRatio.takeIf { it > 0f } ?: DEFAULT_VIDEO_ASPECT)
     }
+    var playbackEndHandled by remember(player) { mutableStateOf(false) }
 
     DisposableEffect(player) {
         val listener = object : Player.Listener {
@@ -239,7 +243,10 @@ private fun FullscreenVideoContent(
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) FullscreenVideoBridge.onPlaybackEnded?.invoke()
+                if (playbackState == Player.STATE_ENDED && !playbackEndHandled) {
+                    playbackEndHandled = true
+                    FullscreenVideoBridge.onPlaybackEnded?.invoke()
+                }
                 if (playbackState == Player.STATE_READY) {
                     val d = player.duration
                     if (d > 0) durationMs = d
@@ -255,6 +262,28 @@ private fun FullscreenVideoContent(
         }
         player.addListener(listener)
         onDispose { player.removeListener(listener) }
+    }
+
+    // Fallback for a processor that delays STATE_ENDED after the final video frame.
+    LaunchedEffect(player, isPlaying, durationMs) {
+        if (!isPlaying || durationMs <= 0L || playbackEndHandled) return@LaunchedEffect
+        while (isPlaying && !playbackEndHandled) {
+            if (player.playbackState == Player.STATE_READY &&
+                player.currentPosition >= durationMs - 400L
+            ) {
+                delay(700L)
+                if (!playbackEndHandled &&
+                    player.playbackState != Player.STATE_BUFFERING &&
+                    player.currentPosition >= durationMs - 250L
+                ) {
+                    playbackEndHandled = true
+                    player.pause()
+                    FullscreenVideoBridge.onPlaybackEnded?.invoke()
+                    break
+                }
+            }
+            delay(150L)
+        }
     }
 
     // Drive the scrubber while playing (paused while dragging).

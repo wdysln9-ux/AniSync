@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.anisync.android.cloudstream.CloudStreamRuntime
 import com.anisync.android.presentation.components.VideoPlayer
+import com.anisync.android.presentation.components.FullscreenVideoBridge
 import com.anisync.android.presentation.details.components.ThemeSheet
 import com.anisync.android.presentation.details.components.SheetLabel
 import com.anisync.android.presentation.details.components.ThemeSheetIdentity

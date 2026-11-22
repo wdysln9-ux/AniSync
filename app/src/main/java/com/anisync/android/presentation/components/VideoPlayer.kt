@@ -196,6 +196,7 @@ fun VideoPlayer(
     val isHandedOff by rememberUpdatedState(handedOff)
     var cinematicOverlayIntensity by remember { mutableFloatStateOf(if (PlayerPreferences.cinematicEnabled(context)) PlayerPreferences.cinematicIntensity(context) else 0f) }
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
+    var playbackEndHandled by remember(url, headers) { mutableStateOf(false) }
 
     // Cached player survives scrolling; self-managed one is built+released here. Both go through
     // buildVideoExoPlayer so the OkHttp/browser-UA data source and eager prepare apply identically.
@@ -230,7 +231,10 @@ fun VideoPlayer(
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED && !isHandedOff) currentOnPlaybackEnded()
+                if (playbackState == Player.STATE_ENDED && !isHandedOff && !playbackEndHandled) {
+                    playbackEndHandled = true
+                    currentOnPlaybackEnded()
+                }
                 if (playbackState == Player.STATE_READY) {
                     val d = exoPlayer.duration
                     if (d > 0) durationMs = d
@@ -301,6 +305,29 @@ fun VideoPlayer(
             awaitCancellation()
         } finally {
             nextPlayer?.release()
+        }
+    }
+
+    // Some audio processors can delay Media3's STATE_ENDED callback after the video reaches
+    // its final timestamp. Stop at the real media duration and dispatch auto-next exactly once.
+    LaunchedEffect(exoPlayer, isPlaying, isHandedOff, durationMs) {
+        if (!isPlaying || isHandedOff || durationMs <= 0L || playbackEndHandled) return@LaunchedEffect
+        while (isPlaying && !isHandedOff && !playbackEndHandled) {
+            if (exoPlayer.playbackState == Player.STATE_READY &&
+                exoPlayer.currentPosition >= durationMs - 400L
+            ) {
+                delay(700L)
+                if (!playbackEndHandled &&
+                    exoPlayer.playbackState != Player.STATE_BUFFERING &&
+                    exoPlayer.currentPosition >= durationMs - 250L
+                ) {
+                    playbackEndHandled = true
+                    exoPlayer.pause()
+                    currentOnPlaybackEnded()
+                    break
+                }
+            }
+            delay(150L)
         }
     }
 
