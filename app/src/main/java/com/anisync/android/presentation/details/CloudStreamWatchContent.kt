@@ -203,11 +203,12 @@ internal fun CloudStreamWatchContent(
             var links = (first["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
             var done = first["done"] == true
             val started = System.currentTimeMillis()
-            while (!done && links.isEmpty() && System.currentTimeMillis() - started < 28_000L) {
+            while (!done && System.currentTimeMillis() - started < 28_000L) {
                 delay(650)
                 val next = withContext(Dispatchers.IO) { CloudStreamRuntime.pollLinks(hit.provider, data) }
                 links = (next["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
                 done = next["done"] == true
+                if (links.any { sameServer(it, preferredServerName) }) break
             }
             val playable = links.filter { !it["url"]?.toString().isNullOrBlank() }
             playable.firstOrNull { sameServer(it, preferredServerName) } ?: playable.firstOrNull()
@@ -266,7 +267,9 @@ internal fun CloudStreamWatchContent(
                         links = (next["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
                         subs = (next["subtitles"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
                         done = next["done"] == true
-                        if (links.isNotEmpty()) {
+                        if (links.isNotEmpty() &&
+                            (preferredServerName.isNullOrBlank() || links.any { sameServer(it, preferredServerName) })
+                        ) {
                             streams = links; subtitles = subs
                             selectedStream = links.firstOrNull { sameServer(it, preferredServerName) } ?: links.first(); selected = hit
                             CloudStreamWatchCache.streams[cacheKey] = links to subs
