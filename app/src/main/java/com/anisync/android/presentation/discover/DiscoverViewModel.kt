@@ -213,6 +213,7 @@ class DiscoverViewModel @Inject constructor(
             is DiscoverAction.OnBrowseChip -> onBrowseChip(action.chip)
             is DiscoverAction.AddToPlanning -> addToPlanning(action.mediaId)
             is DiscoverAction.RetrySection -> retrySection(action.section)
+            is DiscoverAction.LoadMoreSection -> loadMoreSection(action.section)
         }
     }
 
@@ -530,26 +531,16 @@ class DiscoverViewModel @Inject constructor(
             }
 
             val jobs = buildList {
-                add(launch {
-                    loadEntries(mediaType, { discoverRepository.getTrending(it) }) { f, v -> f.copy(trending = v) }
-                })
-                add(launch {
-                    loadEntries(mediaType, { discoverRepository.getRecommendations(it) }) { f, v -> f.copy(popular = v) }
-                })
-                add(launch {
-                    loadEntries(mediaType, { discoverRepository.getNotYetReleased(it) }) { f, v -> f.copy(notYetReleased = v) }
-                })
-                add(launch {
-                    loadEntries(mediaType, { discoverRepository.getNewlyAdded(it) }) { f, v -> f.copy(newlyAdded = v) }
-                })
+                add(launch { loadEntries(mediaType, DiscoverSection.TRENDING, "trending") })
+                add(launch { loadEntries(mediaType, DiscoverSection.POPULAR, "latest") })
+                add(launch { loadEntries(mediaType, DiscoverSection.NOT_YET_RELEASED, "not_yet_released") })
+                add(launch { loadEntries(mediaType, DiscoverSection.NEWLY_ADDED, "newly_added") })
                 add(launch { loadReviews(mediaType) })
                 if (DiscoverSection.AIRING_TODAY in supported) {
                     add(launch { loadAiringToday(mediaType) })
                 }
                 if (DiscoverSection.RELEASING_NOW in supported) {
-                    add(launch {
-                        loadEntries(mediaType, { discoverRepository.getReleasing(it) }) { f, v -> f.copy(releasing = v) }
-                    })
+                    add(launch { loadEntries(mediaType, DiscoverSection.RELEASING_NOW, "releasing") })
                 }
             }
             jobs.forEach { it.join() }
@@ -563,20 +554,91 @@ class DiscoverViewModel @Inject constructor(
         }
     }
 
-    /** Run one media rail's request and fold the outcome into its own slot. */
+    /** Load the first page of one catalogue rail. Every rail owns its own page cursor. */
     private suspend fun loadEntries(
         mediaType: MediaType,
-        request: suspend (MediaType) -> Result<List<LibraryEntry>>,
-        assign: (DiscoverFeeds, SectionFeed<LibraryEntry>) -> DiscoverFeeds
+        section: DiscoverSection,
+        sectionType: String
     ) {
-        val feed = when (val result = request(mediaType)) {
-            is Result.Success -> SectionFeed(items = result.data, isLoading = false)
+        val result = discoverRepository.getPaginatedSection(sectionType, mediaType, page = 1)
+        val feed = when (result) {
+            is Result.Success -> SectionFeed(
+                items = result.data.items,
+                isLoading = false,
+                page = result.data.currentPage,
+                hasNextPage = result.data.hasNextPage
+            )
             is Result.Error -> SectionFeed<LibraryEntry>(isLoading = false, error = result.message)
         }
-        // A tab switch mid-flight must not write the old tab's rail over the new one.
-        _uiState.update {
-            if (it.mediaType != mediaType) it else it.copy(feeds = assign(it.feeds, feed))
+        _uiState.update { state ->
+            if (state.mediaType != mediaType) state
+            else state.copy(feeds = state.feeds.withFeed(section, feed))
         }
+    }
+
+    /** Fetch and append the next page only for the rail whose end is approaching. */
+    private fun loadMoreSection(section: DiscoverSection) {
+        val state = _uiState.value
+        val mediaType = state.mediaType
+        if (section !in CATALOG_SECTIONS || !section.supports(mediaType)) return
+        val current = state.feeds.of(section) as? SectionFeed<LibraryEntry> ?: return
+        if (!current.hasNextPage || current.isLoading || current.isLoadingMore) return
+        val sectionType = section.catalogueSectionType()
+        _uiState.update { s ->
+            if (s.mediaType != mediaType) s else s.copy(
+                feeds = s.feeds.withFeed(section, current.copy(isLoadingMore = true))
+            )
+        }
+        viewModelScope.launch {
+            when (val result = discoverRepository.getPaginatedSection(
+                sectionType = sectionType,
+                type = mediaType,
+                page = current.page + 1
+            )) {
+                is Result.Success -> _uiState.update { s ->
+                    if (s.mediaType != mediaType) s else {
+                        val latest = s.feeds.of(section) as? SectionFeed<LibraryEntry> ?: current
+                        val appended = (latest.items + result.data.items).distinctBy { it.mediaId }
+                        s.copy(feeds = s.feeds.withFeed(
+                            section,
+                            latest.copy(
+                                items = appended,
+                                page = result.data.currentPage,
+                                hasNextPage = result.data.hasNextPage,
+                                isLoadingMore = false
+                            )
+                        ))
+                    }
+                }
+                is Result.Error -> _uiState.update { s ->
+                    if (s.mediaType != mediaType) s else {
+                        val latest = s.feeds.of(section) as? SectionFeed<LibraryEntry> ?: current
+                        s.copy(feeds = s.feeds.withFeed(section, latest.copy(isLoadingMore = false)))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun DiscoverFeeds.withFeed(
+        section: DiscoverSection,
+        feed: SectionFeed<LibraryEntry>
+    ): DiscoverFeeds = when (section) {
+        DiscoverSection.TRENDING -> copy(trending = feed)
+        DiscoverSection.POPULAR -> copy(popular = feed)
+        DiscoverSection.NOT_YET_RELEASED -> copy(notYetReleased = feed)
+        DiscoverSection.NEWLY_ADDED -> copy(newlyAdded = feed)
+        DiscoverSection.RELEASING_NOW -> copy(releasing = feed)
+        else -> this
+    }
+
+    private fun DiscoverSection.catalogueSectionType(): String = when (this) {
+        DiscoverSection.TRENDING -> "trending"
+        DiscoverSection.POPULAR -> "latest"
+        DiscoverSection.NOT_YET_RELEASED -> "not_yet_released"
+        DiscoverSection.NEWLY_ADDED -> "newly_added"
+        DiscoverSection.RELEASING_NOW -> "releasing"
+        else -> error("Section is not a paginated media catalogue")
     }
 
     private suspend fun loadReviews(mediaType: MediaType) {
@@ -689,16 +751,11 @@ class DiscoverViewModel @Inject constructor(
         _uiState.update { it.copy(feeds = it.feeds.markLoading(section)) }
         viewModelScope.launch {
             when (section) {
-                DiscoverSection.TRENDING ->
-                    loadEntries(mediaType, { discoverRepository.getTrending(it) }) { f, v -> f.copy(trending = v) }
-                DiscoverSection.POPULAR ->
-                    loadEntries(mediaType, { discoverRepository.getRecommendations(it) }) { f, v -> f.copy(popular = v) }
-                DiscoverSection.NOT_YET_RELEASED ->
-                    loadEntries(mediaType, { discoverRepository.getNotYetReleased(it) }) { f, v -> f.copy(notYetReleased = v) }
-                DiscoverSection.NEWLY_ADDED ->
-                    loadEntries(mediaType, { discoverRepository.getNewlyAdded(it) }) { f, v -> f.copy(newlyAdded = v) }
-                DiscoverSection.RELEASING_NOW ->
-                    loadEntries(mediaType, { discoverRepository.getReleasing(it) }) { f, v -> f.copy(releasing = v) }
+                DiscoverSection.TRENDING -> loadEntries(mediaType, section, "trending")
+                DiscoverSection.POPULAR -> loadEntries(mediaType, section, "latest")
+                DiscoverSection.NOT_YET_RELEASED -> loadEntries(mediaType, section, "not_yet_released")
+                DiscoverSection.NEWLY_ADDED -> loadEntries(mediaType, section, "newly_added")
+                DiscoverSection.RELEASING_NOW -> loadEntries(mediaType, section, "releasing")
                 DiscoverSection.AIRING_TODAY -> loadAiringToday(mediaType)
                 DiscoverSection.REVIEWS -> loadReviews(mediaType)
             }
