@@ -653,6 +653,7 @@ fun ExpandableSynopsis(text: String) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(cardShape)
+            .clickable { expanded = !expanded }
             .animateContentSize(
                 animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
             )
