@@ -990,6 +990,7 @@ internal fun VideoControlsOverlay(
     var autoSkipOpeningEnabled by remember { mutableStateOf(PlayerPreferences.autoSkipOpening(context)) }
     var autoSkipEndingEnabled by remember { mutableStateOf(PlayerPreferences.autoSkipEnding(context)) }
     var skipNotice by remember { mutableStateOf<String?>(null) }
+    var lastAutoSkippedSegment by remember { mutableStateOf<String?>(null) }
     var cinematicEnabled by remember { mutableStateOf(PlayerPreferences.cinematicEnabled(context)) }
     var cinematicSettingsExpanded by remember { mutableStateOf(false) }
     var cinematicIntensity by remember { mutableFloatStateOf(PlayerPreferences.cinematicIntensity(context)) }
@@ -1044,13 +1045,21 @@ internal fun VideoControlsOverlay(
     val activeSkipSegment = skipSegments.firstOrNull { positionMs >= it.startMs && positionMs < it.endMs }
 
     LaunchedEffect(activeSkipSegment?.startMs, activeSkipSegment?.endMs, durationMs, autoSkipOpeningEnabled, autoSkipEndingEnabled) {
-        val segment = activeSkipSegment ?: return@LaunchedEffect
+        val segment = activeSkipSegment
+        if (segment == null) {
+            lastAutoSkippedSegment = null
+            return@LaunchedEffect
+        }
+        val segmentKey = "${segment.label}:${segment.startMs}:${segment.endMs}"
+        if (lastAutoSkippedSegment == segmentKey) return@LaunchedEffect
         val shouldSkip = when (segment.label) {
             "Opening" -> autoSkipOpeningEnabled
             "Ending" -> autoSkipEndingEnabled
             else -> false
         }
         if (shouldSkip && durationMs > 0L) {
+            // Mark before seeking so a quick recomposition cannot trigger a second seek.
+            lastAutoSkippedSegment = segmentKey
             onSeek((segment.endMs.toFloat() / durationMs).coerceIn(0f, 1f))
             onSeekFinished()
             skipNotice = "${segment.label} dilewati"
@@ -1589,16 +1598,22 @@ internal fun VideoControlsOverlay(
         ) {
             val segment = activeSkipSegment
             if (segment != null) {
-                FilledTonalButton(
+                Surface(
                     onClick = {
                         onSeek((segment.endMs.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(0f, 1f))
                         onSeekFinished()
                         skipNotice = "${segment.label} dilewati"
                         controlsVisible = false
                     },
-                    shape = RoundedCornerShape(50.dp)
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                 ) {
-                    Text(if (segment.label == "Opening") "Lewati Opening" else "Lewati Ending")
+                    Text(
+                        text = if (segment.label == "Opening") "Lewati Opening" else "Lewati Ending",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                    )
                 }
             }
         }
