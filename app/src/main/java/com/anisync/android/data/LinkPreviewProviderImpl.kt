@@ -46,8 +46,11 @@ class LinkPreviewProviderImpl @Inject constructor(
                         year = entity.seasonYear ?: entity.year,
                         type = entity.mediaType?.name,
                         episodes = entity.episodes,
-                        chapters = entity.chapters
-                    )
+                        chapters = entity.chapters,
+                        score = entity.score
+                    ),
+                    score = entity.score,
+                    genres = entity.genres
                 )
             } else {
                 uncachedMediaIds.add(link.id)
@@ -92,8 +95,11 @@ class LinkPreviewProviderImpl @Inject constructor(
                             year = media.seasonYear,
                             type = media.type?.name,
                             episodes = media.episodes,
-                            chapters = media.chapters
-                        )
+                            chapters = media.chapters,
+                            score = media.averageScore
+                        ),
+                        score = media.averageScore,
+                        genres = media.genres.filterNotNull()
                     )
                 }
 
@@ -143,7 +149,8 @@ class LinkPreviewProviderImpl @Inject constructor(
         year: Int?,
         type: String?,
         episodes: Int?,
-        chapters: Int?
+        chapters: Int?,
+        score: Int?
     ): String? {
         val seasonAndYear = listOfNotNull(
             season?.let(::prettySeason),
@@ -157,7 +164,8 @@ class LinkPreviewProviderImpl @Inject constructor(
         val parts = listOfNotNull(
             format?.let(::prettyFormat),
             seasonAndYear,
-            count
+            count,
+            score?.takeIf { it > 0 }?.let { "⭐ " + String.format(java.util.Locale.US, "%.1f", it / 10.0) }
         )
         return parts.joinToString(" · ").takeIf { it.isNotBlank() }
     }
@@ -172,7 +180,7 @@ class LinkPreviewProviderImpl @Inject constructor(
 
     private fun prettyFormat(raw: String): String = when (raw.uppercase()) {
         "TV" -> "TV"
-        "TV_SHORT" -> "TV Short"
+        "TV_SHORT" -> "TV Pendek"
         "OVA" -> "OVA"
         "ONA" -> "ONA"
         "MOVIE" -> "Movie"
