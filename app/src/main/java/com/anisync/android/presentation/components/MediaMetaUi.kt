@@ -42,9 +42,8 @@ import androidx.compose.ui.unit.dp
 import com.anisync.android.R
 import com.anisync.android.domain.ScoreFormat
 import com.anisync.android.domain.formatScore
+import com.anisync.android.presentation.components.personalScoreTint
 import com.anisync.android.ui.theme.emphasis
-
-private val StarColor = Color(0xFFFFC107)
 
 /**
  * Small rounded metadata pill (status, progress, format, rewatches…). Shared so the profile media
@@ -96,12 +95,26 @@ fun ScoreChip(score: Double?, format: ScoreFormat?, modifier: Modifier = Modifie
     val resolved = format ?: ScoreFormat.POINT_10_DECIMAL
     // POINT_5 / POINT_3 already render as stars/smileys, so the leading star only helps numeric formats.
     val showStar = resolved != ScoreFormat.POINT_5 && resolved != ScoreFormat.POINT_3
-    MetaChip(
-        label = formatScore(score, resolved),
-        modifier = modifier,
-        leadingIcon = if (showStar) Icons.Default.Star else null,
-        leadingIconTint = StarColor
-    )
+    val scoreColor = personalScoreTint(score, resolved)
+    Row(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.62f))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        if (showStar) {
+            Icon(Icons.Default.Star, contentDescription = null, tint = scoreColor, modifier = Modifier.size(11.dp))
+        }
+        Text(
+            text = formatScore(score, resolved),
+            style = MaterialTheme.typography.labelSmall,
+            color = scoreColor,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1
+        )
+    }
 }
 
 /**
