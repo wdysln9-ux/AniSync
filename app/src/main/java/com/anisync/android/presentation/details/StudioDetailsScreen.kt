@@ -394,7 +394,7 @@ private fun StudioDetailsContent(
             Spacer(Modifier.height(16.dp))
             StudioLinkRow(
                 label = stringResource(R.string.studio_open_on_anilist),
-                value = url.removePrefix("https://").removePrefix("http://").substringBefore('/'),
+                value = "anilist.co/studio/${studio.id}",
                 onClick = { uriHandler.openUri(url) }
             )
         }
