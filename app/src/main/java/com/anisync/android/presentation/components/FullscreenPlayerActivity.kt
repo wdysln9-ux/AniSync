@@ -251,7 +251,7 @@ private fun FullscreenVideoContent(
         val listener = object : Player.Listener {
             override fun onVideoSizeChanged(videoSize: VideoSize) {
                 if (videoSize.width > 0 && videoSize.height > 0) {
-                    aspect = videoSize.width.toFloat() / videoSize.height.toFloat()
+                    aspect = videoSize.displayAspectRatio().toFloat()
                 }
             }
 
