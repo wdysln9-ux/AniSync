@@ -338,26 +338,33 @@ private fun AnimeWStyleFilterSheet(
         }
         val yearChips = if (showOlderYearChips) (1990..currentYear).toList().reversed()
             else (2012..currentYear).toList().reversed()
-        FilterChoiceChipGroup(
-            options = yearChips,
-            label = { it.toString() },
-            isSelected = { it == filters.yearRange.min && it == filters.yearRange.max },
-            onClick = { year ->
-                onFiltersChange(filters.copy(
-                    yearRange = if (filters.yearRange.min == year && filters.yearRange.max == year)
-                        IntRangeFilter() else IntRangeFilter(year, year)
-                ))
+        FlowRow(
+            modifier = Modifier.padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            yearChips.forEach { year ->
+                IncludeExcludeChip(
+                    label = year.toString(),
+                    state = if (year == filters.yearRange.min && year == filters.yearRange.max)
+                        TriState.INCLUDED else TriState.OFF,
+                    onStateChange = { next ->
+                        if (next != TriState.EXCLUDED) {
+                            onFiltersChange(filters.copy(
+                                yearRange = if (filters.yearRange.min == year && filters.yearRange.max == year)
+                                    IntRangeFilter() else IntRangeFilter(year, year)
+                            ))
+                        }
+                    }
+                )
             }
-        )
-        if (!showOlderYearChips && currentYear > 2012) {
-            Surface(
-                onClick = { showOlderYearChips = true },
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                modifier = Modifier.padding(start = 24.dp, top = 8.dp)
-            ) {
-                Text("Selengkapnya", modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.labelMedium)
+            if (currentYear > 2012) {
+                IncludeExcludeChip(
+                    label = if (showOlderYearChips) "Tampilkan lebih sedikit"
+                    else "Selengkapnya (+22)",
+                    state = TriState.OFF,
+                    onStateChange = { showOlderYearChips = !showOlderYearChips }
+                )
             }
         }
 
