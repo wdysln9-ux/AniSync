@@ -1,5 +1,6 @@
 package com.anisync.android.presentation.profile.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -104,10 +105,9 @@ internal fun FeedInlineReplies(
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.weight(1f)
-                                            .then(
-                                                Modifier
-                                            )
+                                        modifier = Modifier.weight(1f).clickable {
+                                            onUserClick(reply.authorName)
+                                        }
                                     )
                                 }
                                 AsyncRichTextRenderer(
