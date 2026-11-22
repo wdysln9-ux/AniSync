@@ -44,9 +44,8 @@ class DiscoverRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getRecommendations(type: MediaType): Result<List<LibraryEntry>> {
-        // Discover catalogue uses the regular Popular list. The separate Rekomendasi search tab
-        // keeps its random sort preset in DiscoverViewModel.
-        return fetchMedia(listOf(MediaSort.POPULARITY_DESC), type)
+        // The Discover "Terbaru" rail is ordered by release date, not AniList popularity.
+        return getPaginatedSection("latest", type, page = 1, format = null).map { it.items }
     }
 
     override suspend fun getNewlyAdded(type: MediaType): Result<List<LibraryEntry>> {
@@ -215,6 +214,7 @@ class DiscoverRepositoryImpl @Inject constructor(
             val (sort, status) = when (sectionType) {
                 "trending" -> listOf(MediaSort.TRENDING_DESC) to null
                 "popular" -> listOf(MediaSort.POPULARITY_DESC) to null
+                "latest" -> listOf(MediaSort.START_DATE_DESC) to null
                 "upcoming" -> listOf(MediaSort.POPULARITY_DESC) to MediaStatus.NOT_YET_RELEASED
                 "tba" -> listOf(MediaSort.POPULARITY_DESC) to MediaStatus.NOT_YET_RELEASED
                 "newly_added" -> listOf(MediaSort.ID_DESC) to null
@@ -251,6 +251,9 @@ class DiscoverRepositoryImpl @Inject constructor(
                     sort = Optional.present(sort),
                     type = Optional.present(type),
                     status = status?.let { Optional.present(it) } ?: Optional.absent(),
+                    statusIn = if (sectionType == "latest") {
+                        Optional.present(listOf(MediaStatus.RELEASING, MediaStatus.FINISHED))
+                    } else Optional.absent(),
                     format = format?.let { Optional.present(it) } ?: Optional.absent(),
                     season = upcomingSeason?.first?.let { Optional.present(it) } ?: Optional.absent(),
                     seasonYear = upcomingSeason?.second?.let { Optional.present(it) } ?: Optional.absent()
@@ -267,6 +270,9 @@ class DiscoverRepositoryImpl @Inject constructor(
             val filteredMedia = when (sectionType) {
                 "upcoming" -> allMedia.filter { it.season != null }
                 "tba" -> allMedia.filter { it.season == null }
+                // A title needs at least a known release year. This excludes TBA records without
+                // a start date/year while keeping titles with only a year and no exact day.
+                "latest" -> allMedia.filter { it.startDate?.year != null || it.seasonYear != null }
                 else -> allMedia
             }
 
