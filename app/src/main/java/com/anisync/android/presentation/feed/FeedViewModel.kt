@@ -7,6 +7,7 @@ import com.anisync.android.R
 import com.anisync.android.data.AppSettings
 import com.anisync.android.data.account.AccountManager
 import com.anisync.android.data.util.AppLocale
+import com.anisync.android.domain.ActivityDetail
 import com.anisync.android.domain.ActivityEventBus
 import com.anisync.android.domain.ActivityRepository
 import com.anisync.android.domain.ActivityType
@@ -242,6 +243,14 @@ class FeedViewModel @Inject constructor(
 
             is FeedAction.ToggleLike -> toggleLike(action.activityId)
 
+            is FeedAction.ToggleReplies -> toggleReplies(action.activityId)
+
+            is FeedAction.UpdateReplyDraft -> _uiState.update { state ->
+                state.copy(replyDrafts = state.replyDrafts + (action.activityId to action.text))
+            }
+
+            is FeedAction.SubmitInlineReply -> submitInlineReply(action.activityId)
+
             is FeedAction.DeleteActivity -> deleteActivity(action.activityId)
 
             is FeedAction.EditActivity -> {
@@ -255,6 +264,89 @@ class FeedViewModel @Inject constructor(
             }
 
             is FeedAction.SubmitEdit -> submitEdit(action.text)
+        }
+    }
+
+
+    private fun toggleReplies(activityId: Int) {
+        val current = _uiState.value
+        if (current.expandedRepliesActivityId == activityId) {
+            _uiState.update { it.copy(expandedRepliesActivityId = null) }
+            return
+        }
+        _uiState.update { it.copy(expandedRepliesActivityId = activityId) }
+        val latest = _uiState.value
+        if (activityId !in latest.replyDetails && activityId !in latest.loadingReplyIds) {
+            loadInlineReplies(activityId)
+        }
+    }
+
+    private fun loadInlineReplies(activityId: Int) {
+        _uiState.update { state ->
+            state.copy(
+                loadingReplyIds = state.loadingReplyIds + activityId,
+                replyLoadErrors = state.replyLoadErrors - activityId
+            )
+        }
+        viewModelScope.launch {
+            when (val result = activityRepository.getActivity(activityId)) {
+                is Result.Success -> _uiState.update { state ->
+                    state.copy(
+                        replyDetails = state.replyDetails + (activityId to result.data),
+                        loadingReplyIds = state.loadingReplyIds - activityId,
+                        replyLoadErrors = state.replyLoadErrors - activityId
+                    )
+                }
+                is Result.Error -> _uiState.update { state ->
+                    state.copy(
+                        loadingReplyIds = state.loadingReplyIds - activityId,
+                        replyLoadErrors = state.replyLoadErrors + (activityId to result.message)
+                    )
+                }
+            }
+        }
+    }
+
+    private fun submitInlineReply(activityId: Int) {
+        val state = _uiState.value
+        val text = state.replyDrafts[activityId].orEmpty().trim()
+        if (text.isEmpty() || activityId in state.submittingReplyIds) return
+        if (activityId !in state.replyDetails) return
+
+        _uiState.update { it.copy(submittingReplyIds = it.submittingReplyIds + activityId) }
+        viewModelScope.launch {
+            when (val result = activityRepository.sendReply(activityId, text)) {
+                is Result.Success -> {
+                    _uiState.update { current ->
+                        val detail = current.replyDetails[activityId] ?: return@update current
+                        val updatedDetail = detail.copy(
+                            replies = detail.replies + result.data,
+                            replyCount = detail.replyCount + 1
+                        )
+                        current.copy(
+                            replyDetails = current.replyDetails + (activityId to updatedDetail),
+                            replyDrafts = current.replyDrafts + (activityId to ""),
+                            submittingReplyIds = current.submittingReplyIds - activityId,
+                            items = current.items.map { item ->
+                                if (item.id == activityId) item.copy(replyCount = updatedDetail.replyCount)
+                                else item
+                            }.toPersistentList()
+                        )
+                    }
+                    activityEventBus.publish(
+                        ActivityUpdate(
+                            id = activityId,
+                            replyCount = _uiState.value.replyDetails[activityId]?.replyCount
+                        )
+                    )
+                }
+                is Result.Error -> {
+                    _uiState.update {
+                        it.copy(submittingReplyIds = it.submittingReplyIds - activityId)
+                    }
+                    showResultError(result)
+                }
+            }
         }
     }
 
