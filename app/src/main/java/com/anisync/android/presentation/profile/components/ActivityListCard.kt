@@ -44,6 +44,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.anisync.android.R
+import com.anisync.android.domain.ActivityReply
 import com.anisync.android.domain.UserActivity
 import com.anisync.android.domain.url
 import com.anisync.android.presentation.components.UserAvatar
@@ -73,7 +74,17 @@ internal fun ActivityListCard(
     onLastReplyClick: (activityId: Int, replyId: Int) -> Unit = { _, _ -> },
     onLikeClick: (() -> Unit)? = null,
     onSubscribeClick: (() -> Unit)? = null,
-    onDeleteClick: (() -> Unit)? = null
+    onDeleteClick: (() -> Unit)? = null,
+    onCommentToggle: (() -> Unit)? = null,
+    showInlineReplies: Boolean = false,
+    inlineReplies: List<ActivityReply> = emptyList(),
+    isLoadingReplies: Boolean = false,
+    replyLoadError: String? = null,
+    replyDraft: String = "",
+    isSubmittingReply: Boolean = false,
+    onReplyDraftChange: (String) -> Unit = {},
+    onSubmitReply: () -> Unit = {},
+    onRetryReplies: () -> Unit = {}
 ) {
     val shape = RoundedCornerShape(16.dp)
 
@@ -152,9 +163,23 @@ internal fun ActivityListCard(
             ActivityListFooter(
                 activity = activity,
                 onLastReplyClick = onLastReplyClick,
-                onCommentClick = onClick,
+                onCommentClick = onCommentToggle ?: onClick,
                 onLikeClick = onLikeClick
             )
+
+            if (showInlineReplies) {
+                FeedInlineReplies(
+                    replies = inlineReplies,
+                    isLoading = isLoadingReplies,
+                    loadError = replyLoadError,
+                    draft = replyDraft,
+                    isSubmitting = isSubmittingReply,
+                    onDraftChange = onReplyDraftChange,
+                    onSubmit = onSubmitReply,
+                    onRetry = onRetryReplies,
+                    onUserClick = onUserClick
+                )
+            }
         }
     }
 }
