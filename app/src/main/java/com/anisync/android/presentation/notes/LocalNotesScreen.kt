@@ -99,7 +99,20 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION) }
             treeUri = uri
             prefs.edit().putString(TREE, uri.toString()).apply()
-            status = if (saveTree(context, uri, data)) "Cadangan aktif" else "Folder dipilih, tetapi penulisan cadangan gagal"
+            val existingFile = DocumentFile.fromTreeUri(context, uri)?.findFile(BACKUP_FILE)
+            val restored = runCatching {
+                existingFile?.uri?.let { fileUri ->
+                    context.contentResolver.openInputStream(fileUri)?.bufferedReader()?.use {
+                        notesJson.decodeFromString<LocalNotesBackup>(it.readText())
+                    }
+                }
+            }.getOrNull()
+            if (restored != null && data.notes.isEmpty()) {
+                data = restored
+                status = "Cadangan lama ditemukan • catatan dipulihkan"
+            } else {
+                status = if (saveTree(context, uri, data)) "Cadangan aktif" else "Folder dipilih, tetapi penulisan cadangan gagal"
+            }
         }
     }
     val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
