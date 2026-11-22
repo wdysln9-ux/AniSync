@@ -960,20 +960,25 @@ private fun DiscoverSearchOverlay(
                     onSearch = { onAction(DiscoverAction.OnSearch(textFieldState.text.toString())) },
                     modifier = fieldCollapse.field.weight(1f)
                 )
-                IconButton(
-                    onClick = {
-                        val next = if (state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID)
-                            com.anisync.android.data.DiscoverViewMode.LIST
-                        else com.anisync.android.data.DiscoverViewMode.GRID
-                        onAction(DiscoverAction.OnViewModeChange(next))
-                    }
+                if (category == ResultCategory.ANIME ||
+                    category == ResultCategory.MANGA ||
+                    category == ResultCategory.USERS
                 ) {
-                    Icon(
-                        imageVector = if (state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID)
-                            Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
-                        contentDescription = if (state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID)
-                            "Ubah ke tampilan daftar" else "Ubah ke tampilan grid"
-                    )
+                    IconButton(
+                        onClick = {
+                            val next = if (state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID)
+                                com.anisync.android.data.DiscoverViewMode.LIST
+                            else com.anisync.android.data.DiscoverViewMode.GRID
+                            onAction(DiscoverAction.OnViewModeChange(next))
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID)
+                                Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
+                            contentDescription = if (state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID)
+                                "Ubah ke tampilan daftar" else "Ubah ke tampilan grid"
+                        )
+                    }
                 }
                 if (category.hasMediaFilters()) {
                     IconButton(
@@ -1062,18 +1067,18 @@ private fun SearchResultsContent(
     resultsModifier: Modifier = Modifier
 ) {
     val category = state.activeCategory
-    val isGrid = state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID
+    val isGrid = (category == ResultCategory.ANIME ||
+        category == ResultCategory.MANGA ||
+        category == ResultCategory.USERS) &&
+        state.viewMode == com.anisync.android.data.DiscoverViewMode.GRID
     Column(modifier = Modifier.fillMaxSize()) {
-        // A preset can open on a category before anything is typed, and the rail says so.
-        if (state.hasSearchResults || category != ResultCategory.ALL) {
-            SearchResultsRail(
+        SearchResultsRail(
                 // Without the filter bar above it, the rail keeps the bar's distance from the divider.
                 modifier = Modifier.padding(top = if (category.hasMediaFilters()) 0.dp else 16.dp, bottom = 8.dp),
                 categories = state.railCategories,
                 activeCategory = category,
                 onCategoryChange = { onAction(DiscoverAction.OnCategoryChange(it)) }
             )
-        }
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             when {
                 state.isSearching -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
