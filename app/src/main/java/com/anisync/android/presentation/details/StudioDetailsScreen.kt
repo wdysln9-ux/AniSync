@@ -280,7 +280,7 @@ private fun StudioDetailsContent(
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
-    var sortIndex by rememberSaveable { mutableIntStateOf(0) }
+    var sortIndex by rememberSaveable { mutableIntStateOf(1) }
     var formatIndex by rememberSaveable { mutableIntStateOf(0) }
     var mainStudioOnly by rememberSaveable { mutableStateOf(false) }
     var onListOnly by rememberSaveable { mutableStateOf(false) }
