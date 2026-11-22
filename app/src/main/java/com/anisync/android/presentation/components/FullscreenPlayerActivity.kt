@@ -129,6 +129,7 @@ internal object FullscreenVideoBridge {
     val cinematicBrightness = mutableFloatStateOf(0f)
     val cinematicVignette = mutableFloatStateOf(0f)
     val cinematicZoom = mutableFloatStateOf(1.22f)
+    val aniSkipSegments = mutableStateOf<List<AniSkipSegment>>(emptyList())
 }
 
 /**
@@ -439,6 +440,7 @@ private fun FullscreenVideoContent(
                 positionMs = positionMs,
                 durationMs = durationMs,
                 bufferedPositionMs = bufferedPositionMs,
+                skipSegments = FullscreenVideoBridge.aniSkipSegments.value,
                 isFullscreen = true,
                 onPlayPause = { if (player.isPlaying) player.pause() else player.play() },
                 onToggleMute = {
