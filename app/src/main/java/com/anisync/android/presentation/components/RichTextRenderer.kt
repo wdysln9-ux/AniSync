@@ -955,7 +955,7 @@ private fun RenderSingleBlock(
 
                 is RichTextBlock.YouTube -> {
                     val videoId = remember(block.videoIdOrUrl) {
-                        extractYouTubeVideoId(block.videoIdOrUrl)
+                        youtubeVideoIdFromUrl(block.videoIdOrUrl)
                     }
 
                     Box(
