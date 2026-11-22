@@ -259,12 +259,7 @@ internal fun BioPreview(about: String, onOpen: () -> Unit, modifier: Modifier = 
         contents = listOf(
             { Box(modifier = Modifier.background(container)) },
             { AsyncRichTextRenderer(html = about, modifier = Modifier.fillMaxWidth()) },
-            { Box(modifier = Modifier.background(Brush.verticalGradient(listOf(container.copy(alpha = 0f), container)))) },
-            {
-                FilledTonalButton(onClick = onOpen) {
-                    Text(stringResource(R.string.profile_read_more), style = MaterialTheme.typography.labelLarge.emphasis())
-                }
-            }
+            { Box(modifier = Modifier.background(Brush.verticalGradient(listOf(container.copy(alpha = 0f), container)))) }
         ),
         modifier = modifier
             .fillMaxWidth()
@@ -280,13 +275,10 @@ internal fun BioPreview(about: String, onOpen: () -> Unit, modifier: Modifier = 
         val height = BioPreviewHeight.roundToPx()
         val cardPlaceable = card.first().measure(Constraints.fixed(width, height))
         val fadePlaceable = fade.first().measure(Constraints.fixed(width, 72.dp.roundToPx()))
-        val buttonPlaceable = button.first().measure(Constraints())
-        val margin = 12.dp.roundToPx()
         layout(width, height) {
             cardPlaceable.placeRelative(0, 0)
             body.placeRelative(inset, 14.dp.roundToPx())
             fadePlaceable.placeRelative(0, height - fadePlaceable.height)
-            buttonPlaceable.placeRelative(width - buttonPlaceable.width - margin, height - buttonPlaceable.height - margin)
         }
     }
 }
