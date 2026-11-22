@@ -15,6 +15,9 @@ internal class RubberBandRenderersFactory(context: Context) : DefaultRenderersFa
         enableAudioOutputPlaybackParams: Boolean
     ): AudioSink {
         return DefaultAudioSink.Builder(context)
+            // RubberBandAudioProcessor only accepts PCM float. Forward the renderer's
+            // negotiated output mode so the sink actually supplies float PCM to the chain.
+            .setEnableFloatOutput(enableFloatOutput)
             .setAudioProcessorChain(RubberBandAudioProcessorChain())
             .build()
     }
