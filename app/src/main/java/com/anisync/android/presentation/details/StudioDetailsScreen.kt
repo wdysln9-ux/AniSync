@@ -430,16 +430,16 @@ private fun StudioDetailsContent(
                     leadingIcon = Icons.Default.SwapVert,
                     appliedWhenNotDefault = false
                 )
+                PersonToggleChip(
+                    label = stringResource(R.string.filter_on_my_list),
+                    selected = onListOnly,
+                    onToggle = { onListOnly = !onListOnly }
+                )
                 PersonDropdownChip(
                     label = studioRoleOptions[studioRoleIndex],
                     options = studioRoleOptions,
                     selectedIndex = studioRoleIndex,
                     onSelect = { studioRoleIndex = it }
-                )
-                PersonToggleChip(
-                    label = stringResource(R.string.filter_on_my_list),
-                    selected = onListOnly,
-                    onToggle = { onListOnly = !onListOnly }
                 )
                 if (formats.size > 1) {
                     PersonDropdownChip(
