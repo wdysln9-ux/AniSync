@@ -667,16 +667,31 @@ internal fun PlayerSurface(
             backgroundFrame = null
             return@LaunchedEffect
         }
+        var buffers = arrayOfNulls<android.graphics.Bitmap>(2)
+        var bufferWidth = 0
+        var bufferHeight = 0
+        var bufferIndex = 0
         while (true) {
             if (view.isAvailable && view.width > 0 && view.height > 0) {
-                // Keep the cinematic backdrop close to real-time and preserve enough detail.
-                // A fixed 360x202 capture at 6 fps looked visibly blocky and stuttered.
-                val maxDimension = 1280f
+                // Reuse two buffers to avoid allocating a large bitmap every frame. The 960px
+                // long edge keeps the blurred backdrop detailed without excessive memory traffic.
+                val maxDimension = 960f
                 val scale = minOf(1f, maxDimension / maxOf(view.width, view.height).toFloat())
                 val captureWidth = (view.width * scale).roundToInt().coerceAtLeast(1)
                 val captureHeight = (view.height * scale).roundToInt().coerceAtLeast(1)
-                val frame = runCatching { view.getBitmap(captureWidth, captureHeight) }.getOrNull()
+                if (captureWidth != bufferWidth || captureHeight != bufferHeight) {
+                    buffers = arrayOf(
+                        android.graphics.Bitmap.createBitmap(captureWidth, captureHeight, android.graphics.Bitmap.Config.ARGB_8888),
+                        android.graphics.Bitmap.createBitmap(captureWidth, captureHeight, android.graphics.Bitmap.Config.ARGB_8888)
+                    )
+                    bufferWidth = captureWidth
+                    bufferHeight = captureHeight
+                    bufferIndex = 0
+                }
+                val target = buffers[bufferIndex]!!
+                val frame = runCatching { view.getBitmap(target) }.getOrNull()
                 if (frame != null) backgroundFrame = frame
+                bufferIndex = 1 - bufferIndex
             }
             delay(42L)
         }
