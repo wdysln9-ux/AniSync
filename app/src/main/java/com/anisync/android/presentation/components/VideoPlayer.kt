@@ -58,13 +58,10 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -654,7 +651,6 @@ internal fun PlayerSurface(
  * Non-interactive (except retry) status layer: loading skeleton, mid-playback buffering spinner, and
  * error card. Shared by the inline and fullscreen presentations.
  */
-@kotlin.OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun PlayerStatusVisuals(
     isLoading: Boolean,
@@ -669,24 +665,8 @@ internal fun PlayerStatusVisuals(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(if (showShimmer) Modifier.shimmerEffect() else Modifier.background(Color.Black)),
-                contentAlignment = Alignment.Center
-            ) {
-                ContainedLoadingIndicator(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    indicatorColor = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-
-        AnimatedVisibility(visible = isBuffering, enter = fadeIn(), exit = fadeOut()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.5f), modifier = Modifier.size(56.dp)) {
-                    Box(contentAlignment = Alignment.Center) {
-                        LoadingIndicator(color = Color.White, modifier = Modifier.size(28.dp))
-                    }
-                }
-            }
+                    .then(if (showShimmer) Modifier.shimmerEffect() else Modifier.background(Color.Black))
+            )
         }
 
         AnimatedVisibility(visible = errorMessage != null, enter = fadeIn(), exit = fadeOut()) {
