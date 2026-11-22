@@ -720,9 +720,12 @@ class DiscoverViewModel @Inject constructor(
                 SearchFilters(formats = setOf(MediaFormat.NOVEL)),
                 ResultCategory.MANGA
             )
-            // Genres has no single preset to apply, so it opens the overlay where the genre
-            // picker already lives.
-            BrowseChip.GENRES -> openPresetSearch(SearchFilters(), tabCategory)
+            // Genres has no single preset to apply. Open the consolidated filter panel
+            // directly and let the screen position it at the genre section near the bottom.
+            BrowseChip.GENRES -> {
+                openPresetSearch(SearchFilters(), tabCategory)
+                _uiState.update { it.copy(openGenreFilterRequest = it.openGenreFilterRequest + 1) }
+            }
             BrowseChip.SCHEDULE -> Unit
         }
     }
