@@ -1624,6 +1624,7 @@ fun DetailsPageContent(
                             englishTitle = details.titleEnglish,
                             synonyms = details.synonyms,
                             malId = details.idMal,
+                            trackedProgress = details.listProgress.takeIf { details.listEntryId != null },
                             modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.spacing_large))
                         )
                     }
