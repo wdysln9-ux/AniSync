@@ -912,7 +912,7 @@
     <string name="cd_studio_mark">Обложки от %1$s</string>
     <string name="clip_label_external_link">Внешняя ссылка (%1$s)</string>
     <string name="control_log_out">Выйти</string>
-    <string name="profile_level">Уровень %1$d</string>
+    <string name="profile_level">Уровень %1$s</string>
     <string name="profile_active">Активность %1$s</string>
     <string name="notifications_title">Уведомления</string>
     <string name="notifications_filter_all">Все</string>
