@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import com.anisync.android.R
 import com.anisync.android.domain.ScoreFormat
 import com.anisync.android.domain.formatScore
-import com.anisync.android.presentation.components.personalScoreTint
 import com.anisync.android.ui.theme.emphasis
 
 /**
