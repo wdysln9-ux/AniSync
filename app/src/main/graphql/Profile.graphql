@@ -24,6 +24,7 @@ query GetUserProfile($name: String, $includeViewer: Boolean = false) {
       anime {
         count
         minutesWatched
+        episodesWatched
         meanScore
         statuses {
           count
@@ -138,6 +139,7 @@ query GetFullUserProfile(
       anime {
         count
         minutesWatched
+        episodesWatched
         meanScore
         statuses {
           count
