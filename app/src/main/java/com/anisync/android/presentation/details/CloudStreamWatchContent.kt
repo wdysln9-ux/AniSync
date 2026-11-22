@@ -426,21 +426,38 @@ internal fun CloudStreamWatchContent(
                             val n = (item["episode"] as? Number)?.toInt()
                             val meta = n?.let { metadata[it] }
                             val title = meta?.title?.takeIf(String::isNotBlank) ?: item["name"]?.toString()?.takeIf(String::isNotBlank) ?: "Episode ${n ?: "?"}"
+                            val isWatched = n != null && trackedProgress != null && n <= trackedProgress
                             Card(
                                 onClick = { playEpisode(item) },
                                 modifier = Modifier
                                     .weight(1f)
                                     .then(if (gridMode) Modifier.height(178.dp) else Modifier)
-                                    .graphicsLayer { alpha = if (n != null && trackedProgress != null && n <= trackedProgress) 0.48f else 1f },
+                                    .graphicsLayer { alpha = if (isWatched) 0.48f else 1f },
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
                             ) {
                                 if (gridMode) {
-                                    AsyncImage(
-                                        model = meta?.image ?: item["posterUrl"]?.toString(),
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxWidth().height(112.dp).clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
-                                        contentScale = ContentScale.Crop
-                                    )
+                                    Box {
+                                        AsyncImage(
+                                            model = meta?.image ?: item["posterUrl"]?.toString(),
+                                            contentDescription = null,
+                                            modifier = Modifier.fillMaxWidth().height(112.dp).clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                        if (isWatched) {
+                                            Surface(
+                                                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp),
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+                                            ) {
+                                                Text(
+                                                    "Ditonton",
+                                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                        }
+                                    }
                                     Column(Modifier.fillMaxWidth().padding(9.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         Text("Episode ${n ?: "?"}", style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Text(title, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -451,6 +468,19 @@ internal fun CloudStreamWatchContent(
                                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                             Text("${n ?: "?"}. ${title}", style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                             Text(meta?.releaseDate ?: "Tanggal rilis belum tersedia", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f))
+                                        }
+                                        if (isWatched) {
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = MaterialTheme.colorScheme.surfaceVariant
+                                            ) {
+                                                Text(
+                                                    "Ditonton",
+                                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
                                         }
                                     }
                                 }
