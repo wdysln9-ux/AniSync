@@ -367,7 +367,7 @@ fun LazyListScope.richTextItems(
             modifier = itemModifier.padding(
                 top = when {
                     index == 0 -> 0.dp
-                    isAdjacentAniListPreview -> 0.dp
+                    isAdjacentAniListPreview -> 0.5.dp
                     else -> 8.dp
                 }
             )
