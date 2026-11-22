@@ -131,6 +131,11 @@ private const val MAX_DISPLAY_ASPECT = 2.4f // ~21:9
 
 internal const val DEFAULT_VIDEO_ASPECT = 16f / 9f
 
+internal fun VideoSize.displayAspectRatio(): Float {
+    val raw = (width.toFloat() * pixelWidthHeightRatio) / height.coerceAtLeast(1).toFloat()
+    return if (unappliedRotationDegrees % 180 != 0) 1f / raw else raw
+}
+
 /** How long the controls linger after the last interaction before fading, while playing. */
 private const val CONTROLS_HIDE_DELAY_MS = 3000L
 
@@ -257,7 +262,7 @@ fun VideoPlayer(
         val listener = object : Player.Listener {
             override fun onVideoSizeChanged(videoSize: VideoSize) {
                 if (videoSize.width > 0 && videoSize.height > 0) {
-                    videoAspectRatio = videoSize.width.toFloat() / videoSize.height.toFloat()
+                    videoAspectRatio = videoSize.displayAspectRatio()
                 }
             }
 
@@ -297,7 +302,7 @@ fun VideoPlayer(
             bufferedPositionMs = exoPlayer.bufferedPosition.coerceAtLeast(0L)
         }
         if (exoPlayer.videoSize.width > 0 && exoPlayer.videoSize.height > 0) {
-            videoAspectRatio = exoPlayer.videoSize.width.toFloat() / exoPlayer.videoSize.height.toFloat()
+            videoAspectRatio = exoPlayer.videoSize.displayAspectRatio()
         }
         isPlaying = exoPlayer.isPlaying
         exoPlayer.setPlaybackParameters(PlaybackParameters(PlayerPreferences.playbackSpeed(context), 1f))
@@ -618,7 +623,7 @@ internal fun PlayerSurface(
         val sourceWidth = videoSize.width.toFloat() * videoSize.pixelWidthHeightRatio
         val sourceHeight = videoSize.height.toFloat()
         if (width <= 0f || height <= 0f || sourceWidth <= 0f || sourceHeight <= 0f) return
-        val sourceAspect = sourceWidth / sourceHeight
+        val sourceAspect = videoSize.displayAspectRatio()
         val targetAspect = width / height
         var scaleX = 1f
         var scaleY = 1f
@@ -627,7 +632,10 @@ internal fun PlayerSurface(
             ContentScale.Crop -> if (sourceAspect > targetAspect) scaleX = sourceAspect / targetAspect else scaleY = targetAspect / sourceAspect
             else -> Unit
         }
-        val matrix = Matrix().apply { setScale(scaleX, scaleY, width / 2f, height / 2f) }
+        val matrix = Matrix().apply {
+            setRotate(videoSize.unappliedRotationDegrees.toFloat(), width / 2f, height / 2f)
+            postScale(scaleX, scaleY, width / 2f, height / 2f)
+        }
         view.setTransform(matrix)
     }
     DisposableEffect(exoPlayer) {
