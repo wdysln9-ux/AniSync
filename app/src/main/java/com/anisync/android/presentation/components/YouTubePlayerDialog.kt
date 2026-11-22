@@ -5,6 +5,8 @@ import android.graphics.Color as AndroidColor
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.CookieManager
+import android.view.View
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -123,10 +125,10 @@ private fun YouTubeWebView(
         </head>
         <body>
           <iframe
-            src="https://www.youtube.com/embed/$videoId?autoplay=1&playsinline=1&rel=0&origin=https%3A%2F%2Fwww.youtube.com"
+            src="https://www.youtube-nocookie.com/embed/$videoId?autoplay=1&playsinline=1&rel=0"
             title="YouTube video player"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerpolicy="origin"
+            referrerpolicy="strict-origin-when-cross-origin"
             allowfullscreen>
           </iframe>
         </body>
@@ -142,18 +144,22 @@ private fun YouTubeWebView(
                 WebView(context).apply {
                     webViewState.value = this
                     setBackgroundColor(AndroidColor.BLACK)
+                    // Keep video compositing on the hardware layer. Some Android WebView
+                    // versions otherwise show the embedded video surface as a black rectangle.
+                    setLayerType(View.LAYER_TYPE_HARDWARE, null)
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
                     settings.mediaPlaybackRequiresUserGesture = false
                     settings.loadsImagesAutomatically = true
                     settings.javaScriptCanOpenWindowsAutomatically = false
                     settings.setSupportMultipleWindows(false)
-                    // YouTube requires a valid Referer for embedded playback (error 153).
-                    // Use a real YouTube document origin rather than a synthetic no-cookie origin.
+                    settings.allowContentAccess = false
+                    settings.allowFileAccess = false
+                    CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                     webViewClient = WebViewClient()
                     webChromeClient = WebChromeClient()
                     loadDataWithBaseURL(
-                        "https://www.youtube.com/",
+                        "https://anisync.app/",
                         html,
                         "text/html",
                         "UTF-8",
