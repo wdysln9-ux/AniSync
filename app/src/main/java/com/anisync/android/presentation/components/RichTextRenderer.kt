@@ -37,11 +37,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,6 +66,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
@@ -214,15 +217,31 @@ fun RichTextHost(
 ) {
     var viewerInitialIndex by remember { mutableStateOf<Int?>(null) }
     var youtubeVideoId by remember { mutableStateOf<String?>(null) }
+    var pendingExternalUrl by remember { mutableStateOf<String?>(null) }
     val linkRouter = rememberAniLinkRouter()
+    val uriHandler = LocalUriHandler.current
 
-    // Route YouTube URLs to the native in-app embed player; keep AniList and other links
-    // on the existing centralized router.
+    // Keep YouTube in the native embed and AniList links on the in-app router.
+    // Other website links ask for confirmation before opening the system browser.
     val onLinkClick: (String) -> Unit = remember(linkRouter) {
         { rawUrl ->
             val videoId = youtubeVideoIdFromUrl(rawUrl)
-            if (videoId != null) youtubeVideoId = videoId
-            else linkRouter.navigate(rawUrl)
+            if (videoId != null) {
+                youtubeVideoId = videoId
+            } else {
+                val uri = android.net.Uri.parse(rawUrl.trim())
+                val host = uri.host.orEmpty().lowercase()
+                val isAniList = host == "anilist.co" || host == "www.anilist.co"
+                if (isAniList || host.isBlank()) {
+                    linkRouter.navigate(rawUrl)
+                } else if (uri.scheme.equals("http", ignoreCase = true) ||
+                    uri.scheme.equals("https", ignoreCase = true)
+                ) {
+                    pendingExternalUrl = rawUrl
+                } else {
+                    linkRouter.navigate(rawUrl)
+                }
+            }
         }
     }
 
@@ -270,6 +289,26 @@ fun RichTextHost(
     }
 
     content(scope)
+
+    pendingExternalUrl?.let { url ->
+        val host = android.net.Uri.parse(url).host ?: url
+        AlertDialog(
+            onDismissRequest = { pendingExternalUrl = null },
+            title = { Text("Buka situs eksternal?") },
+            text = { Text("Kamu akan membuka situs $host") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingExternalUrl = null
+                        runCatching { uriHandler.openUri(url) }
+                    }
+                ) { Text("Buka") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingExternalUrl = null }) { Text("Batal") }
+            }
+        )
+    }
 
     viewerInitialIndex?.let { index ->
         ImageViewerDialog(
