@@ -536,9 +536,10 @@ internal fun CloudStreamWatchContent(
         val current = episode!!
         val number = (current["episode"] as? Number)?.toInt()
         val meta = number?.let { metadata[it] }
-        LaunchedEffect(sheet, number) {
-            episodePopupVisible = sheet && number != null
-            if (sheet && number != null) {
+        LaunchedEffect(sheet, number, selectedStream != null) {
+            val showForThisEpisode = sheet && number != null && selectedStream != null
+            episodePopupVisible = showForThisEpisode
+            if (showForThisEpisode) {
                 delay(10_000L)
                 episodePopupVisible = false
             }
