@@ -946,29 +946,6 @@ internal fun VideoControlsOverlay(
                 percent = (volumeLevel * 100).roundToInt(),
                 icon = { Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null) }
             )
-        }        AnimatedVisibility(
-            visible = levelHud == "brightness",
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.TopStart).padding(start = edgePadding, top = edgePadding)
-        ) {
-            LevelGestureHud(
-                label = "Kecerahan",
-                percent = (brightnessLevel * 100).roundToInt(),
-                icon = { Icon(Icons.Filled.Brightness6, contentDescription = null) }
-            )
-        }
-        AnimatedVisibility(
-            visible = levelHud == "volume",
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.TopEnd).padding(end = edgePadding, top = edgePadding)
-        ) {
-            LevelGestureHud(
-                label = "Volume",
-                percent = (volumeLevel * 100).roundToInt(),
-                icon = { Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null) }
-            )
         }
 
         AnimatedVisibility(
