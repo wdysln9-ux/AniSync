@@ -34,7 +34,9 @@ data class UserProfile(
     val donatorBadge: String? = null,
     val moderatorRoles: List<String> = emptyList(),
     val createdAt: Long? = null,
-    val previousNames: List<PreviousName> = emptyList()
+    val previousNames: List<PreviousName> = emptyList(),
+    /** Total anime watch time from AniList, in minutes. */
+    val minutesWatched: Int = 0
 )
 
 @Immutable
