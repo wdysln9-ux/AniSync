@@ -232,8 +232,7 @@ fun EmbeddedFullScreenSearchBar(
                 propagateMinConstraints = true
             ) {
                 Box(
-                    modifier = Modifier
-                        ,
+                    modifier = Modifier,
                     propagateMinConstraints = true
                 ) {
                     inputField()
