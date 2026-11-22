@@ -214,6 +214,8 @@ fun LibraryScreen(
     onNavigateToNotes: () -> Unit,
     onBrowseDiscover: () -> Unit,
     onOpenRecap: (String) -> Unit,
+    pendingEditEntry: LibraryEntry? = null,
+    onPendingEditConsumed: () -> Unit = {},
     viewModel: LibraryViewModel = hiltViewModel(),
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
@@ -280,6 +282,13 @@ fun LibraryScreen(
     }
     val handleEdit = remember(viewModel) {
         { entry: LibraryEntry -> viewModel.onAction(LibraryAction.EditEntry(entry)) }
+    }
+
+    LaunchedEffect(pendingEditEntry) {
+        pendingEditEntry?.let { entry ->
+            handleEdit(entry)
+            onPendingEditConsumed()
+        }
     }
 
     LaunchedEffect(Unit) { viewModel.onAction(LibraryAction.OnScreenVisible) }
