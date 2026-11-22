@@ -245,6 +245,8 @@ class FeedViewModel @Inject constructor(
 
             is FeedAction.ToggleReplies -> toggleReplies(action.activityId)
 
+            is FeedAction.RetryReplies -> loadInlineReplies(action.activityId)
+
             is FeedAction.UpdateReplyDraft -> _uiState.update { state ->
                 state.copy(replyDrafts = state.replyDrafts + (action.activityId to action.text))
             }
