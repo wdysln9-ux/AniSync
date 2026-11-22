@@ -194,7 +194,7 @@ fun PosterCard(
                             androidx.compose.material3.Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = null,
-                                tint = communityScoreTint(score),
+                                tint = communityScoreTint(score.toDouble()),
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
