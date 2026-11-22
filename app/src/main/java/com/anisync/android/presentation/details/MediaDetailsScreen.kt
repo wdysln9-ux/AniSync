@@ -2216,7 +2216,15 @@ private fun MetadataTags(details: MediaDetails) {
             val season = details.season?.lowercase()?.replaceFirstChar { it.uppercase() }
             add(if (season != null) "$season $year" else year.toString())
         }
-        details.duration?.let { add(stringResource(R.string.details_duration_minutes, it)) }
+
+        // Series use their episode total; Movie and Music keep their runtime.
+        val format = details.format?.uppercase()
+        val isMovieOrMusic = format == "MOVIE" || format == "MUSIC"
+        if (details.type == com.anisync.android.type.MediaType.ANIME && !isMovieOrMusic) {
+            details.episodes?.let { add(stringResource(R.string.details_episode_count, it)) }
+        } else {
+            details.duration?.let { add(stringResource(R.string.details_duration_minutes, it)) }
+        }
     }
 
     if (parts.isEmpty()) return
