@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.anisync.android.presentation.components.communityScoreTint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -414,7 +415,7 @@ private fun ScoreProgressionSection(points: List<MediaAiringTrend>) {
                     Text(
                         text = (selected ?: latest).averageScore?.toString().orEmpty(),
                         style = expressive.statNumericLarge,
-                        color = MaterialTheme.colorScheme.primary
+                        color = communityScoreTint(((selected ?: latest).averageScore ?: 0).toDouble())
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
