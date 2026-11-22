@@ -96,12 +96,24 @@ fun MediaInformationSection(
     details: MediaDetails,
     modifier: Modifier = Modifier,
     onStudioClick: (Int) -> Unit = {},
-    onRankingClick: (MediaRanking) -> Unit = {}
+    onRankingClick: (MediaRanking) -> Unit = {},
+    onStatusClick: () -> Unit = {},
+    onEpisodesClick: () -> Unit = {},
+    onSeasonClick: () -> Unit = {},
+    onSourceClick: () -> Unit = {}
 ) {
     var activeSheet by remember { mutableStateOf<InfoSheetKind?>(null) }
 
     // The airing countdown has its own strip under the tracker now, so it is not repeated here.
-    val infoItems = buildInfoItems(details, onStudioClick, includeAiringCountdown = false)
+    val infoItems = buildInfoItems(
+        details,
+        onStudioClick,
+        onStatusClick,
+        onEpisodesClick,
+        onSeasonClick,
+        onSourceClick,
+        includeAiringCountdown = false
+    )
     val expandableItems = buildExpandableInfoItems(details) { activeSheet = it }
     val headlineRankings = details.rankings.take(2)
 
@@ -389,6 +401,10 @@ fun RankingInfoPill(
 private fun buildInfoItems(
     details: MediaDetails,
     onStudioClick: (Int) -> Unit,
+    onStatusClick: () -> Unit,
+    onEpisodesClick: () -> Unit,
+    onSeasonClick: () -> Unit,
+    onSourceClick: () -> Unit,
     includeAiringCountdown: Boolean = true
 ): List<InfoItem> {
     val items = mutableListOf<InfoItem>()
@@ -406,7 +422,8 @@ private fun buildInfoItems(
             label = stringResource(R.string.stat_status),
             value = statusValue,
             iconTint = MediaDetailsIcons.getStatusColor(details.status),
-            isStatus = true
+            isStatus = true,
+            onClick = onStatusClick
         )
     )
 
@@ -456,8 +473,8 @@ private fun buildInfoItems(
             icon = MediaDetailsIcons.getEpisodesIcon(details.type),
             label = episodesLabel,
             value = fullEpisodesValue,
-            iconTint = MaterialTheme.colorScheme.primary
-        )
+            iconTint = MaterialTheme.colorScheme.primary,
+            onClick = onEpisodesClick
     )
 
     // 3. Duration
@@ -484,7 +501,8 @@ private fun buildInfoItems(
                     iconResId = MediaDetailsIcons.getSeasonIconResId(details.season),
                     label = stringResource(R.string.stat_season),
                     value = seasonValue,
-                    iconTint = MediaDetailsIcons.getSeasonColor(details.season)
+                    iconTint = MediaDetailsIcons.getSeasonColor(details.season),
+                    onClick = onSeasonClick
                 )
             )
         } else {
@@ -493,7 +511,8 @@ private fun buildInfoItems(
                     icon = MediaDetailsIcons.getSeasonIcon(details.season)!!,
                     label = stringResource(R.string.stat_season),
                     value = seasonValue,
-                    iconTint = MediaDetailsIcons.getSeasonColor(details.season)
+                    iconTint = MediaDetailsIcons.getSeasonColor(details.season),
+                    onClick = onSeasonClick
                 )
             )
         }
@@ -528,7 +547,8 @@ private fun buildInfoItems(
             icon = MediaDetailsIcons.getSourceIcon(),
             label = stringResource(R.string.stat_source),
             value = sourceValue,
-            iconTint = MaterialTheme.colorScheme.tertiary
+            iconTint = MaterialTheme.colorScheme.tertiary,
+            onClick = onSourceClick
         )
     )
 
