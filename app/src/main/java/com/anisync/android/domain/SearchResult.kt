@@ -82,9 +82,11 @@ private fun daysUntilBirthday(month: Int?, day: Int?): Int {
     return ((next.timeInMillis - today.timeInMillis) / 86_400_000L).toInt()
 }
 
+@JvmName("sortedCharactersByUpcomingBirthday")
 fun List<SearchResult.CharacterResult>.sortedByUpcomingBirthday(): List<SearchResult.CharacterResult> =
     sortedBy { daysUntilBirthday(it.birthdayMonth, it.birthdayDay) }
 
+@JvmName("sortedStaffByUpcomingBirthday")
 fun List<SearchResult.StaffResult>.sortedByUpcomingBirthday(): List<SearchResult.StaffResult> =
     sortedBy { daysUntilBirthday(it.birthdayMonth, it.birthdayDay) }
 
