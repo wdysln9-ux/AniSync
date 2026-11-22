@@ -1144,7 +1144,6 @@ internal fun VideoControlsOverlay(
                         // One integrated, pill-shaped track: buffered and played portions share
                         // the exact same thickness and rounded geometry instead of stacking a thin line.
                         val seekTrackColor = MaterialTheme.colorScheme.primary
-                        val seekTrackColor = MaterialTheme.colorScheme.primary
                         androidx.compose.foundation.Canvas(
                             modifier = Modifier.fillMaxWidth().height(40.dp)
                         ) {
