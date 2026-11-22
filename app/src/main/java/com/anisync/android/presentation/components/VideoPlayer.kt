@@ -5,6 +5,7 @@ import androidx.compose.material.icons.filled.Brightness6
 import android.provider.Settings as AndroidSettings
 import android.media.AudioManager
 import android.view.TextureView
+import android.graphics.Matrix
 import android.content.ContextWrapper
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -36,6 +37,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -196,6 +198,7 @@ fun VideoPlayer(
     var aniSkipSegments by remember(url, aniskipMalId, aniskipEpisodeNumber) { mutableStateOf<List<AniSkipSegment>>(emptyList()) }
     var isScrubbing by remember { mutableStateOf(false) }
     var videoAspectRatio by remember { mutableFloatStateOf(DEFAULT_VIDEO_ASPECT) }
+    var displayMode by remember(url) { mutableStateOf(PlayerPreferences.displayMode(context)) }
     var playerState by remember { mutableStateOf(PlayerState.Loading) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     // True while the player has been handed to the fullscreen activity; the inline surface detaches
@@ -457,7 +460,12 @@ fun VideoPlayer(
             PlayerSurface(
                 exoPlayer = exoPlayer,
                 active = !handedOff,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                contentScale = when (displayMode) {
+                    "Isi layar" -> ContentScale.Crop
+                    "Stretch" -> ContentScale.FillBounds
+                    else -> ContentScale.Fit
+                }
             )
             if (artwork != null) {
                 Box(Modifier.fillMaxSize()) { artwork() }
@@ -509,6 +517,11 @@ fun VideoPlayer(
                     cinematicOverlayIntensity = intensity
                     FullscreenVideoBridge.cinematicIntensity.floatValue = intensity
                     onCinematicLightingChange(intensity)
+                },
+                displayMode = displayMode,
+                onDisplayModeChange = { mode ->
+                    displayMode = mode
+                    PlayerPreferences.setDisplayMode(context, mode)
                 },
                 onToggleFullscreen = onEnterFullscreen,
                 onBack = null
@@ -618,10 +631,16 @@ internal fun PlayerSurface(
         }
         while (true) {
             if (view.isAvailable && view.width > 0 && view.height > 0) {
-                val frame = runCatching { view.getBitmap(360, 202) }.getOrNull()
+                // Keep the cinematic backdrop close to real-time and preserve enough detail.
+                // A fixed 360x202 capture at 6 fps looked visibly blocky and stuttered.
+                val maxDimension = 1280f
+                val scale = minOf(1f, maxDimension / maxOf(view.width, view.height).toFloat())
+                val captureWidth = (view.width * scale).roundToInt().coerceAtLeast(1)
+                val captureHeight = (view.height * scale).roundToInt().coerceAtLeast(1)
+                val frame = runCatching { view.getBitmap(captureWidth, captureHeight) }.getOrNull()
                 if (frame != null) backgroundFrame = frame
             }
-            delay(160L)
+            delay(42L)
         }
     }
     Box(modifier) {
