@@ -20,7 +20,21 @@ internal object AniSkipRepository {
             if (malId <= 0 || episodeNumber <= 0) return@withContext emptyList()
             val durationSeconds = (durationMs.coerceAtLeast(0L) / 1000.0)
             val accurate = request(malId, episodeNumber, durationSeconds)
-            val results = if (accurate.isNotEmpty()) accurate else request(malId, episodeNumber, 0.0)
+            val hasOpening = accurate.any { it.optString("skipType") == "op" || it.optString("skipType") == "mixed-op" }
+            val hasEnding = accurate.any { it.optString("skipType") == "ed" || it.optString("skipType") == "mixed-ed" }
+            // The duration-filtered endpoint can contain only OP or only ED. Fetch the broad
+            // fallback as well when either segment is missing, then merge by segment type.
+            val rough = if (!hasOpening || !hasEnding) request(malId, episodeNumber, 0.0) else emptyList()
+            val results = accurate + rough.filter { roughItem ->
+                val type = roughItem.optString("skipType")
+                val label = if (type == "op" || type == "mixed-op") "Opening"
+                    else if (type == "ed" || type == "mixed-ed") "Ending" else ""
+                label.isNotEmpty() && accurate.none { exact ->
+                    val exactType = exact.optString("skipType")
+                    (label == "Opening" && (exactType == "op" || exactType == "mixed-op")) ||
+                        (label == "Ending" && (exactType == "ed" || exactType == "mixed-ed"))
+                }
+            }
             if (results.isEmpty()) return@withContext emptyList()
 
             val candidates = results.mapNotNull { item ->
