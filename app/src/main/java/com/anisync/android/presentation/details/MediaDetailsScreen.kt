@@ -37,6 +37,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -100,6 +101,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
@@ -1120,9 +1122,28 @@ fun DetailsPageContent(
             .fillMaxSize()
             .onGloballyPositioned { contentTopWindow = it.boundsInWindow().top }
     ) {
+        val swipeThresholdPx = with(density) { 56.dp.toPx() }
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(availableTabs, effectiveTab, swipeThresholdPx) {
+                    var horizontalDrag = 0f
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            val currentIndex = availableTabs.indexOf(effectiveTab)
+                            if (horizontalDrag <= -swipeThresholdPx && currentIndex in 0 until availableTabs.lastIndex) {
+                                onTabSelected(availableTabs[currentIndex + 1])
+                            } else if (horizontalDrag >= swipeThresholdPx && currentIndex > 0) {
+                                onTabSelected(availableTabs[currentIndex - 1])
+                            }
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            horizontalDrag += dragAmount
+                            change.consume()
+                        }
+                    )
+                },
             // No floating action button to clear any more: the tracker took its job.
             contentPadding = PaddingValues(bottom = dimensionResource(R.dimen.spacing_extra_large))
         ) {
