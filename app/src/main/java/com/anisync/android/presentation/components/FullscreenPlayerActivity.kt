@@ -392,12 +392,13 @@ private fun FullscreenVideoContent(
                 PlayerSurface(
                     exoPlayer = player,
                     active = true,
-                    modifier = Modifier.fillMaxSize().graphicsLayer(scaleX = stretchX),
+                    modifier = Modifier.fillMaxSize(),
                     contentScale = when (displayMode) {
                         "Isi layar" -> ContentScale.Crop
                         "Stretch" -> ContentScale.FillBounds
                         else -> ContentScale.Fit
-                    }
+                    },
+                    stretchScaleX = stretchX
                 )
             }
         }
