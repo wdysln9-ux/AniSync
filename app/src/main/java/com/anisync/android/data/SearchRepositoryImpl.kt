@@ -89,61 +89,19 @@ class SearchRepositoryImpl @Inject constructor(
     ): Result<SearchPage> {
         return safeApiCall {
             val randomSort = filters.sort.column == com.anisync.android.domain.SearchSortColumn.RANDOM
-            val randomKey = "media:$type:$query:${filters.copy(sort = SearchSort())}:$perPage"
-            suspend fun fetchPage(requestPage: Int) = apolloClient.query(
-                SearchMediaQuery(
-                    search = if (query.isBlank()) Optional.absent() else Optional.present(query),
-                    type = Optional.present(type),
-                    page = Optional.present(requestPage),
-                    perPage = Optional.present(perPage),
-                    sort = Optional.present(listOf(filters.sortFor(type, query))),
-                    genre_in = filters.genresIncluded.toOptionalList(),
-                    genre_not_in = filters.genresExcluded.toOptionalList(),
-                    tag_in = filters.tagsIncluded.toOptionalList(),
-                    tag_not_in = filters.tagsExcluded.toOptionalList(),
-                    minimumTagRank = Optional.present(filters.minimumTagRank),
-                    format_in = filters.formats.toOptionalList(),
-                    status_in = filters.statuses.toOptionalList(),
-                    source_in = filters.sources.toOptionalList(),
-                    startDate_greater = filters.startDateFloor(),
-                    startDate_lesser = filters.startDateCeiling(),
-                    season = filters.season?.let { Optional.present(it) } ?: Optional.absent(),
-                    seasonYear = filters.seasonYear()?.let { Optional.present(it) } ?: Optional.absent(),
-                    weightedScore = filters.score.exact(),
-                    weightedScore_greater = filters.score.greater(),
-                    weightedScore_lesser = filters.score.lesser(),
-                    episodes = filters.episodes.exact(),
-                    episodes_greater = filters.episodes.greater(),
-                    episodes_lesser = filters.episodes.lesser(),
-                    chapters = filters.chapters.exact(),
-                    chapters_greater = filters.chapters.greater(),
-                    chapters_lesser = filters.chapters.lesser(),
-                    countryOfOrigin = filters.country?.let { Optional.present(it.code) }
-                        ?: Optional.absent(),
-                    isAdult = resolveAdultFilter(filters.adultMode, quickSearch = true),
-                    onList = if (type == MediaType.ANIME && filters.hideMyAnime) Optional.present(false) else Optional.absent()
-                )
-            )
-                .fetchPolicy(FetchPolicy.NetworkOnly)
-                .doNotStore(true)
-                .execute()
-
-            val firstResponse = if (randomSort) fetchPage(1) else null
-            val total = firstResponse?.data?.Page?.pageInfo?.total ?: 0
-            val totalPages = ((total + perPage - 1) / perPage).coerceAtLeast(1)
-            val selectedPage = if (randomSort) randomPage(randomKey, totalPages, page) else page
-            val response = if (randomSort) {
-                if (selectedPage == 1) firstResponse!! else fetchPage(selectedPage)
-            } else fetchPage(page)
-
+            // Random mode shuffles each normally paginated result page locally. Selecting a
+            // random API page can land on an empty/out-of-range page when AniList totals change
+            // between the count request and the selected-page request.
+            val response = fetchPage(page)
             val pageData = response.data?.Page
             val pageInfo = pageData?.pageInfo
-            val entries = pageData?.media?.filterNotNull()?.map { it.toLibraryEntry() } ?: emptyList()
+            val mappedEntries = pageData?.media?.filterNotNull()?.map { it.toLibraryEntry() } ?: emptyList()
+            val entries = if (randomSort) mappedEntries.shuffled() else mappedEntries
             SearchPage(
                 entries = entries,
                 total = pageInfo?.total ?: entries.size,
-                hasNextPage = if (randomSort) page * perPage < (pageInfo?.total ?: entries.size) else pageInfo?.hasNextPage ?: false,
-                currentPage = if (randomSort) page else pageInfo?.currentPage ?: page
+                hasNextPage = pageInfo?.hasNextPage ?: false,
+                currentPage = pageInfo?.currentPage ?: page
             )
         }
     }
@@ -226,113 +184,20 @@ class SearchRepositoryImpl @Inject constructor(
         return dedupe(key) {
             safeApiCall {
                 val randomSort = filters.sort.column == com.anisync.android.domain.SearchSortColumn.RANDOM
-                val randomKey = "all:$query:${filters.copy(sort = SearchSort())}:$perPage:$wantAnime:$wantManga"
-                suspend fun fetchPage(
-                    requestPage: Int,
-                    includeAnime: Boolean = wantAnime,
-                    includeManga: Boolean = wantManga,
-                    includeEntities: Boolean = wantEntities,
-                    includeStudios: Boolean = wantStudios
-                ) = apolloClient.query(
-                    SearchEverythingQuery(
-                        search = if (query.isBlank()) Optional.absent() else Optional.present(query),
-                        page = Optional.present(requestPage),
-                        perPage = Optional.present(perPage),
-                        wantAnime = includeAnime,
-                        wantManga = includeManga,
-                        wantEntities = includeEntities,
-                        wantStudios = includeStudios,
-                        animeSort = Optional.present(listOf(filters.sortFor(MediaType.ANIME, query))),
-                        mangaSort = Optional.present(listOf(filters.sortFor(MediaType.MANGA, query))),
-                        genre_in = filters.genresIncluded.toOptionalList(),
-                        genre_not_in = filters.genresExcluded.toOptionalList(),
-                        tag_in = filters.tagsIncluded.toOptionalList(),
-                        tag_not_in = filters.tagsExcluded.toOptionalList(),
-                        minimumTagRank = Optional.present(filters.minimumTagRank),
-                        format_in = filters.formats.toOptionalList(),
-                        status_in = filters.statuses.toOptionalList(),
-                        source_in = filters.sources.toOptionalList(),
-                        startDate_greater = filters.startDateFloor(),
-                        startDate_lesser = filters.startDateCeiling(),
-                        season = filters.season?.let { Optional.present(it) } ?: Optional.absent(),
-                        seasonYear = filters.seasonYear()?.let { Optional.present(it) } ?: Optional.absent(),
-                        weightedScore = filters.score.exact(),
-                        weightedScore_greater = filters.score.greater(),
-                        weightedScore_lesser = filters.score.lesser(),
-                        episodes = filters.episodes.exact(),
-                        episodes_greater = filters.episodes.greater(),
-                        episodes_lesser = filters.episodes.lesser(),
-                        chapters = filters.chapters.exact(),
-                        chapters_greater = filters.chapters.greater(),
-                        chapters_lesser = filters.chapters.lesser(),
-                        countryOfOrigin = filters.country?.let { Optional.present(it.code) }
-                            ?: Optional.absent(),
-                        isAdult = resolveAdultFilter(filters.adultMode, quickSearch = false),
-                        animeOnList = if (filters.hideMyAnime) Optional.present(false) else Optional.absent()
-                    )
-                )
-                    .fetchPolicy(FetchPolicy.NetworkOnly)
-                    .execute()
+                // Keep AniList's ordinary page sequence and randomize only the returned cards.
+                // This avoids selecting a random page from a stale total and returning no anime.
+                val response = fetchPage(page)
+                val entityData = response.data
+                val animePage = entityData?.anime
+                val mangaPage = entityData?.manga
 
-                // Anime and manga have independent result counts. A single random page chosen
-                // from the larger bucket can point past the end of the smaller bucket and make
-                // that category look empty. Pick a random page independently for each media type.
-                val firstResponse = if (randomSort) fetchPage(1) else null
-                val firstData = firstResponse?.data
-                val animeTotal = firstData?.anime?.pageInfo?.total ?: 0
-                val mangaTotal = firstData?.manga?.pageInfo?.total ?: 0
-                val animePages = ((animeTotal + perPage - 1) / perPage).coerceAtLeast(1)
-                val mangaPages = ((mangaTotal + perPage - 1) / perPage).coerceAtLeast(1)
-                val selectedAnimePage = if (randomSort && wantAnime) {
-                    randomPage("$randomKey:anime", animePages, page)
-                } else page
-                val selectedMangaPage = if (randomSort && wantManga) {
-                    randomPage("$randomKey:manga", mangaPages, page)
-                } else page
 
-                val regularResponse = if (randomSort) null else fetchPage(page)
-                val animeResponse = when {
-                    !wantAnime -> null
-                    !randomSort || selectedAnimePage == 1 -> firstResponse ?: regularResponse
-                    else -> fetchPage(
-                        selectedAnimePage,
-                        includeAnime = true,
-                        includeManga = false,
-                        includeEntities = false,
-                        includeStudios = false
-                    )
-                }
-                val mangaResponse = when {
-                    !wantManga -> null
-                    !randomSort || selectedMangaPage == 1 -> firstResponse ?: regularResponse
-                    else -> fetchPage(
-                        selectedMangaPage,
-                        includeAnime = false,
-                        includeManga = true,
-                        includeEntities = false,
-                        includeStudios = false
-                    )
-                }
-                val entityResponse = when {
-                    !randomSort -> regularResponse
-                    page == 1 || (!wantEntities && !wantStudios) -> firstResponse
-                    else -> fetchPage(
-                        page,
-                        includeAnime = false,
-                        includeManga = false,
-                        includeEntities = wantEntities,
-                        includeStudios = wantStudios
-                    )
-                }
-                val entityData = entityResponse?.data
-                val animePage = animeResponse?.data?.anime
-                val mangaPage = mangaResponse?.data?.manga
-
-                val animeEntries = animePage?.media?.filterNotNull()
+                val animeResults = animePage?.media?.filterNotNull()
                     ?.map { it.mediaCardFields.toSearchEntry() }.orEmpty()
-
-                val mangaEntries = mangaPage?.media?.filterNotNull()
+                val mangaResults = mangaPage?.media?.filterNotNull()
                     ?.map { it.mediaCardFields.toSearchEntry() }.orEmpty()
+                val animeEntries = if (randomSort) animeResults.shuffled() else animeResults
+                val mangaEntries = if (randomSort) mangaResults.shuffled() else mangaResults
 
                 val characters = entityData?.characters?.characters?.filterNotNull()?.map { c ->
                     SearchResult.CharacterResult(
@@ -381,8 +246,8 @@ class SearchRepositoryImpl @Inject constructor(
                 SearchEverythingResult(
                     anime = animeEntries,
                     manga = mangaEntries,
-                    animeHasNextPage = if (randomSort) page * perPage < animeTotal else animePage?.pageInfo?.hasNextPage ?: false,
-                    mangaHasNextPage = if (randomSort) page * perPage < mangaTotal else mangaPage?.pageInfo?.hasNextPage ?: false,
+                    animeHasNextPage = animePage?.pageInfo?.hasNextPage ?: false,
+                    mangaHasNextPage = mangaPage?.pageInfo?.hasNextPage ?: false,
                     animeTotal = animePage?.pageInfo?.total ?: animeEntries.size,
                     mangaTotal = mangaPage?.pageInfo?.total ?: mangaEntries.size,
                     charactersHasNextPage = entityData?.characters?.pageInfo?.hasNextPage ?: false,
