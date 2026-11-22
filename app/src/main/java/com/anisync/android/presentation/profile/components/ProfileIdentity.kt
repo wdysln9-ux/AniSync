@@ -85,6 +85,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import com.anisync.android.R
 import com.anisync.android.data.WhatsNewItem
 import com.anisync.android.domain.UserProfile
@@ -94,7 +98,32 @@ import com.anisync.android.presentation.components.UserAvatar
 import com.anisync.android.presentation.components.WhatsNewPill
 import com.anisync.android.presentation.components.bannerScrimBrush
 import com.anisync.android.presentation.components.bannerScrimHeight
-import com.anisync.android.presentation.components.formatRelativeTimeSeconds
+
+private fun formatLastSeenWhatsApp(timestampMillis: Long): String {
+    val now = Calendar.getInstance()
+    val seen = Calendar.getInstance().apply { timeInMillis = timestampMillis }
+    val time = SimpleDateFormat("HH.mm", Locale("id", "ID")).format(Date(timestampMillis))
+
+    val sameDay = now.get(Calendar.YEAR) == seen.get(Calendar.YEAR) &&
+        now.get(Calendar.DAY_OF_YEAR) == seen.get(Calendar.DAY_OF_YEAR)
+    val yesterday = Calendar.getInstance().apply {
+        add(Calendar.DAY_OF_YEAR, -1)
+    }.let {
+        it.get(Calendar.YEAR) == seen.get(Calendar.YEAR) &&
+            it.get(Calendar.DAY_OF_YEAR) == seen.get(Calendar.DAY_OF_YEAR)
+    }
+
+    return when {
+        sameDay -> "hari ini pukul $time"
+        yesterday -> "kemarin pukul $time"
+        now.get(Calendar.YEAR) == seen.get(Calendar.YEAR) &&
+            now.get(Calendar.DAY_OF_YEAR) - seen.get(Calendar.DAY_OF_YEAR) in 2..6 ->
+            SimpleDateFormat("EEEE", Locale("id", "ID")).format(Date(timestampMillis))
+                .replaceFirstChar { it.titlecase(Locale("id", "ID")) } + " pukul $time"
+        else -> SimpleDateFormat("dd/MM/yyyy", Locale("id", "ID")).format(Date(timestampMillis))
+    }
+}
+
 import com.anisync.android.presentation.components.menu.Menu
 import com.anisync.android.presentation.components.menu.MenuScope
 import com.anisync.android.presentation.components.navigation.BackTrailButton
@@ -471,9 +500,8 @@ private fun ProfileIdentityDetails(
 
         if (!isOwnProfile) {
             Spacer(modifier = Modifier.height(8.dp))
-            val resources = LocalResources.current
-            val activeTime = remember(profile.activeAt, resources) {
-                formatRelativeTimeSeconds(resources, (profile.activeAt ?: 0L) / 1000L)
+            val activeTime = remember(profile.activeAt) {
+                profile.activeAt?.takeIf { it > 0L }?.let(::formatLastSeenWhatsApp).orEmpty()
             }
             val meta = listOfNotNull(
                 activeTime.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.profile_active, it) },
