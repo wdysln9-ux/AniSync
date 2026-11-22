@@ -676,7 +676,7 @@
     </plurals>
     <string name="clip_label_external_link">Zewnętrzny link (%1$s)</string>
     <string name="control_log_out">Wyloguj</string>
-    <string name="profile_level">Poziom %1$d</string>
+    <string name="profile_level">Poziom %1$s</string>
     <string name="notifications_title">Powiadomienia</string>
     <string name="notifications_filter_all">Wszystkie</string>
     <string name="notifications_filter_status">Status</string>
