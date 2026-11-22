@@ -847,6 +847,17 @@ internal fun VideoControlsOverlay(
     var cinematicEnabled by remember { mutableStateOf(PlayerPreferences.cinematicEnabled(context)) }
     var cinematicSettingsExpanded by remember { mutableStateOf(false) }
     var cinematicIntensity by remember { mutableFloatStateOf(PlayerPreferences.cinematicIntensity(context)) }
+    var cinematicBlur by remember { mutableFloatStateOf(PlayerPreferences.cinematicBlur(context)) }
+    var cinematicBrightness by remember { mutableFloatStateOf(PlayerPreferences.cinematicBrightness(context)) }
+    var cinematicVignette by remember { mutableFloatStateOf(PlayerPreferences.cinematicVignette(context)) }
+    var cinematicZoom by remember { mutableFloatStateOf(PlayerPreferences.cinematicZoom(context)) }
+    LaunchedEffect(Unit) {
+        FullscreenVideoBridge.cinematicIntensity.floatValue = if (cinematicEnabled) cinematicIntensity else 0f
+        FullscreenVideoBridge.cinematicBlur.floatValue = cinematicBlur
+        FullscreenVideoBridge.cinematicBrightness.floatValue = cinematicBrightness
+        FullscreenVideoBridge.cinematicVignette.floatValue = cinematicVignette
+        FullscreenVideoBridge.cinematicZoom.floatValue = cinematicZoom
+    }
 
     // Restore the window's original brightness when this player surface is disposed.
     DisposableEffect(hostWindow) {
@@ -1176,7 +1187,15 @@ internal fun VideoControlsOverlay(
                                 }
                                 Text("Intensitas cahaya")
                                 Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it; PlayerPreferences.setCinematicIntensity(context, it); if (cinematicEnabled) onCinematicLightingChange(it) }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
-                                Text("Atur kekuatan efek pencahayaan di sekitar pemutar.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Blur · " + cinematicBlur.toInt())
+                                Slider(value = cinematicBlur, onValueChange = { cinematicBlur = it; PlayerPreferences.setCinematicBlur(context, it); FullscreenVideoBridge.cinematicBlur.floatValue = it }, valueRange = 0f..48f, enabled = cinematicEnabled)
+                                Text("Kecerahan · " + (cinematicBrightness * 100).toInt() + "%")
+                                Slider(value = cinematicBrightness, onValueChange = { cinematicBrightness = it; PlayerPreferences.setCinematicBrightness(context, it); FullscreenVideoBridge.cinematicBrightness.floatValue = it }, valueRange = -1f..1f, enabled = cinematicEnabled)
+                                Text("Vignette · " + (cinematicVignette * 100).toInt() + "%")
+                                Slider(value = cinematicVignette, onValueChange = { cinematicVignette = it; PlayerPreferences.setCinematicVignette(context, it); FullscreenVideoBridge.cinematicVignette.floatValue = it }, valueRange = 0f..1f, enabled = cinematicEnabled)
+                                Text("Zoom · " + "%.2f".format(cinematicZoom) + "×")
+                                Slider(value = cinematicZoom, onValueChange = { cinematicZoom = it; PlayerPreferences.setCinematicZoom(context, it); FullscreenVideoBridge.cinematicZoom.floatValue = it }, valueRange = 1f..1.8f, enabled = cinematicEnabled)
+                                Text("Video utama tetap tajam; efek hanya diterapkan ke background.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         },
                         confirmButton = { TextButton(onClick = { cinematicSettingsExpanded = false }) { Text("Selesai") } }
