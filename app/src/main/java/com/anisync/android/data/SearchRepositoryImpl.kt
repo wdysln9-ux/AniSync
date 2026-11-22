@@ -186,6 +186,44 @@ class SearchRepositoryImpl @Inject constructor(
                 val randomSort = filters.sort.column == com.anisync.android.domain.SearchSortColumn.RANDOM
                 // Keep AniList's ordinary page sequence and randomize only the returned cards.
                 // This avoids selecting a random page from a stale total and returning no anime.
+                suspend fun fetchPage(requestPage: Int) = apolloClient.query(
+                    SearchEverythingQuery(
+                        search = if (query.isBlank()) Optional.absent() else Optional.present(query),
+                        page = Optional.present(requestPage),
+                        perPage = Optional.present(perPage),
+                        wantAnime = wantAnime,
+                        wantManga = wantManga,
+                        wantEntities = wantEntities,
+                        wantStudios = wantStudios,
+                        animeSort = Optional.present(listOf(filters.sortFor(MediaType.ANIME, query))),
+                        mangaSort = Optional.present(listOf(filters.sortFor(MediaType.MANGA, query))),
+                        genre_in = filters.genresIncluded.toOptionalList(),
+                        genre_not_in = filters.genresExcluded.toOptionalList(),
+                        tag_in = filters.tagsIncluded.toOptionalList(),
+                        tag_not_in = filters.tagsExcluded.toOptionalList(),
+                        minimumTagRank = Optional.present(filters.minimumTagRank),
+                        format_in = filters.formats.toOptionalList(),
+                        status_in = filters.statuses.toOptionalList(),
+                        source_in = filters.sources.toOptionalList(),
+                        startDate_greater = filters.startDateFloor(),
+                        startDate_lesser = filters.startDateCeiling(),
+                        season = filters.season?.let { Optional.present(it) } ?: Optional.absent(),
+                        seasonYear = filters.seasonYear()?.let { Optional.present(it) } ?: Optional.absent(),
+                        weightedScore = filters.score.exact(),
+                        weightedScore_greater = filters.score.greater(),
+                        weightedScore_lesser = filters.score.lesser(),
+                        episodes = filters.episodes.exact(),
+                        episodes_greater = filters.episodes.greater(),
+                        episodes_lesser = filters.episodes.lesser(),
+                        chapters = filters.chapters.exact(),
+                        chapters_greater = filters.chapters.greater(),
+                        chapters_lesser = filters.chapters.lesser(),
+                        countryOfOrigin = filters.country?.let { Optional.present(it.code) } ?: Optional.absent(),
+                        isAdult = resolveAdultFilter(filters.adultMode, quickSearch = false),
+                        animeOnList = if (filters.hideMyAnime) Optional.present(false) else Optional.absent()
+                    )
+                ).fetchPolicy(FetchPolicy.NetworkOnly).execute()
+
                 val response = fetchPage(page)
                 val entityData = response.data
                 val animePage = entityData?.anime
