@@ -35,10 +35,8 @@ import androidx.compose.material3.*
 import com.anisync.android.presentation.components.AsyncRichTextRenderer
 import com.anisync.android.domain.ActivityType
 import com.anisync.android.domain.UserActivity
-import com.anisync.android.presentation.activity.ActivityHeaderBlock
 import com.anisync.android.presentation.components.richtext.RichTextInputScreen
 import com.anisync.android.presentation.profile.components.ActivityCard
-import com.anisync.android.presentation.profile.components.ActivityPostBody
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -171,7 +169,10 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
+            Column(modifier = Modifier.statusBarsPadding()) {
             if (note == null || preview) TopAppBar(
                 title = { Column { Text(if (note == null) "Catatan" else if (preview) "Catatan" else "Edit catatan", fontWeight = FontWeight.Bold)
                     if (note == null) Text(status, style = MaterialTheme.typography.labelSmall,
@@ -190,6 +191,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     }
                 } }
             )
+            }
         },
         floatingActionButton = { if (note == null && !trash) FloatingActionButton(onClick = {
             val item = LocalNote(folderId = folderId.takeUnless { it == "all" } ?: data.folders.firstOrNull()?.id ?: "default")
@@ -294,53 +296,44 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                             }
                         }
                     }
-                    Column(
-                        modifier = Modifier.fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surface)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        ActivityHeaderBlock(
-                            authorName = "Catatan lokal",
-                            authorAvatarUrl = null,
-                            authorDonatorTier = 0,
-                            authorDonatorBadge = null,
-                            createdAt = note.createdAt / 1000L,
-                            isMessage = false,
-                            isPrivate = false,
-                            recipientName = null,
-                            recipientAvatarUrl = null,
-                            onUserClick = {}
+                    val noteActivity = remember(note) {
+                        UserActivity(
+                            id = note.id.hashCode(),
+                            type = ActivityType.TEXT,
+                            timestamp = note.createdAt,
+                            text = note.body.ifBlank { " " },
+                            userName = "Catatan lokal",
+                            isPinned = note.pinned
                         )
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = note.title.ifBlank { "Tanpa judul" },
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                    }
+                    ActivityCard(
+                        activity = noteActivity,
+                        onClick = {},
+                        modifier = Modifier.fillMaxWidth(),
+                        showAuthor = true,
+                        showEngagement = false,
+                        showOverflow = false,
+                        pinnedLabel = note.pinned,
+                        postTitle = note.title.ifBlank { "Tanpa judul" },
+                        postFooter = {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(top = 12.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
                             )
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                "Dibuat " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(note.createdAt)),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                            Text(
-                                "Diperbarui " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(note.updatedAt)),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp))
-                            if (note.body.isBlank()) {
-                                Text("Belum ada isi.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            } else {
-                                ActivityPostBody(
-                                    html = note.body,
-                                    modifier = Modifier.fillMaxWidth()
+                            Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                                Text(
+                                    "Dibuat " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(note.createdAt)),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    "Diperbarui " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(note.updatedAt)),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
+                    )
                     }
                 }
             }
@@ -439,7 +432,12 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 }
             } else LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 104.dp),
+                contentPadding = PaddingValues(
+                    start = 24.dp,
+                    end = 24.dp,
+                    top = 8.dp,
+                    bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding() + 96.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(visible, key = { it.id }) { item ->
