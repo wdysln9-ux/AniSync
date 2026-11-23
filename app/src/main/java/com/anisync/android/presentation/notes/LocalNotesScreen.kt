@@ -2,6 +2,7 @@ package com.anisync.android.presentation.notes
 
 import android.content.Context
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -149,6 +150,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     }
 
     val note = data.notes.firstOrNull { it.id == editing }
+    BackHandler(enabled = note != null) { editing = null }
     val visible = remember(data, folderId, query, archived, trash, sortNewestFirst) {
         data.notes.filter {
             (if (trash) it.deleted else if (archived) it.archived && !it.deleted else !it.archived && !it.deleted) &&
@@ -160,7 +162,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Column { Text(if (note == null) "Catatan lokal" else "Edit catatan", fontWeight = FontWeight.Bold)
+                title = { Column { Text(if (note == null) "Catatan lokal" else "Catatan", fontWeight = FontWeight.Bold)
                     if (note == null) Text(status, style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant) } },
                 navigationIcon = { IconButton(onClick = { if (note != null) editing = null else onBackClick() }) {
@@ -185,7 +187,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     ) { inset ->
         if (note != null) {
             Column(Modifier.fillMaxSize().padding(inset).padding(horizontal = 18.dp, vertical = 10.dp)) {
-                var preview by remember(note.id) { mutableStateOf(false) }
+                var preview by remember(note.id) { mutableStateOf(true) }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = { preview = !preview }) { Text(if (preview) "Edit" else "Pratinjau") }
                     Spacer(Modifier.weight(1f))
@@ -204,8 +206,10 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 HorizontalDivider()
                 if (preview) {
                     if (note.body.isBlank()) Text("Belum ada isi.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    else AsyncRichTextRenderer(html = note.body, modifier = Modifier.fillMaxSize().padding(top = 14.dp),
-                        style = MaterialTheme.typography.bodyLarge)
+                    else Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 14.dp)) {
+                        AsyncRichTextRenderer(html = note.body, modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
                 else {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -217,7 +221,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     }
                     BasicTextField(value = note.body, onValueChange = { v -> data = data.copy(notes = data.notes.map {
                         if (it.id == note.id) it.copy(body = v, updatedAt = System.currentTimeMillis()) else it
-                    }) }, modifier = Modifier.fillMaxSize().padding(top = 10.dp),
+                    }) }, modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 10.dp),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         decorationBox = { inner -> Box { if (note.body.isEmpty()) Text("Tulis catatan dengan Markdown...", color = MaterialTheme.colorScheme.outline); inner() } })
                 }
@@ -298,8 +302,12 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                                     }
                                 }
                             }
-                            if (item.body.isNotBlank()) Text(item.body, maxLines = 3, overflow = TextOverflow.Ellipsis,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (item.body.isNotBlank()) AsyncRichTextRenderer(
+                                html = item.body,
+                                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Text(data.folders.firstOrNull { it.id == item.folderId }?.name ?: "Catatan",
                                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                         }
