@@ -225,7 +225,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("**tebal**", "*miring*", "~~coret~~", "# Judul", "- [ ] Checklist", "> Kutipan", "`kode`", "[tautan](url)", "||spoiler||").forEach { token ->
                             AssistChip(onClick = { data = data.copy(notes = data.notes.map {
-                                if (it.id == note.id) it.copy(body = it.body + (if (it.body.isBlank()) "" else "\\n") + token) else it
+                                if (it.id == note.id) it.copy(body = it.body + (if (it.body.isBlank()) "" else "\n") + token) else it
                             }) }, label = { Text(token.take(12)) })
                         }
                     }
@@ -284,7 +284,8 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     var menu by remember { mutableStateOf(false) }
                     Surface(Modifier.fillMaxWidth().clickable { editing = item.id },
                         shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        tonalElevation = 1.dp) {
+                        tonalElevation = 1.dp,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))) {
                         Column(Modifier.padding(14.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(item.title.ifBlank { "Tanpa judul" }, Modifier.weight(1f),
