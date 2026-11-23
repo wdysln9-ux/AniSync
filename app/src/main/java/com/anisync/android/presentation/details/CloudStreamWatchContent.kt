@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
@@ -402,13 +404,9 @@ internal fun CloudStreamWatchContent(
         error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         if (anime != null && episodes.isNotEmpty()) {
             var newestFirst by rememberSaveable(mediaId) { mutableStateOf(false) }
-            var gridMode by rememberSaveable(mediaId) { mutableStateOf(false) }
             val displayedEpisodes = remember(episodes, newestFirst) {
                 if (newestFirst) episodes.sortedByDescending { (it["episode"] as? Number)?.toInt() ?: Int.MIN_VALUE }
                 else episodes.sortedBy { (it["episode"] as? Number)?.toInt() ?: Int.MAX_VALUE }
-            }
-            val episodeRows = remember(displayedEpisodes, gridMode) {
-                if (gridMode) displayedEpisodes.chunked(2) else displayedEpisodes.map(::listOf)
             }
             Row(
                 Modifier.fillMaxWidth(),
@@ -416,99 +414,87 @@ internal fun CloudStreamWatchContent(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("${episodes.size} episode", style = MaterialTheme.typography.titleMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Surface(
-                        onClick = { newestFirst = !newestFirst },
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Sort,
-                            contentDescription = if (newestFirst) "Urutkan episode paling lama" else "Urutkan episode paling baru",
-                            modifier = Modifier.padding(11.dp).size(20.dp)
-                        )
-                    }
-                    Surface(
-                        onClick = { gridMode = !gridMode },
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh
-                    ) {
-                        Icon(
-                            imageVector = if (gridMode) Icons.Filled.ViewAgenda else Icons.Filled.GridView,
-                            contentDescription = if (gridMode) "Tampilan daftar" else "Tampilan grid",
-                            modifier = Modifier.padding(11.dp).size(20.dp)
-                        )
-                    }
+                Surface(
+                    onClick = { newestFirst = !newestFirst },
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Sort,
+                        contentDescription = if (newestFirst) "Urutkan episode paling lama" else "Urutkan episode paling baru",
+                        modifier = Modifier.padding(11.dp).size(20.dp)
+                    )
                 }
             }
-            LazyColumn(Modifier.fillMaxWidth().height(560.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(episodeRows, key = { row -> (row.firstOrNull()?.let { it["data"] ?: it["episode"] ?: it.hashCode() } ?: "empty").toString() }) { row ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { item ->
-                            val n = (item["episode"] as? Number)?.toInt()
-                            val meta = n?.let { metadata[it] }
-                            val title = meta?.title?.takeIf(String::isNotBlank) ?: item["name"]?.toString()?.takeIf(String::isNotBlank) ?: "Episode ${n ?: "?"}"
-                            val isWatched = n != null && trackedProgress != null && n <= trackedProgress
-                            Card(
-                                onClick = { playEpisode(item) },
+            // Render episodes as one continuous list inside the detail page. The previous nested
+            // fixed-height LazyColumn and optional two-column bundles trapped scroll gestures in
+            // a second viewport, making it hard to move through the whole anime page.
+            Column(
+                Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                displayedEpisodes.forEach { item ->
+                    val n = (item["episode"] as? Number)?.toInt()
+                    val meta = n?.let { metadata[it] }
+                    val title = meta?.title?.takeIf(String::isNotBlank)
+                        ?: item["name"]?.toString()?.takeIf(String::isNotBlank)
+                        ?: "Episode ${n ?: "?"}"
+                    val isWatched = n != null && trackedProgress != null && n <= trackedProgress
+                    Card(
+                        onClick = { playEpisode(item) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer { alpha = if (isWatched) 0.48f else 1f },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        )
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            AsyncImage(
+                                model = meta?.image ?: item["posterUrl"]?.toString(),
+                                contentDescription = null,
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .then(if (gridMode) Modifier.height(178.dp) else Modifier)
-                                    .graphicsLayer { alpha = if (isWatched) 0.48f else 1f },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-                            ) {
-                                if (gridMode) {
-                                    Box {
-                                        AsyncImage(
-                                            model = meta?.image ?: item["posterUrl"]?.toString(),
-                                            contentDescription = null,
-                                            modifier = Modifier.fillMaxWidth().height(112.dp).clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
-                                            contentScale = ContentScale.Crop
-                                        )
-                                        if (isWatched) {
-                                            Surface(
-                                                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp),
-                                                shape = RoundedCornerShape(6.dp),
-                                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-                                            ) {
-                                                Text(
-                                                    "Ditonton",
-                                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                            }
-                                        }
-                                    }
-                                    Column(Modifier.fillMaxWidth().padding(9.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                        Text("Episode ${n ?: "?"}", style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text(title, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                    }
-                                } else {
-                                    Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                        AsyncImage(model = meta?.image ?: item["posterUrl"]?.toString(), contentDescription = null, modifier = Modifier.size(112.dp, 66.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
-                                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                            Text("${n ?: "?"}. ${title}", style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                            Text(meta?.releaseDate ?: "Tanggal rilis belum tersedia", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f))
-                                        }
-                                        if (isWatched) {
-                                            Surface(
-                                                shape = RoundedCornerShape(6.dp),
-                                                color = MaterialTheme.colorScheme.surfaceVariant
-                                            ) {
-                                                Text(
-                                                    "Ditonton",
-                                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                        }
-                                    }
+                                    .size(112.dp, 66.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentScale = ContentScale.Crop
+                            )
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text(
+                                    "Episode ${n ?: "?"}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    title,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    meta?.releaseDate ?: "Tanggal rilis belum tersedia",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f)
+                                )
+                            }
+                            if (isWatched) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant
+                                ) {
+                                    Text(
+                                        "Ditonton",
+                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         }
-                        if (gridMode && row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }
