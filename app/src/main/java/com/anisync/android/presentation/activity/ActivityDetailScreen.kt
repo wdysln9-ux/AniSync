@@ -588,7 +588,7 @@ fun ActivityDetailScreen(
 }
 
 @Composable
-private fun ActivityHeaderBlock(
+internal fun ActivityHeaderBlock(
     authorName: String,
     authorAvatarUrl: String?,
     authorDonatorTier: Int,
