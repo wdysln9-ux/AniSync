@@ -470,11 +470,11 @@ private fun FullscreenVideoContent(
             }
         )
 
-        if (playerState == PlayerState.Ready) {
+        if (playerState == PlayerState.Ready || playerState == PlayerState.Buffering || playerState == PlayerState.Loading) {
             VideoControlsOverlay(
                 modifier = videoModifier,
                 isPlaying = isPlaying,
-                isBuffering = playerState == PlayerState.Buffering,
+                isBuffering = playerState == PlayerState.Buffering || playerState == PlayerState.Loading,
                 isMuted = isMuted,
                 positionMs = positionMs,
                 durationMs = durationMs,
