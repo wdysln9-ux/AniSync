@@ -218,6 +218,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                         },
                         onDismiss = { preview = true },
                         hasExternalUnsavedChanges = false,
+                        confirmDiscardChanges = false,
                         headerSlot = {
                             androidx.compose.foundation.text.BasicTextField(
                                 value = note.title,
