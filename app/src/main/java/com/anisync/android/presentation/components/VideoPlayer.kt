@@ -504,7 +504,7 @@ fun VideoPlayer(
             onRetry = onRetry
         )
 
-        if (playerState == PlayerState.Ready || playerState == PlayerState.Buffering || playerState == PlayerState.Error) {
+        if (playerState == PlayerState.Ready || playerState == PlayerState.Error) {
             VideoControlsOverlay(
                 isPlaying = isPlaying,
                 isBuffering = playerState == PlayerState.Buffering,
@@ -1026,7 +1026,7 @@ internal fun VideoControlsOverlay(
     }
     // Always reveal controls when playback pauses or stalls.
     LaunchedEffect(isPlaying, isBuffering) {
-        if (!isPlaying || isBuffering) controlsVisible = true
+        if (!isPlaying) controlsVisible = true
     }
 
     val poke: () -> Unit = { interactions++ }
@@ -1128,7 +1128,8 @@ internal fun VideoControlsOverlay(
                                 // A double-tap is a seek/playback gesture, not a request
                                 // to reveal the player controls. Keep the overlay hidden.
                                 controlsVisible = false
-                                lastTapTime = 0L
+                                lastTapTime = now
+                                lastTapPosition = up.position
                             } else {
                                 controlsVisible = !controlsVisible
                                 poke()
@@ -1352,28 +1353,6 @@ internal fun VideoControlsOverlay(
                                         onCheckedChange = { onToggleMute(); poke() }
                                     )
                                 }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Pencahayaan sinematik")
-                                    androidx.compose.material3.Switch(
-                                        checked = cinematicEnabled,
-                                        onCheckedChange = { enabled ->
-                                            cinematicEnabled = enabled
-                                            PlayerPreferences.setCinematicEnabled(context, enabled)
-                                            onCinematicLightingChange(if (enabled) cinematicIntensity else 0f)
-                                        }
-                                    )
-                                }
-                                Text("Intensitas cahaya · ${(cinematicIntensity * 100).toInt()}%")
-                                Slider(
-                                    value = cinematicIntensity,
-                                    onValueChange = { cinematicIntensity = it; PlayerPreferences.setCinematicIntensity(context, it); if (cinematicEnabled) onCinematicLightingChange(it) },
-                                    valueRange = 0.05f..0.8f,
-                                    enabled = cinematicEnabled
-                                )
                                 TextButton(onClick = { onResetStretch(); poke() }) { Text("Reset Stretch") }
                                 Text(
                                     "Cubit layar dengan dua jari untuk mengatur lebar video. Garis rasio dan snap akan muncul selama pengaturan.",
@@ -1385,36 +1364,6 @@ internal fun VideoControlsOverlay(
                         confirmButton = {
                             TextButton(onClick = { playerSettingsExpanded = false }) { Text("Selesai") }
                         }
-                    )
-                }
-
-                if (cinematicSettingsExpanded) {
-                    AlertDialog(
-                        onDismissRequest = { cinematicSettingsExpanded = false },
-                        title = { Text("Pencahayaan sinematik") },
-                        text = {
-                            Column(
-                                modifier = Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState()),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                    Text("Aktifkan pencahayaan")
-                                    androidx.compose.material3.Switch(checked = cinematicEnabled, onCheckedChange = { enabled -> cinematicEnabled = enabled; PlayerPreferences.setCinematicEnabled(context, enabled); onCinematicLightingChange(if (enabled) cinematicIntensity else 0f) })
-                                }
-                                Text("Intensitas cahaya")
-                                Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it; PlayerPreferences.setCinematicIntensity(context, it); if (cinematicEnabled) onCinematicLightingChange(it) }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
-                                Text("Blur · " + cinematicBlur.toInt())
-                                Slider(value = cinematicBlur, onValueChange = { cinematicBlur = it; PlayerPreferences.setCinematicBlur(context, it); FullscreenVideoBridge.cinematicBlur.floatValue = it }, valueRange = 0f..48f, enabled = cinematicEnabled)
-                                Text("Kecerahan · " + (cinematicBrightness * 100).toInt() + "%")
-                                Slider(value = cinematicBrightness, onValueChange = { cinematicBrightness = it; PlayerPreferences.setCinematicBrightness(context, it); FullscreenVideoBridge.cinematicBrightness.floatValue = it }, valueRange = -1f..1f, enabled = cinematicEnabled)
-                                Text("Vignette · " + (cinematicVignette * 100).toInt() + "%")
-                                Slider(value = cinematicVignette, onValueChange = { cinematicVignette = it; PlayerPreferences.setCinematicVignette(context, it); FullscreenVideoBridge.cinematicVignette.floatValue = it }, valueRange = 0f..1f, enabled = cinematicEnabled)
-                                Text("Zoom · " + "%.2f".format(cinematicZoom) + "×")
-                                Slider(value = cinematicZoom, onValueChange = { cinematicZoom = it; PlayerPreferences.setCinematicZoom(context, it); FullscreenVideoBridge.cinematicZoom.floatValue = it }, valueRange = 1f..1.8f, enabled = cinematicEnabled)
-                                Text("Video utama tetap tajam; efek hanya diterapkan ke background.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        },
-                        confirmButton = { TextButton(onClick = { cinematicSettingsExpanded = false }) { Text("Selesai") } }
                     )
                 }
 
@@ -1440,7 +1389,6 @@ internal fun VideoControlsOverlay(
                         }
                     }
                     DropdownMenuItem(text = { Text("${if (autoNextEnabled) "✓ " else ""}Putar episode berikutnya otomatis") }, onClick = { autoNextEnabled = !autoNextEnabled; PlayerPreferences.setAutoNext(context, autoNextEnabled); onAutoNextChange(autoNextEnabled); poke() })
-                    DropdownMenuItem(text = { Text("Pencahayaan sinematik · Pengaturan") }, onClick = { quickSettingsExpanded = false; cinematicSettingsExpanded = true; poke() })
                     DropdownMenuItem(text = { Text("${if (isMuted) "Aktifkan suara" else "Bisukan"}") }, onClick = { onToggleMute(); poke() })
                 }
 
