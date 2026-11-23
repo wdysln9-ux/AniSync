@@ -1111,55 +1111,41 @@ internal fun VideoControlsOverlay(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
-                    // Handle taps ourselves so the first tap is immediate. detectTapGestures
-                    // delays onTap while waiting to see whether a second tap follows.
-                    var lastTapTime = 0L
-                    var lastTapPosition = androidx.compose.ui.geometry.Offset.Zero
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        val up = waitForUpOrCancellation()
-                        if (up != null) {
-                            val now = up.uptimeMillis
-                            val isDoubleTap = lastTapTime > 0L &&
-                                now - lastTapTime <= viewConfiguration.doubleTapTimeoutMillis &&
-                                (up.position - lastTapPosition).getDistance() <= viewConfiguration.touchSlop * 2f
-                            if (isDoubleTap) {
-                                val xFraction = up.position.x / size.width.toFloat()
-                                when {
-                                    xFraction < 0.35f || xFraction > 0.65f -> {
-                                        val forward = xFraction > 0.65f
-                                        val step = if (forward) 10_000L else -10_000L
-                                        accumulatedSeekMs = if (seekFeedback != null && seekFeedbackForward == forward) {
-                                            accumulatedSeekMs + step
-                                        } else {
-                                            step
-                                        }
-                                        seekFeedbackForward = forward
-                                        onSeekBy(step)
-                                        val seconds = kotlin.math.abs(accumulatedSeekMs / 1000L)
-                                        seekFeedback = (if (forward) "+" else "-") + "$seconds detik"
+                    // detectTapGestures waits for the double-tap window before firing onTap.
+                    // This prevents the first tap from briefly revealing controls when the user
+                    // is actually performing a double-tap seek/play-pause gesture.
+                    detectTapGestures(
+                        onTap = {
+                            suppressPauseReveal = false
+                            controlsVisible = !controlsVisible
+                            poke()
+                        },
+                        onDoubleTap = { offset ->
+                            val xFraction = offset.x / size.width.toFloat().coerceAtLeast(1f)
+                            when {
+                                xFraction < 0.35f || xFraction > 0.65f -> {
+                                    val forward = xFraction > 0.65f
+                                    val step = if (forward) 10_000L else -10_000L
+                                    accumulatedSeekMs = if (seekFeedback != null && seekFeedbackForward == forward) {
+                                        accumulatedSeekMs + step
+                                    } else {
+                                        step
                                     }
-                                    else -> {
-                                        accumulatedSeekMs = 0L
-                                        seekFeedback = null
-                                        onPlayPause()
-                                    }
+                                    seekFeedbackForward = forward
+                                    onSeekBy(step)
+                                    val seconds = kotlin.math.abs(accumulatedSeekMs / 1000L)
+                                    seekFeedback = (if (forward) "+" else "-") + "$seconds detik"
                                 }
-                                // A double-tap is a seek/playback gesture, not a request
-                                // to reveal the player controls. Keep the overlay hidden.
-                                controlsVisible = false
-                                suppressPauseReveal = true
-                                lastTapTime = now
-                                lastTapPosition = up.position
-                            } else {
-                                suppressPauseReveal = false
-                                controlsVisible = !controlsVisible
-                                poke()
-                                lastTapTime = now
-                                lastTapPosition = up.position
+                                else -> {
+                                    accumulatedSeekMs = 0L
+                                    seekFeedback = null
+                                    suppressPauseReveal = true
+                                    onPlayPause()
+                                }
                             }
+                            controlsVisible = false
                         }
-                    }
+                    )
                 }
                 .pointerInput(hostWindow, audioManager) {
                     var brightnessGesture = false
