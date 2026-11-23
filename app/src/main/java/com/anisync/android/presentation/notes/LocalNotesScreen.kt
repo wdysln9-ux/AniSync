@@ -404,48 +404,36 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                         }) { Icon(Icons.Default.NoteAdd, null); Text("Buat catatan") }
                     }
                 }
-            } else LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+            } else LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(start = 14.dp, top = 8.dp, end = 14.dp, bottom = 104.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 104.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(visible, key = { it.id }) { item ->
                     var menu by remember { mutableStateOf(false) }
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().clickable { editing = item.id },
-                        shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        tonalElevation = 1.dp,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                        )
+                    Card(
+                        onClick = { editing = item.id },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (item.pinned) {
-                                    Icon(
-                                        Icons.Default.PushPin,
-                                        contentDescription = "Disematkan",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                }
-                                Text(
-                                    item.title.ifBlank { "Tanpa judul" },
-                                    Modifier.weight(1f),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Box {
-                                    IconButton(onClick = { menu = true }, modifier = Modifier.size(28.dp)) {
-                                        Icon(Icons.Default.MoreVert, "Opsi", modifier = Modifier.size(18.dp))
+                                Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(38.dp)) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.NoteAdd, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                                     }
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text("Catatan lokal", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                    Text("Dibuat " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(item.createdAt)),
+                                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                if (item.pinned) Icon(Icons.Default.PushPin, "Disematkan", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Box {
+                                    IconButton(onClick = { menu = true }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.MoreVert, "Opsi") }
                                     DropdownMenu(menu, { menu = false }) {
                                         if (item.deleted) {
                                             DropdownMenuItem(text = { Text("Pulihkan") }, leadingIcon = { Icon(Icons.Default.Restore, null) },
@@ -457,44 +445,25 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                                                 onClick = { menu = false; data = data.copy(notes = data.notes.map { if (it.id == item.id) it.copy(pinned = !it.pinned) else it }) })
                                             DropdownMenuItem(text = { Text(if (item.archived) "Keluarkan dari arsip" else "Arsipkan") }, leadingIcon = { Icon(Icons.Default.Archive, null) },
                                                 onClick = { menu = false; data = data.copy(notes = data.notes.map { if (it.id == item.id) it.copy(archived = !it.archived) else it }) })
-                                            if (!archived) DropdownMenuItem(text = { Text("Pindahkan ke folder…") }, onClick = {
-                                                menu = false; movingNoteId = item.id
-                                            })
+                                            if (!archived) DropdownMenuItem(text = { Text("Pindahkan ke folder…") }, onClick = { menu = false; movingNoteId = item.id })
                                             DropdownMenuItem(text = { Text("Pindahkan ke sampah") }, leadingIcon = { Icon(Icons.Default.Delete, null) },
                                                 onClick = { menu = false; data = data.copy(notes = data.notes.map { if (it.id == item.id) it.copy(deleted = true) else it }) })
                                         }
                                     }
                                 }
                             }
+                            Text(item.title.ifBlank { "Tanpa judul" }, style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             if (item.body.isNotBlank()) {
-                                AsyncRichTextRenderer(
-                                    html = item.body,
-                                    modifier = Modifier.fillMaxWidth().heightIn(max = 112.dp),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            } else {
-                                Text(
-                                    "Catatan kosong",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                            }
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                                AsyncRichTextRenderer(html = item.body, modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp),
+                                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                            } else Text("Catatan kosong", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    data.folders.firstOrNull { it.id == item.folderId }?.name ?: "Catatan",
-                                    modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    java.text.SimpleDateFormat("d MMM", java.util.Locale("id", "ID")).format(java.util.Date(item.updatedAt)),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
+                                Text(data.folders.firstOrNull { it.id == item.folderId }?.name ?: "Catatan",
+                                    modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                                Text("Diperbarui " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(item.updatedAt)),
+                                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
