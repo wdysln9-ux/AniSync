@@ -191,17 +191,77 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
         }) { Icon(Icons.Default.NoteAdd, "Buat catatan") } }
     ) { inset ->
         if (note != null) {
-            Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(inset).padding(horizontal = 18.dp, vertical = 10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { preview = !preview }) { Text(if (preview) "Edit" else "Pratinjau") }
-                    Spacer(Modifier.weight(1f))
-                    IconButton(onClick = { data = data.copy(notes = data.notes.map { if (it.id == note.id) it.copy(pinned = !it.pinned) else it }) }) {
-                        Icon(Icons.Default.PushPin, "Sematkan") }
-                    IconButton(onClick = { data = data.copy(notes = data.notes.map { if (it.id == note.id) it.copy(archived = true) else it }); editing = null }) {
-                        Icon(Icons.Default.Archive, "Arsipkan") }
-                    IconButton(onClick = { data = data.copy(notes = data.notes.map { if (it.id == note.id) it.copy(deleted = true) else it }); editing = null }) {
-                        Icon(Icons.Default.Delete, "Hapus") }
+            Column(
+                Modifier.fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .padding(inset)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SingleChoiceSegmentedButtonRow {
+                            SegmentedButton(
+                                selected = preview,
+                                onClick = { preview = true },
+                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                            ) { Text("Baca") }
+                            SegmentedButton(
+                                selected = !preview,
+                                onClick = { preview = false },
+                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                            ) { Text("Edit") }
+                        }
+                        Spacer(Modifier.weight(1f))
+                        IconButton(onClick = {
+                            data = data.copy(notes = data.notes.map {
+                                if (it.id == note.id) it.copy(pinned = !it.pinned) else it
+                            })
+                        }) {
+                            Icon(Icons.Default.PushPin, "Sematkan", tint = if (note.pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Box {
+                            var noteActionsExpanded by remember(note.id) { mutableStateOf(false) }
+                            IconButton(onClick = { noteActionsExpanded = true }) {
+                                Icon(Icons.Default.MoreVert, "Opsi catatan")
+                            }
+                            DropdownMenu(noteActionsExpanded, { noteActionsExpanded = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Arsipkan") },
+                                    leadingIcon = { Icon(Icons.Default.Archive, null) },
+                                    onClick = {
+                                        noteActionsExpanded = false
+                                        data = data.copy(notes = data.notes.map { if (it.id == note.id) it.copy(archived = true) else it })
+                                        editing = null
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Pindahkan ke sampah") },
+                                    leadingIcon = { Icon(Icons.Default.Delete, null) },
+                                    onClick = {
+                                        noteActionsExpanded = false
+                                        data = data.copy(notes = data.notes.map { if (it.id == note.id) it.copy(deleted = true) else it })
+                                        editing = null
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
+                Spacer(Modifier.height(10.dp))
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    shape = RoundedCornerShape(22.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 1.dp
+                ) {
+                    Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 16.dp))
                 if (preview) {
                     Text(
                         text = note.title.ifBlank { "Tanpa judul" },
@@ -247,6 +307,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     }) }, modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 10.dp),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         decorationBox = { inner -> Box { if (note.body.isEmpty()) Text("Tulis catatan dengan Markdown...", color = MaterialTheme.colorScheme.outline); inner() } })
+                    }
                 }
             }
         } else Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(inset)) {
