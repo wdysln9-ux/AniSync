@@ -37,6 +37,7 @@ import com.anisync.android.domain.ActivityType
 import com.anisync.android.domain.UserActivity
 import com.anisync.android.presentation.components.richtext.RichTextInputScreen
 import com.anisync.android.presentation.profile.components.ActivityCard
+import com.anisync.android.presentation.components.ConnectedToggleSegment
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -172,25 +173,90 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            Column(modifier = Modifier.statusBarsPadding()) {
-            if (note == null || preview) TopAppBar(
-                title = { Column { Text(if (note == null) "Catatan" else if (preview) "Catatan" else "Edit catatan", fontWeight = FontWeight.Bold)
-                    if (note == null) Text(status, style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant) } },
-                navigationIcon = { IconButton(onClick = { if (note != null) editing = null else onBackClick() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali") } },
-                actions = { if (note == null) Box {
-                    IconButton(onClick = { backupMenu = true }) { Icon(Icons.Default.Backup, "Cadangan") }
-                    DropdownMenu(backupMenu, { backupMenu = false }) {
-                        DropdownMenuItem(text = { Text("Pilih folder cadangan") }, leadingIcon = { Icon(Icons.Default.Folder, null) },
-                            onClick = { backupMenu = false; folderPicker.launch(null) })
-                        DropdownMenuItem(text = { Text("Pulihkan dari file") }, leadingIcon = { Icon(Icons.Default.Restore, null) },
-                            onClick = { backupMenu = false; importPicker.launch(arrayOf("application/json", "text/json")) })
-                        DropdownMenuItem(text = { Text("Ekspor cadangan") }, leadingIcon = { Icon(Icons.Default.Download, null) },
-                            onClick = { backupMenu = false; exportPicker.launch(BACKUP_FILE) })
+            if (note == null) {
+                Column(modifier = Modifier.statusBarsPadding()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 8.dp)
+                            .height(40.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ConnectedToggleSegment(
+                            icon = Icons.Default.NoteAdd,
+                            label = "Catatan",
+                            selected = !archived && !trash,
+                            leading = true,
+                            modifier = Modifier.weight(1f),
+                            onClick = { archived = false; trash = false; folderId = "all" }
+                        )
+                        ConnectedToggleSegment(
+                            icon = Icons.Default.Archive,
+                            label = "Arsip",
+                            selected = archived,
+                            leading = false,
+                            modifier = Modifier.weight(1f),
+                            onClick = { archived = true; trash = false; folderId = "all" }
+                        )
+                        Box {
+                            IconButton(onClick = { backupMenu = true }) {
+                                Icon(Icons.Default.Backup, "Cadangan")
+                            }
+                            DropdownMenu(backupMenu, { backupMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Pilih folder cadangan") },
+                                    leadingIcon = { Icon(Icons.Default.Folder, null) },
+                                    onClick = { backupMenu = false; folderPicker.launch(null) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Pulihkan dari file") },
+                                    leadingIcon = { Icon(Icons.Default.Restore, null) },
+                                    onClick = { backupMenu = false; importPicker.launch(arrayOf("application/json", "text/json")) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Ekspor cadangan") },
+                                    leadingIcon = { Icon(Icons.Default.Download, null) },
+                                    onClick = { backupMenu = false; exportPicker.launch(BACKUP_FILE) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Sampah") },
+                                    leadingIcon = { Icon(Icons.Default.Delete, null) },
+                                    onClick = { backupMenu = false; trash = true; archived = false; folderId = "all" }
+                                )
+                            }
+                        }
                     }
-                } }
-            )
+                    androidx.compose.foundation.lazy.LazyRow(
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        item(key = "all_notes") {
+                            FilterChip(
+                                selected = folderId == "all",
+                                onClick = { folderId = "all" },
+                                label = { Text("Semua") }
+                            )
+                        }
+                        items(data.folders, key = { it.id }) { folder ->
+                            FilterChip(
+                                selected = folderId == folder.id,
+                                onClick = { folderId = folder.id; archived = false; trash = false },
+                                label = { Text(folder.name) }
+                            )
+                        }
+                    }
+                }
+            } else if (preview) {
+                androidx.compose.material3.TopAppBar(
+                    title = { Text("Catatan", fontWeight = FontWeight.Bold) },
+                    navigationIcon = {
+                        IconButton(onClick = { editing = null }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali")
+                        }
+                    }
+                )
             }
         },
         floatingActionButton = { if (note == null && !trash) FloatingActionButton(onClick = {
