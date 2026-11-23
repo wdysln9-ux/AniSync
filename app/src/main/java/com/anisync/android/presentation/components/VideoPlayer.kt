@@ -681,7 +681,7 @@ internal fun PlayerSurface(
         var bufferHeight = 0
         var bufferIndex = 0
         while (true) {
-            if (view.isAvailable && view.width > 0 && view.height > 0) {
+            if (exoPlayer.isPlaying && view.isAvailable && view.width > 0 && view.height > 0) {
                 // Keep the backdrop deliberately low-resolution: the main video remains sharp,
                 // while a 480px capture is substantially cheaper to copy and blur on mobile GPUs.
                 val maxDimension = 480f
@@ -1368,7 +1368,8 @@ internal fun VideoControlsOverlay(
                                 Text("Intensitas cahaya · ${(cinematicIntensity * 100).toInt()}%")
                                 Slider(
                                     value = cinematicIntensity,
-                                    onValueChange = { cinematicIntensity = it; PlayerPreferences.setCinematicIntensity(context, it); if (cinematicEnabled) onCinematicLightingChange(it) },
+                                    onValueChange = { cinematicIntensity = it; if (cinematicEnabled) onCinematicLightingChange(it) },
+                                    onValueChangeFinished = { PlayerPreferences.setCinematicIntensity(context, cinematicIntensity) },
                                     valueRange = 0.05f..0.8f,
                                     enabled = cinematicEnabled
                                 )
@@ -1400,15 +1401,15 @@ internal fun VideoControlsOverlay(
                                     androidx.compose.material3.Switch(checked = cinematicEnabled, onCheckedChange = { enabled -> cinematicEnabled = enabled; PlayerPreferences.setCinematicEnabled(context, enabled); onCinematicLightingChange(if (enabled) cinematicIntensity else 0f) })
                                 }
                                 Text("Intensitas cahaya")
-                                Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it; PlayerPreferences.setCinematicIntensity(context, it); if (cinematicEnabled) onCinematicLightingChange(it) }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
+                                Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it; if (cinematicEnabled) onCinematicLightingChange(it) }, onValueChangeFinished = { PlayerPreferences.setCinematicIntensity(context, cinematicIntensity) }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
                                 Text("Blur · " + cinematicBlur.toInt())
-                                Slider(value = cinematicBlur, onValueChange = { cinematicBlur = it; PlayerPreferences.setCinematicBlur(context, it); FullscreenVideoBridge.cinematicBlur.floatValue = it }, valueRange = 0f..48f, enabled = cinematicEnabled)
+                                Slider(value = cinematicBlur, onValueChange = { cinematicBlur = it; FullscreenVideoBridge.cinematicBlur.floatValue = it }, onValueChangeFinished = { PlayerPreferences.setCinematicBlur(context, cinematicBlur) }, valueRange = 0f..48f, enabled = cinematicEnabled)
                                 Text("Kecerahan · " + (cinematicBrightness * 100).toInt() + "%")
-                                Slider(value = cinematicBrightness, onValueChange = { cinematicBrightness = it; PlayerPreferences.setCinematicBrightness(context, it); FullscreenVideoBridge.cinematicBrightness.floatValue = it }, valueRange = -1f..1f, enabled = cinematicEnabled)
+                                Slider(value = cinematicBrightness, onValueChange = { cinematicBrightness = it; FullscreenVideoBridge.cinematicBrightness.floatValue = it }, onValueChangeFinished = { PlayerPreferences.setCinematicBrightness(context, cinematicBrightness) }, valueRange = -1f..1f, enabled = cinematicEnabled)
                                 Text("Vignette · " + (cinematicVignette * 100).toInt() + "%")
-                                Slider(value = cinematicVignette, onValueChange = { cinematicVignette = it; PlayerPreferences.setCinematicVignette(context, it); FullscreenVideoBridge.cinematicVignette.floatValue = it }, valueRange = 0f..1f, enabled = cinematicEnabled)
+                                Slider(value = cinematicVignette, onValueChange = { cinematicVignette = it; FullscreenVideoBridge.cinematicVignette.floatValue = it }, onValueChangeFinished = { PlayerPreferences.setCinematicVignette(context, cinematicVignette) }, valueRange = 0f..1f, enabled = cinematicEnabled)
                                 Text("Zoom · " + "%.2f".format(cinematicZoom) + "×")
-                                Slider(value = cinematicZoom, onValueChange = { cinematicZoom = it; PlayerPreferences.setCinematicZoom(context, it); FullscreenVideoBridge.cinematicZoom.floatValue = it }, valueRange = 1f..1.8f, enabled = cinematicEnabled)
+                                Slider(value = cinematicZoom, onValueChange = { cinematicZoom = it; FullscreenVideoBridge.cinematicZoom.floatValue = it }, onValueChangeFinished = { PlayerPreferences.setCinematicZoom(context, cinematicZoom) }, valueRange = 1f..1.8f, enabled = cinematicEnabled)
                                 Text("Video utama tetap tajam; efek hanya diterapkan ke background.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         },
