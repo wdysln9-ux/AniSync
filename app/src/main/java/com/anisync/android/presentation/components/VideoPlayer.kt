@@ -605,6 +605,20 @@ private const val HTTP_NOT_FOUND = 404
 private const val HTTP_GONE = 410
 
 /**
+ * TextureView frame callback that does not replace TextureView's SurfaceTextureListener.
+ * Media3 owns that listener while rendering; replacing it breaks surface reattachment after
+ * leaving the fullscreen Activity and can leave the inline player black.
+ */
+private class CinematicTextureView(context: Context) : TextureView(context) {
+    var onFrameUpdated: (() -> Unit)? = null
+
+    override fun onSurfaceTextureUpdated(surface: android.graphics.SurfaceTexture) {
+        super.onSurfaceTextureUpdated(surface)
+        onFrameUpdated?.invoke()
+    }
+}
+
+/**
  * The native video surface. [active] hands the shared [exoPlayer] to exactly one surface at a time
  * (inline vs. fullscreen activity), so the two never fight over it. [ContentScale.Fit] letterboxes
  * the real video inside whatever frame it's given. A TextureView rather than a SurfaceView, so the
@@ -676,19 +690,21 @@ internal fun PlayerSurface(
             backgroundFrame = null
             onDispose { }
         } else {
-            // Mirror the exact TextureView output used by the main video. Capture at
-            // the source surface's native dimensions; never downscale the backdrop.
-            // TextureView reports each newly presented frame, so there is no polling
-            // timer (the old 42ms loop added visible latency and could miss frames).
+            // Mirror the current frame for the blurred backdrop. A quarter-size copy is
+            // visually sufficient after blur and cuts per-frame bitmap bandwidth substantially.
+            // Do not install a SurfaceTextureListener here: Media3 owns that listener on the
+            // TextureView. Replacing it prevents the decoder surface from reconnecting after
+            // fullscreen handoff and is a direct cause of the portrait black-screen bug.
+            val cinematicView = view as? CinematicTextureView ?: return@DisposableEffect onDispose { }
             var buffers = arrayOfNulls<android.graphics.Bitmap>(2)
             var bufferWidth = 0
             var bufferHeight = 0
             var bufferIndex = 0
 
             fun captureLatestFrame() {
-                if (!exoPlayer.isPlaying || !view.isAvailable || view.width <= 0 || view.height <= 0) return
-                val width = view.width
-                val height = view.height
+                if (!exoPlayer.isPlaying || !cinematicView.isAvailable || cinematicView.width <= 0 || cinematicView.height <= 0) return
+                val width = (cinematicView.width / 4).coerceAtLeast(1)
+                val height = (cinematicView.height / 4).coerceAtLeast(1)
                 if (width != bufferWidth || height != bufferHeight) {
                     buffers.forEach { bitmap ->
                         if (bitmap != null && !bitmap.isRecycled) bitmap.recycle()
@@ -702,28 +718,16 @@ internal fun PlayerSurface(
                     bufferIndex = 0
                 }
                 val target = buffers[bufferIndex] ?: return
-                val frame = runCatching { view.getBitmap(target) }.getOrNull() ?: return
+                val frame = runCatching { cinematicView.getBitmap(target, width, height) }.getOrNull() ?: return
                 backgroundFrame = frame
                 bufferIndex = 1 - bufferIndex
             }
 
-            val listener = object : TextureView.SurfaceTextureListener {
-                override fun onSurfaceTextureAvailable(surface: android.graphics.SurfaceTexture, width: Int, height: Int) {
-                    captureLatestFrame()
-                }
-                override fun onSurfaceTextureSizeChanged(surface: android.graphics.SurfaceTexture, width: Int, height: Int) {
-                    captureLatestFrame()
-                }
-                override fun onSurfaceTextureUpdated(surface: android.graphics.SurfaceTexture) {
-                    captureLatestFrame()
-                }
-                override fun onSurfaceTextureDestroyed(surface: android.graphics.SurfaceTexture): Boolean = true
-            }
-            view.surfaceTextureListener = listener
-            if (view.isAvailable) captureLatestFrame()
+            cinematicView.onFrameUpdated = ::captureLatestFrame
+            if (cinematicView.isAvailable) captureLatestFrame()
 
             onDispose {
-                if (view.surfaceTextureListener === listener) view.surfaceTextureListener = null
+                cinematicView.onFrameUpdated = null
                 buffers.forEach { bitmap ->
                     if (bitmap != null && bitmap !== backgroundFrame && !bitmap.isRecycled) bitmap.recycle()
                 }
@@ -750,7 +754,7 @@ internal fun PlayerSurface(
         }
         AndroidView(
             factory = { ctx ->
-                TextureView(ctx).also { view ->
+                CinematicTextureView(ctx).also { view ->
                     textureView = view
                     view.addOnLayoutChangeListener { changed, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
                         updateTextureTransform(changed as TextureView)
