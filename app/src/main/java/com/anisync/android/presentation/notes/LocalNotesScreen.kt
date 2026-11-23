@@ -278,15 +278,24 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                         textStyle = MaterialTheme.typography.headlineSmall.copy(color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold),
                         decorationBox = { inner -> Box { if (note.title.isEmpty()) Text("Judul catatan", color = MaterialTheme.colorScheme.outline); inner() } })
                 }
-                Text(
-                    text = "Diperbarui " + java.text.SimpleDateFormat(
-                        "d MMM yyyy · HH:mm",
-                        java.util.Locale("id", "ID")
-                    ).format(java.util.Date(note.updatedAt)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(bottom = 10.dp)
-                )
+                Column(Modifier.padding(bottom = 10.dp)) {
+                    Text(
+                        text = "Dibuat " + java.text.SimpleDateFormat(
+                            "d MMM yyyy · HH:mm",
+                            java.util.Locale("id", "ID")
+                        ).format(java.util.Date(note.createdAt)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Text(
+                        text = "Diperbarui " + java.text.SimpleDateFormat(
+                            "d MMM yyyy · HH:mm",
+                            java.util.Locale("id", "ID")
+                        ).format(java.util.Date(note.updatedAt)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
                 HorizontalDivider()
                 if (preview) {
                     if (note.body.isBlank()) Text("Belum ada isi.", color = MaterialTheme.colorScheme.onSurfaceVariant)
