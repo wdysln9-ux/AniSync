@@ -216,7 +216,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 HorizontalDivider()
                 if (preview) {
                     if (note.body.isBlank()) Text("Belum ada isi.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    else Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 14.dp)) {
+                    else Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 14.dp)) {
                         AsyncRichTextRenderer(html = note.body, modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.bodyLarge)
                     }
@@ -231,7 +231,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     }
                     BasicTextField(value = note.body, onValueChange = { v -> data = data.copy(notes = data.notes.map {
                         if (it.id == note.id) it.copy(body = v, updatedAt = System.currentTimeMillis()) else it
-                    }) }, modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 10.dp),
+                    }) }, modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 10.dp),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         decorationBox = { inner -> Box { if (note.body.isEmpty()) Text("Tulis catatan dengan Markdown...", color = MaterialTheme.colorScheme.outline); inner() } })
                 }
