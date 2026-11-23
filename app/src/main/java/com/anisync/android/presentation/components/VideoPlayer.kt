@@ -704,7 +704,7 @@ internal fun PlayerSurface(
                     bufferIndex = 0
                 }
                 val target = buffers[bufferIndex] ?: return
-                val frame = runCatching { view.getBitmap(target, width, height) }.getOrNull() ?: return
+                val frame = runCatching { view.getBitmap(target) }.getOrNull() ?: return
                 backgroundFrame = frame
                 bufferIndex = 1 - bufferIndex
             }
