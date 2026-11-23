@@ -252,7 +252,7 @@ private fun FullscreenVideoContent(
     var stretchX by remember { mutableFloatStateOf(PlayerPreferences.stretchScale(context)) }
     var isStretching by remember { mutableStateOf(false) }
     var snappedRatio by remember { mutableStateOf<Float?>(null) }
-    var cinematicIntensity by remember { mutableFloatStateOf(if (PlayerPreferences.cinematicEnabled(context)) PlayerPreferences.cinematicIntensity(context) else 0f) }
+    var cinematicIntensity by remember { mutableFloatStateOf(0f) }
     var displayMode by remember { mutableStateOf(PlayerPreferences.displayMode(context)) }
     // Seeded from the launch extra, then corrected off the player itself, so the fitted box tracks
     // the real picture even when the inline player never reported a size before the handoff.
@@ -504,12 +504,7 @@ private fun FullscreenVideoContent(
                 onSetPlaybackSpeed = { player.setPlaybackParameters(androidx.media3.common.PlaybackParameters(it, 1f)) },
                 sourceOptions = emptyList(),
                 onSelectSource = {},
-                onCinematicLightingChange = { intensity ->
-                    cinematicIntensity = intensity
-                    PlayerPreferences.setCinematicEnabled(context, intensity > 0f)
-                    if (intensity > 0f) PlayerPreferences.setCinematicIntensity(context, intensity)
-                    FullscreenVideoBridge.cinematicIntensity.floatValue = intensity
-                },
+                onCinematicLightingChange = { FullscreenVideoBridge.cinematicIntensity.floatValue = 0f },
                 onResetStretch = { stretchX = 1f; PlayerPreferences.setStretchScale(context, 1f) },
                 displayMode = displayMode,
                 onDisplayModeChange = { displayMode = it; PlayerPreferences.setDisplayMode(context, it) },
