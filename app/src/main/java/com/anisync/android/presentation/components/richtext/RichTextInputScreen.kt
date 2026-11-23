@@ -1,5 +1,6 @@
 package com.anisync.android.presentation.components.richtext
 
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.res.stringResource
@@ -21,7 +22,10 @@ fun RichTextInputScreen(
     onDismiss: () -> Unit,
     submitLabel: String = stringResource(R.string.activity_edit_save),
     minLength: Int = 1,
-    maxLength: Int = 10_000
+    maxLength: Int = 10_000,
+    onBodyChange: (String) -> Unit = {},
+    hasExternalUnsavedChanges: Boolean = false,
+    headerSlot: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     // Hide main bottom nav bar while overlay visible — covers the Edit Profile case
     // where the parent Profile route stays in the bottom-bar whitelist.
@@ -40,6 +44,9 @@ fun RichTextInputScreen(
         onSubmit = onSubmit,
         onDismiss = onDismiss,
         minLength = minLength,
-        maxLength = maxLength
+        maxLength = maxLength,
+        onBodyChange = onBodyChange,
+        hasExternalUnsavedChanges = hasExternalUnsavedChanges,
+        headerSlot = headerSlot
     )
 }
