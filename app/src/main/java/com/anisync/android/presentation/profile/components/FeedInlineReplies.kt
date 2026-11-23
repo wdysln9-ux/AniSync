@@ -41,6 +41,7 @@ internal fun FeedInlineReplies(
     onUserClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val visibleReplies = replies.sortedBy { it.createdAt }.take(20)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -88,7 +89,7 @@ internal fun FeedInlineReplies(
                         )
                     }
                     else -> {
-                        replies.sortedBy { it.createdAt }.forEachIndexed { index, reply ->
+                        visibleReplies.forEachIndexed { index, reply ->
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
