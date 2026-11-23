@@ -623,7 +623,21 @@ internal fun LazyListScope.profileSelectedTabContent(
                     null
                 },
                 loadFailed = uiState.isActivityFailed,
-                onRetry = { onAction(ProfileAction.Refresh()) }
+                onRetry = { onAction(ProfileAction.Refresh()) },
+                expandedRepliesActivityId = uiState.expandedRepliesActivityId,
+                replyDetails = uiState.replyDetails,
+                loadingReplyIds = uiState.loadingReplyIds,
+                replyLoadErrors = uiState.replyLoadErrors,
+                replyDrafts = uiState.replyDrafts,
+                submittingReplyIds = uiState.submittingReplyIds,
+                onCommentToggle = { id ->
+                    val activity = profile.activities.firstOrNull { it.id == id }
+                    if ((activity?.replyCount ?: 0) > 20) onActivityClick(id)
+                    else onAction(ProfileAction.ToggleActivityReplies(id))
+                },
+                onReplyDraftChange = { id, text -> onAction(ProfileAction.UpdateActivityReplyDraft(id, text)) },
+                onSubmitReply = { onAction(ProfileAction.SubmitActivityReply(it)) },
+                onRetryReplies = { onAction(ProfileAction.RetryActivityReplies(it)) }
             )
         }
 
