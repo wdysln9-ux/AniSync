@@ -215,6 +215,7 @@ fun VideoPlayer(
     val isHandedOff by rememberUpdatedState(handedOff)
     var cinematicOverlayIntensity by remember { mutableFloatStateOf(0f) }
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
+    val currentOnAutoNextChange by rememberUpdatedState(onAutoNextChange)
     LaunchedEffect(url, aniskipMalId, aniskipEpisodeNumber, durationMs) {
         aniSkipSegments = emptyList()
         FullscreenVideoBridge.aniSkipSegments.value = emptyList()
@@ -421,8 +422,10 @@ fun VideoPlayer(
             // doing so briefly reveals the portrait panel before fullscreen is launched again.
             currentOnPlaybackEnded()
         }
+        FullscreenVideoBridge.onAutoNextChange = { currentOnAutoNextChange(it) }
         onDispose {
-            if (FullscreenVideoBridge.onPlaybackEnded != null) FullscreenVideoBridge.onPlaybackEnded = null
+            FullscreenVideoBridge.onPlaybackEnded = null
+            FullscreenVideoBridge.onAutoNextChange = null
         }
     }
 
