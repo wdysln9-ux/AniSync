@@ -428,7 +428,6 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     )
                     }
                 }
-            }
         } else Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(inset)) {
             OutlinedTextField(
                 value = query,
