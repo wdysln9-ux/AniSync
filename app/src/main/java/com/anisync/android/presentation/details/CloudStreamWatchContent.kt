@@ -601,7 +601,11 @@ internal fun CloudStreamWatchContent(
                             onPlaybackEnded = {
                                 if (autoNextEnabled) {
                                     val wasFullscreen = FullscreenVideoBridge.isFullscreen
-                                    val readyNextSource = preloadStream
+                                    val preferredServerName = selectedStream?.get("name")?.toString()
+                                    val readyNextSource = preloadStream?.takeIf {
+                                        !preferredServerName.isNullOrBlank() &&
+                                            it["name"]?.toString().equals(preferredServerName, ignoreCase = true)
+                                    }
                                     // Reuse the fullscreen Activity when the preloaded source is ready.
                                     // Otherwise close/re-enter only as a fallback while resolving.
                                     autoNextFullscreen = wasFullscreen && readyNextSource == null
@@ -675,9 +679,7 @@ internal fun CloudStreamWatchContent(
                                     selectedStream = source
                                     val index = episodes.indexOfFirst { it === current || it == current }
                                     episodes.getOrNull(index + 1)?.let { nextEpisode ->
-                                        scope.launch {
-                                            preloadStream = resolvePreloadSource(nextEpisode, source["name"]?.toString())
-                                        }
+                                        scheduleNextPreload(nextEpisode, source)
                                     }
                                 }
                             )
