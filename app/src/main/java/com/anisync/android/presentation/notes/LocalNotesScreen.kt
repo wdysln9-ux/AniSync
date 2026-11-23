@@ -35,6 +35,7 @@ import androidx.compose.material3.*
 import com.anisync.android.presentation.components.AsyncRichTextRenderer
 import com.anisync.android.domain.ActivityType
 import com.anisync.android.domain.UserActivity
+import com.anisync.android.presentation.components.richtext.RichTextInputScreen
 import com.anisync.android.presentation.profile.components.ActivityCard
 import com.anisync.android.presentation.profile.components.ActivityPostBody
 import androidx.compose.runtime.*
@@ -170,7 +171,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            if (note == null || preview) TopAppBar(
                 title = { Column { Text(if (note == null) "Catatan" else if (preview) "Catatan" else "Edit catatan", fontWeight = FontWeight.Bold)
                     if (note == null) Text(status, style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant) } },
@@ -195,33 +196,75 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
         }) { Icon(Icons.Default.NoteAdd, "Buat catatan") } }
     ) { inset ->
         if (note != null) {
-            Column(
-                Modifier.fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                    .padding(inset)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surface
+            if (!preview) {
+                key(note.id) {
+                    RichTextInputScreen(
+                        title = "Edit catatan",
+                        placeholder = "Tulis catatan dengan Markdown...",
+                        initialBody = note.body,
+                        isSubmitting = false,
+                        submitLabel = "Simpan",
+                        onBodyChange = { body ->
+                            data = data.copy(notes = data.notes.map {
+                                if (it.id == note.id && it.body != body) it.copy(body = body, updatedAt = System.currentTimeMillis()) else it
+                            })
+                        },
+                        onSubmit = { body ->
+                            data = data.copy(notes = data.notes.map {
+                                if (it.id == note.id) it.copy(body = body, updatedAt = System.currentTimeMillis()) else it
+                            })
+                            preview = true
+                        },
+                        onDismiss = { preview = true },
+                        hasExternalUnsavedChanges = false,
+                        headerSlot = {
+                            androidx.compose.foundation.text.BasicTextField(
+                                value = note.title,
+                                onValueChange = { value ->
+                                    data = data.copy(notes = data.notes.map {
+                                        if (it.id == note.id) it.copy(title = value, updatedAt = System.currentTimeMillis()) else it
+                                    })
+                                },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                                textStyle = MaterialTheme.typography.headlineSmall.copy(
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                decorationBox = { inner ->
+                                    Box {
+                                        if (note.title.isEmpty()) Text("Judul catatan", color = MaterialTheme.colorScheme.outline)
+                                        inner()
+                                    }
+                                }
+                            )
+                            Text(
+                                "Dibuat " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(note.createdAt)),
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                            Text(
+                                "Diperbarui " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(note.updatedAt)),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                            HorizontalDivider(modifier = Modifier.padding(top = 10.dp))
+                        }
+                    )
+                }
+            } else {
+                Column(
+                    Modifier.fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(inset)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        SingleChoiceSegmentedButtonRow {
-                            SegmentedButton(
-                                selected = preview,
-                                onClick = { preview = true },
-                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                            ) { Text("Baca") }
-                            SegmentedButton(
-                                selected = !preview,
-                                onClick = { preview = false },
-                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                            ) { Text("Edit") }
-                        }
+                        TextButton(onClick = { preview = false }) { Text("Edit catatan") }
                         Spacer(Modifier.weight(1f))
                         IconButton(onClick = {
                             data = data.copy(notes = data.notes.map {
@@ -230,98 +273,62 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                         }) {
                             Icon(Icons.Default.PushPin, "Sematkan", tint = if (note.pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
+                        var noteActionsExpanded by remember(note.id) { mutableStateOf(false) }
                         Box {
-                            var noteActionsExpanded by remember(note.id) { mutableStateOf(false) }
-                            IconButton(onClick = { noteActionsExpanded = true }) {
-                                Icon(Icons.Default.MoreVert, "Opsi catatan")
-                            }
+                            IconButton(onClick = { noteActionsExpanded = true }) { Icon(Icons.Default.MoreVert, "Opsi catatan") }
                             DropdownMenu(noteActionsExpanded, { noteActionsExpanded = false }) {
-                                DropdownMenuItem(
-                                    text = { Text("Arsipkan") },
-                                    leadingIcon = { Icon(Icons.Default.Archive, null) },
+                                DropdownMenuItem(text = { Text("Arsipkan") }, leadingIcon = { Icon(Icons.Default.Archive, null) },
                                     onClick = {
                                         noteActionsExpanded = false
                                         data = data.copy(notes = data.notes.map { if (it.id == note.id) it.copy(archived = true) else it })
                                         editing = null
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Pindahkan ke sampah") },
-                                    leadingIcon = { Icon(Icons.Default.Delete, null) },
+                                    })
+                                DropdownMenuItem(text = { Text("Pindahkan ke sampah") }, leadingIcon = { Icon(Icons.Default.Delete, null) },
                                     onClick = {
                                         noteActionsExpanded = false
                                         data = data.copy(notes = data.notes.map { if (it.id == note.id) it.copy(deleted = true) else it })
                                         editing = null
-                                    }
-                                )
+                                    })
                             }
                         }
                     }
-                }
-                Spacer(Modifier.height(10.dp))
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    shape = RoundedCornerShape(22.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp
-                ) {
-                    Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 16.dp)) {
-                if (preview) {
-                    Text(
-                        text = note.title.ifBlank { "Tanpa judul" },
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp)
-                    )
-                } else {
-                    BasicTextField(value = note.title, onValueChange = { v -> data = data.copy(notes = data.notes.map {
-                        if (it.id == note.id) it.copy(title = v, updatedAt = System.currentTimeMillis()) else it
-                    }) }, modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
-                        textStyle = MaterialTheme.typography.headlineSmall.copy(color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold),
-                        decorationBox = { inner -> Box { if (note.title.isEmpty()) Text("Judul catatan", color = MaterialTheme.colorScheme.outline); inner() } })
-                }
-                Column(Modifier.padding(bottom = 10.dp)) {
-                    Text(
-                        text = "Dibuat " + java.text.SimpleDateFormat(
-                            "d MMM yyyy · HH:mm",
-                            java.util.Locale("id", "ID")
-                        ).format(java.util.Date(note.createdAt)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                    Text(
-                        text = "Diperbarui " + java.text.SimpleDateFormat(
-                            "d MMM yyyy · HH:mm",
-                            java.util.Locale("id", "ID")
-                        ).format(java.util.Date(note.updatedAt)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
-                HorizontalDivider()
-                if (preview) {
-                    if (note.body.isBlank()) Text("Belum ada isi.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    else Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 14.dp)) {
-                        ActivityPostBody(html = note.body, modifier = Modifier.fillMaxWidth())
+                    val detailActivity = remember(note) {
+                        UserActivity(
+                            id = note.id.hashCode(),
+                            type = ActivityType.TEXT,
+                            timestamp = note.createdAt,
+                            text = note.body.ifBlank { " " },
+                            userName = "Catatan lokal",
+                            isPinned = note.pinned
+                        )
                     }
-                }
-                else {
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("**tebal**", "*miring*", "~~coret~~", "# Judul", "- [ ] Checklist", "> Kutipan", "`kode`", "[tautan](url)", "||spoiler||").forEach { token ->
-                            AssistChip(onClick = { data = data.copy(notes = data.notes.map {
-                                if (it.id == note.id) it.copy(body = it.body + (if (it.body.isBlank()) "" else "\n") + token) else it
-                            }) }, label = { Text(token.take(12)) })
+                    ActivityCard(
+                        activity = detailActivity,
+                        onClick = {},
+                        modifier = Modifier.fillMaxSize(),
+                        showEngagement = false,
+                        showOverflow = false,
+                        postTitle = note.title.ifBlank { "Tanpa judul" },
+                        postFooter = {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(top = 14.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                            )
+                            Column(Modifier.padding(top = 10.dp)) {
+                                Text(
+                                    "Dibuat " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(note.createdAt)),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    "Diperbarui " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(note.updatedAt)),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                    }
-                    BasicTextField(value = note.body, onValueChange = { v -> data = data.copy(notes = data.notes.map {
-                        if (it.id == note.id) it.copy(body = v, updatedAt = System.currentTimeMillis()) else it
-                    }) }, modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 10.dp),
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                        decorationBox = { inner -> Box { if (note.body.isEmpty()) Text("Tulis catatan dengan Markdown...", color = MaterialTheme.colorScheme.outline); inner() } })
-                    }
+                    )
                 }
-            }
             }
         } else Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(inset)) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
