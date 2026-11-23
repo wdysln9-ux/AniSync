@@ -191,6 +191,7 @@ fun LazyListScope.profileActivityTab(
                         onDeleteClick = cardDelete,
                         onEditClick = cardEdit,
                         showAuthor = false,
+                        expandStatusOnCardClick = true,
                         pinnedLabel = true,
                         timeText = activityTime(activity)
                     )
