@@ -150,6 +150,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     }
 
     val note = data.notes.firstOrNull { it.id == editing }
+    var preview by remember(editing) { mutableStateOf(true) }
     BackHandler(enabled = note != null) { editing = null }
     val visible = remember(data, folderId, query, archived, trash, sortNewestFirst) {
         data.notes.filter {
@@ -162,7 +163,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Column { Text(if (note == null) "Catatan lokal" else "Catatan", fontWeight = FontWeight.Bold)
+                title = { Column { Text(if (note == null) "Catatan lokal" else if (preview) "Baca catatan" else "Edit catatan", fontWeight = FontWeight.Bold)
                     if (note == null) Text(status, style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant) } },
                 navigationIcon = { IconButton(onClick = { if (note != null) editing = null else onBackClick() }) {
@@ -186,8 +187,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
         }) { Icon(Icons.Default.NoteAdd, "Buat catatan") } }
     ) { inset ->
         if (note != null) {
-            Column(Modifier.fillMaxSize().padding(inset).padding(horizontal = 18.dp, vertical = 10.dp)) {
-                var preview by remember(note.id) { mutableStateOf(true) }
+            Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(inset).padding(horizontal = 18.dp, vertical = 10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = { preview = !preview }) { Text(if (preview) "Edit" else "Pratinjau") }
                     Spacer(Modifier.weight(1f))
@@ -198,11 +198,21 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     IconButton(onClick = { data = data.copy(notes = data.notes.map { if (it.id == note.id) it.copy(deleted = true) else it }); editing = null }) {
                         Icon(Icons.Default.Delete, "Hapus") }
                 }
-                BasicTextField(value = note.title, onValueChange = { v -> data = data.copy(notes = data.notes.map {
-                    if (it.id == note.id) it.copy(title = v, updatedAt = System.currentTimeMillis()) else it
-                }) }, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                    textStyle = MaterialTheme.typography.headlineSmall.copy(color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold),
-                    decorationBox = { inner -> Box { if (note.title.isEmpty()) Text("Judul catatan", color = MaterialTheme.colorScheme.outline); inner() } })
+                if (preview) {
+                    Text(
+                        text = note.title.ifBlank { "Tanpa judul" },
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp)
+                    )
+                } else {
+                    BasicTextField(value = note.title, onValueChange = { v -> data = data.copy(notes = data.notes.map {
+                        if (it.id == note.id) it.copy(title = v, updatedAt = System.currentTimeMillis()) else it
+                    }) }, modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
+                        textStyle = MaterialTheme.typography.headlineSmall.copy(color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold),
+                        decorationBox = { inner -> Box { if (note.title.isEmpty()) Text("Judul catatan", color = MaterialTheme.colorScheme.outline); inner() } })
+                }
                 HorizontalDivider()
                 if (preview) {
                     if (note.body.isBlank()) Text("Belum ada isi.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -226,7 +236,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                         decorationBox = { inner -> Box { if (note.body.isEmpty()) Text("Tulis catatan dengan Markdown...", color = MaterialTheme.colorScheme.outline); inner() } })
                 }
             }
-        } else Column(Modifier.fillMaxSize().padding(inset)) {
+        } else Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(inset)) {
             OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 placeholder = { Text("Cari catatan...") }, leadingIcon = { Icon(Icons.Default.Search, null) },
                 singleLine = true, shape = RoundedCornerShape(18.dp))
@@ -273,7 +283,8 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 items(visible, key = { it.id }) { item ->
                     var menu by remember { mutableStateOf(false) }
                     Surface(Modifier.fillMaxWidth().clickable { editing = item.id },
-                        shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                        shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        tonalElevation = 1.dp) {
                         Column(Modifier.padding(14.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(item.title.ifBlank { "Tanpa judul" }, Modifier.weight(1f),
