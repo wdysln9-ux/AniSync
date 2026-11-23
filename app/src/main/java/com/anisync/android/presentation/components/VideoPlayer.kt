@@ -531,7 +531,7 @@ fun VideoPlayer(
                 sourceOptions = sourceOptions,
                 onSelectSource = onSelectSource,
                 onAutoNextChange = onAutoNextChange,
-                onCinematicLightingChange = { FullscreenVideoBridge.cinematicIntensity.floatValue = 0f },
+                onCinematicLightingChange = { intensity -> FullscreenVideoBridge.cinematicIntensity.floatValue = intensity },
                 displayMode = displayMode,
                 onDisplayModeChange = { mode ->
                     displayMode = mode
