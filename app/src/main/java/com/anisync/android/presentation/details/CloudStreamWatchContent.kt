@@ -536,6 +536,9 @@ internal fun CloudStreamWatchContent(
         val current = episode!!
         val number = (current["episode"] as? Number)?.toInt()
         val meta = number?.let { metadata[it] }
+        LaunchedEffect(number, sheet) {
+            FullscreenVideoBridge.episodeLabel.value = if (sheet) number?.let { "Episode $it" } else null
+        }
         LaunchedEffect(sheet, number, selectedStream != null) {
             val showForThisEpisode = sheet && number != null && selectedStream != null
             episodePopupVisible = showForThisEpisode
@@ -544,7 +547,7 @@ internal fun CloudStreamWatchContent(
                 episodePopupVisible = false
             }
         }
-        ThemeSheet(onDismiss = { sheet = false; episode = null }) {
+        ThemeSheet(onDismiss = { sheet = false; episode = null; FullscreenVideoBridge.episodeLabel.value = null }) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
