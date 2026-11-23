@@ -693,14 +693,16 @@ class ProfileViewModel @Inject constructor(
         ::ViewerParts
     )
 
+    private val activityUiParts = combine(activityPaginationState, activityRepliesState, ::Pair)
+
     val uiState: StateFlow<ProfileUiState> = combine(
         shownProfile,
         localState,
         sectionsAndLists,
-        activityPaginationState,
+        activityUiParts,
         viewerParts,
-        activityRepliesState,
-    ) { shown, local, partsAndLists, pagination, viewer, replies ->
+    ) { shown, local, partsAndLists, activityParts, viewer ->
+        val (pagination, replies) = activityParts
         val (parts, lists) = partsAndLists
         val social = parts.social
         val reviews = parts.reviews
