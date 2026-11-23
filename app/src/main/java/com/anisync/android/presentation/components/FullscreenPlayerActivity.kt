@@ -235,14 +235,16 @@ private fun FullscreenVideoContent(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var isClosing by remember { mutableStateOf(false) }
-    val closeFullscreenOnce: () -> Unit = {
-        if (!isClosing) {
-            isClosing = true
-            onClose()
+    val closeFullscreenOnce: () -> Unit = remember {
+        {
+            if (!isClosing) {
+                isClosing = true
+                onClose()
+            }
         }
     }
 
-    DisposableEffect(closeFullscreenOnce) {
+    DisposableEffect(Unit) {
         FullscreenVideoBridge.closeFullscreen = closeFullscreenOnce
         onDispose { FullscreenVideoBridge.closeFullscreen = null }
     }
