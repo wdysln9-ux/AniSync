@@ -280,9 +280,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                             }
                         }
                     }
-                    }
-                }
-            } else if (preview) {
+                } else if (preview) {
                 androidx.compose.material3.TopAppBar(
                     title = { Text("Catatan", fontWeight = FontWeight.Bold) },
                     navigationIcon = {
