@@ -261,7 +261,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 1.dp
                 ) {
-                    Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 16.dp))
+                    Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 16.dp)) {
                 if (preview) {
                     Text(
                         text = note.title.ifBlank { "Tanpa judul" },
