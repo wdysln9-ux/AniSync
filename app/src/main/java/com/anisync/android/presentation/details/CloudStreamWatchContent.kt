@@ -77,6 +77,7 @@ internal fun CloudStreamWatchContent(
     var subtitles by remember { mutableStateOf<List<Map<String, Any?>>>(emptyList()) }
     var selectedStream by remember { mutableStateOf<Map<String, Any?>?>(null) }
     var preloadStream by remember { mutableStateOf<Map<String, Any?>?>(null) }
+    var preloadRequestId by remember { mutableIntStateOf(0) }
     var resolving by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Menyiapkan Auto Resolve…") }
     var error by remember { mutableStateOf<String?>(null) }
@@ -225,11 +226,35 @@ internal fun CloudStreamWatchContent(
         }
     }
 
+    // A preload belongs to one exact episode + selected server. Invalidate older requests
+    // immediately when the user changes server so a late result from the previous server can
+    // never be consumed by Auto Next.
+    fun scheduleNextPreload(nextEpisode: Map<String, Any?>, source: Map<String, Any?>) {
+        val requestId = ++preloadRequestId
+        val activeEpisodeKey = episode?.get("data")?.toString()
+            ?: episode?.get("episode")?.toString()
+        val sourceName = source["name"]?.toString()
+        preloadStream = null
+        scope.launch {
+            val resolved = resolvePreloadSource(nextEpisode, sourceName)
+            val currentEpisodeKey = episode?.get("data")?.toString()
+                ?: episode?.get("episode")?.toString()
+            if (requestId == preloadRequestId &&
+                selectedStream == source &&
+                currentEpisodeKey == activeEpisodeKey
+            ) {
+                preloadStream = resolved
+            }
+        }
+    }
+
     fun playEpisode(
         chosen: Map<String, Any?>,
         preferredServerName: String? = null,
         preloadedSource: Map<String, Any?>? = null
     ) {
+        preloadRequestId++
+        preloadStream = null
         episode = chosen
         sheet = true
         error = null
@@ -246,9 +271,7 @@ internal fun CloudStreamWatchContent(
             status = "Memutar episode berikutnya…"
             val nextIndex = episodes.indexOfFirst { it === chosen || it == chosen }
             episodes.getOrNull(nextIndex + 1)?.let { nextEpisode ->
-                scope.launch {
-                    preloadStream = resolvePreloadSource(nextEpisode, preloadedSource["name"]?.toString())
-                }
+                scheduleNextPreload(nextEpisode, preloadedSource)
             }
             return
         }
@@ -271,7 +294,7 @@ internal fun CloudStreamWatchContent(
                 resolving = false
                 val currentIndex = episodes.indexOfFirst { it === chosen || it == chosen }
                 episodes.getOrNull(currentIndex + 1)?.let { nextEpisode ->
-                    launch { preloadStream = resolvePreloadSource(nextEpisode, selectedStream?.get("name")?.toString()) }
+                    selectedStream?.let { scheduleNextPreload(nextEpisode, it) }
                 }
                 return@launch
             }
@@ -326,9 +349,7 @@ internal fun CloudStreamWatchContent(
                 val currentIndex = episodes.indexOfFirst { it === chosen || it == chosen }
                 val nextEpisode = episodes.getOrNull(currentIndex + 1)
                 if (nextEpisode != null) {
-                    launch {
-                        preloadStream = resolvePreloadSource(nextEpisode, selectedStream?.get("name")?.toString())
-                    }
+                    selectedStream?.let { scheduleNextPreload(nextEpisode, it) }
                 }
             }
         }
