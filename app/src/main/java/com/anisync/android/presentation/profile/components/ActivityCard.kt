@@ -518,25 +518,40 @@ private fun ActivityCardHeader(
     }
 }
 
+/**
+ * Shared rich-text body used by profile Activity posts and local notes.
+ * Keeping one renderer prevents the two post surfaces from drifting visually.
+ */
+@Composable
+fun ActivityPostBody(
+    html: String,
+    modifier: Modifier = Modifier,
+    compactAdjacentMediaLinks: Boolean = false
+) {
+    if (html.isNotBlank()) {
+        Spacer(Modifier.height(12.dp))
+        AsyncRichTextRenderer(
+            html = html,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
+            compactAdjacentMediaLinks = compactAdjacentMediaLinks,
+            modifier = modifier.fillMaxWidth()
+        )
+    }
+}
+
 /** Status and message bodies only — a list update is drawn by [ActivityListCard] instead. */
 @Composable
 private fun ActivityCardBody(
     activity: UserActivity,
     compactAdjacentMediaLinks: Boolean = false
 ) {
-    val rawHtml = activity.text.orEmpty()
-    if (rawHtml.isNotBlank()) {
-        Spacer(Modifier.height(12.dp))
-        AsyncRichTextRenderer(
-            html = rawHtml,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f
-            ),
-            color = MaterialTheme.colorScheme.onSurface,
-            compactAdjacentMediaLinks = compactAdjacentMediaLinks,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
+    ActivityPostBody(
+        html = activity.text.orEmpty(),
+        compactAdjacentMediaLinks = compactAdjacentMediaLinks
+    )
 }
 
 /**
