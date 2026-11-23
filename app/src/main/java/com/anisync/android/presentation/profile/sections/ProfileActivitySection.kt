@@ -96,7 +96,17 @@ fun LazyListScope.profileActivityTab(
     modifier: Modifier = Modifier,
     onCompose: (() -> Unit)? = null,
     loadFailed: Boolean = false,
-    onRetry: () -> Unit = {}
+    onRetry: () -> Unit = {},
+    expandedRepliesActivityId: Int? = null,
+    replyDetails: Map<Int, com.anisync.android.domain.ActivityDetail> = emptyMap(),
+    loadingReplyIds: Set<Int> = emptySet(),
+    replyLoadErrors: Map<Int, String> = emptyMap(),
+    replyDrafts: Map<Int, String> = emptyMap(),
+    submittingReplyIds: Set<Int> = emptySet(),
+    onCommentToggle: (Int) -> Unit = {},
+    onReplyDraftChange: (Int, String) -> Unit = { _, _ -> },
+    onSubmitReply: (Int) -> Unit = {},
+    onRetryReplies: (Int) -> Unit = {}
 ) {
     if (onCompose != null && (selectedFilter == ProfileActivityFilter.ALL || selectedFilter == ProfileActivityFilter.STATUS)) {
         item(key = "activity_composer", contentType = "activity_composer") {
@@ -186,6 +196,16 @@ fun LazyListScope.profileActivityTab(
                         onUserClick = onUserClick,
                         onMediaClick = onMediaClick,
                         onLastReplyClick = onLastReplyClick,
+                        onCommentToggle = { onCommentToggle(activity.id) },
+                        showInlineReplies = expandedRepliesActivityId == activity.id,
+                        inlineReplies = replyDetails[activity.id]?.replies.orEmpty(),
+                        isLoadingReplies = activity.id in loadingReplyIds,
+                        replyLoadError = replyLoadErrors[activity.id],
+                        replyDraft = replyDrafts[activity.id].orEmpty(),
+                        isSubmittingReply = activity.id in submittingReplyIds,
+                        onReplyDraftChange = { onReplyDraftChange(activity.id, it) },
+                        onSubmitReply = { onSubmitReply(activity.id) },
+                        onRetryReplies = { onRetryReplies(activity.id) },
                         onSubscribeClick = { onSubscribeClick(activity.id) },
                         onLikeClick = cardLike,
                         onDeleteClick = cardDelete,
