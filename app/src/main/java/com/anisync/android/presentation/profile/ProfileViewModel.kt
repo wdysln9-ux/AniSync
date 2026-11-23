@@ -308,6 +308,17 @@ class ProfileViewModel @Inject constructor(
 
     private val activityPaginationState = MutableStateFlow(ActivityPaginationState())
 
+    private data class ActivityRepliesState(
+        val expandedActivityId: Int? = null,
+        val details: Map<Int, com.anisync.android.domain.ActivityDetail> = emptyMap(),
+        val loadingIds: Set<Int> = emptySet(),
+        val errors: Map<Int, String> = emptyMap(),
+        val drafts: Map<Int, String> = emptyMap(),
+        val submittingIds: Set<Int> = emptySet()
+    )
+
+    private val activityRepliesState = MutableStateFlow(ActivityRepliesState())
+
     // Overlay for optimistic activity subscription toggles: activityId -> isSubscribed
     private val activitySubscriptionOverrides = MutableStateFlow<Map<Int, Boolean>>(emptyMap())
 
@@ -688,7 +699,8 @@ class ProfileViewModel @Inject constructor(
         sectionsAndLists,
         activityPaginationState,
         viewerParts,
-    ) { shown, local, partsAndLists, pagination, viewer ->
+        activityRepliesState,
+    ) { shown, local, partsAndLists, pagination, viewer, replies ->
         val (parts, lists) = partsAndLists
         val social = parts.social
         val reviews = parts.reviews
@@ -782,7 +794,13 @@ class ProfileViewModel @Inject constructor(
             recaps = viewer.recaps,
             viewerAvatarUrl = viewer.avatarUrl,
             activitiesHasNextPage = pagination.hasNextPage,
-            isActivitiesPaginating = pagination.isPaginating
+            isActivitiesPaginating = pagination.isPaginating,
+            expandedRepliesActivityId = replies.expandedActivityId,
+            replyDetails = replies.details,
+            loadingReplyIds = replies.loadingIds,
+            replyLoadErrors = replies.errors,
+            replyDrafts = replies.drafts,
+            submittingReplyIds = replies.submittingIds
         )
     }.stateIn(
         scope = viewModelScope,
@@ -1056,6 +1074,10 @@ class ProfileViewModel @Inject constructor(
             }
 
             is ProfileAction.LoadMoreActivities -> loadMoreActivities()
+            is ProfileAction.ToggleActivityReplies -> toggleActivityReplies(action.activityId)
+            is ProfileAction.RetryActivityReplies -> loadActivityReplies(action.activityId)
+            is ProfileAction.UpdateActivityReplyDraft -> activityRepliesState.update { it.copy(drafts = it.drafts + (action.activityId to action.text)) }
+            is ProfileAction.SubmitActivityReply -> submitActivityReply(action.activityId)
             is ProfileAction.LoadMoreSocial -> loadMoreSocial()
             is ProfileAction.AskToRemoveFollower ->
                 localState.update { it.copy(followerToRemove = action.follower) }
@@ -1530,6 +1552,67 @@ class ProfileViewModel @Inject constructor(
                 }
                 is Result.Error -> {
                     reviewsState.update { it.copy(isReviewsPaginating = false) }
+                }
+            }
+        }
+    }
+
+    private fun toggleActivityReplies(activityId: Int) {
+        val current = activityRepliesState.value
+        if (current.expandedActivityId == activityId) {
+            activityRepliesState.update { it.copy(expandedActivityId = null) }
+            return
+        }
+        activityRepliesState.update { it.copy(expandedActivityId = activityId) }
+        if (activityId !in current.details && activityId !in current.loadingIds) {
+            loadActivityReplies(activityId)
+        }
+    }
+
+    private fun loadActivityReplies(activityId: Int) {
+        activityRepliesState.update {
+            it.copy(loadingIds = it.loadingIds + activityId, errors = it.errors - activityId)
+        }
+        viewModelScope.launch {
+            when (val result = activityRepository.getActivity(activityId)) {
+                is Result.Success -> activityRepliesState.update {
+                    it.copy(
+                        details = it.details + (activityId to result.data),
+                        loadingIds = it.loadingIds - activityId,
+                        errors = it.errors - activityId
+                    )
+                }
+                is Result.Error -> activityRepliesState.update {
+                    it.copy(
+                        loadingIds = it.loadingIds - activityId,
+                        errors = it.errors + (activityId to result.message)
+                    )
+                }
+            }
+        }
+    }
+
+    private fun submitActivityReply(activityId: Int) {
+        val state = activityRepliesState.value
+        val text = state.drafts[activityId].orEmpty().trim()
+        if (text.isEmpty() || activityId in state.submittingIds || activityId !in state.details) return
+        activityRepliesState.update { it.copy(submittingIds = it.submittingIds + activityId) }
+        viewModelScope.launch {
+            when (val result = activityRepository.sendReply(activityId, text)) {
+                is Result.Success -> activityRepliesState.update { current ->
+                    val detail = current.details[activityId] ?: return@update current
+                    current.copy(
+                        details = current.details + (activityId to detail.copy(
+                            replies = detail.replies + result.data,
+                            replyCount = detail.replyCount + 1
+                        )),
+                        drafts = current.drafts + (activityId to ""),
+                        submittingIds = current.submittingIds - activityId
+                    )
+                }
+                is Result.Error -> {
+                    activityRepliesState.update { it.copy(submittingIds = it.submittingIds - activityId) }
+                    toastManager.showResultError(result)
                 }
             }
         }
