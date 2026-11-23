@@ -140,8 +140,14 @@ private fun YouTubeWebView(
                     // Load the official embed URL directly. Nesting it inside loadDataWithBaseURL
                     // can leave WebView with an inconsistent iframe origin/referrer, which causes
                     // some YouTube builds to render a black player or reject playback.
+                    // YouTube's current embed policy requires an identifiable HTTP Referer
+                    // for WebView integrations. A plain loadUrl() sends an empty Referer on
+                    // Android WebView, so the player can render as a black, inert rectangle.
+                    // Use the app package as the documented app identity value.
+                    val appReferer = "https://${context.packageName.lowercase()}"
                     loadUrl(
-                        "https://www.youtube.com/embed/$videoId?autoplay=0&playsinline=1&controls=1&rel=0"
+                        "https://www.youtube.com/embed/$videoId?autoplay=0&playsinline=1&controls=1&rel=0",
+                        mapOf("Referer" to appReferer)
                     )
                 }
             },
