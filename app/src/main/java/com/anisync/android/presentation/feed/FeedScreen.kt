@@ -272,7 +272,7 @@ fun FeedScreen(
                                         onClick = { onActivityClick(activity.id) },
                                         expandStatusOnCardClick = true,
                                         onCommentToggle = {
-                                            if (activity.replyCount > 5) {
+                                            if (activity.replyCount > 20) {
                                                 onActivityClick(activity.id)
                                             } else {
                                                 viewModel.onAction(FeedAction.ToggleReplies(activity.id))
