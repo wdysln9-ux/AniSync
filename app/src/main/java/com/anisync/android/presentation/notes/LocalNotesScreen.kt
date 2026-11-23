@@ -443,11 +443,19 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 items(visible, key = { it.id }) { item ->
                     var menu by remember { mutableStateOf(false) }
                     val activityPost = remember(item) {
+                        val postBody = buildString {
+                            if (item.title.isNotBlank()) {
+                                append("# ")
+                                append(item.title.trim())
+                                if (item.body.isNotBlank()) append("\n\n")
+                            }
+                            append(item.body)
+                        }
                         UserActivity(
                             id = item.id.hashCode(),
                             type = ActivityType.TEXT,
-                            timestamp = item.createdAt,
-                            text = item.body.ifBlank { " " },
+                            timestamp = item.createdAt / 1000L,
+                            text = postBody.ifBlank { " " },
                             userName = "Catatan lokal",
                             isPinned = item.pinned
                         )
@@ -460,36 +468,10 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                             showEngagement = false,
                             showOverflow = false,
                             pinnedLabel = item.pinned,
-                            postTitle = item.title.ifBlank { "Tanpa judul" },
-                            postFooter = {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(top = 12.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        data.folders.firstOrNull { it.id == item.folderId }?.name ?: "Catatan",
-                                        modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text(
-                                            "Dibuat " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(item.createdAt)),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Text(
-                                            "Diperbarui " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(item.updatedAt)),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
+                            timeText = java.text.SimpleDateFormat(
+                                "d MMM yyyy · HH:mm",
+                                java.util.Locale("id", "ID")
+                            ).format(java.util.Date(item.updatedAt))
                         )
                         Box(modifier = Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 4.dp)) {
                             IconButton(onClick = { menu = true }, modifier = Modifier.size(36.dp)) {
