@@ -137,17 +137,38 @@ private fun YouTubeWebView(
                     webChromeClient = WebChromeClient()
                     isFocusable = true
                     isFocusableInTouchMode = true
-                    // Load the official embed URL directly. Nesting it inside loadDataWithBaseURL
-                    // can leave WebView with an inconsistent iframe origin/referrer, which causes
-                    // some YouTube builds to render a black player or reject playback.
-                    // YouTube's current embed policy requires an identifiable HTTP Referer
-                    // for WebView integrations. A plain loadUrl() sends an empty Referer on
-                    // Android WebView, so the player can render as a black, inert rectangle.
-                    // Use the app package as the documented app identity value.
-                    val appReferer = "https://${context.packageName.lowercase()}"
-                    loadUrl(
-                        "https://www.youtube.com/embed/$videoId?autoplay=0&playsinline=1&controls=1&rel=0",
-                        mapOf("Referer" to appReferer)
+                    // Use a real HTTPS document origin for the iframe. A package-name
+                    // pseudo-domain is not a valid web origin and can still trigger YouTube
+                    // error 153 (missing/invalid HTTP Referer), producing a black player.
+                    // loadDataWithBaseURL gives the iframe a valid origin/referrer while the
+                    // video itself is still served by YouTube's official embed player.
+                    val html = """
+                        <!doctype html>
+                        <html>
+                        <head>
+                          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+                          <style>
+                            html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; }
+                            iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+                          </style>
+                        </head>
+                        <body>
+                          <iframe
+                            src="https://www.youtube.com/embed/$videoId?autoplay=0&playsinline=1&controls=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fwww.youtube.com"
+                            title="YouTube video player"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen>
+                          </iframe>
+                        </body>
+                        </html>
+                    """.trimIndent()
+                    loadDataWithBaseURL(
+                        "https://www.youtube.com/",
+                        html,
+                        "text/html",
+                        "UTF-8",
+                        null
                     )
                 }
             },
