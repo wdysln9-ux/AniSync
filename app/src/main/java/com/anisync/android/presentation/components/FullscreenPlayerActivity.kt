@@ -6,6 +6,12 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.OptIn
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -282,7 +288,7 @@ private fun FullscreenVideoContent(
     LaunchedEffect(episodeLabel) {
         episodePopupVisible = !episodeLabel.isNullOrBlank()
         if (episodePopupVisible) {
-            delay(10_000L)
+            delay(4_000L)
             episodePopupVisible = false
         }
     }
@@ -459,9 +465,15 @@ private fun FullscreenVideoContent(
             }
         }
 
-        if (episodePopupVisible && !episodeLabel.isNullOrBlank()) {
+        AnimatedVisibility(
+            visible = episodePopupVisible && !episodeLabel.isNullOrBlank(),
+            enter = fadeIn(animationSpec = tween(220)) +
+                slideInVertically(animationSpec = tween(220), initialOffsetY = { -it / 2 }),
+            exit = fadeOut(animationSpec = tween(180)) +
+                slideOutVertically(animationSpec = tween(180), targetOffsetY = { -it / 2 }),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 18.dp)
+        ) {
             androidx.compose.material3.Surface(
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 18.dp),
                 shape = RoundedCornerShape(10.dp),
                 color = Color.Black.copy(alpha = 0.78f),
                 contentColor = Color.White,
