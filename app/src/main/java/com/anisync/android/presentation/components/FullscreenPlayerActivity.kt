@@ -234,9 +234,16 @@ private fun FullscreenVideoContent(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    var isClosing by remember { mutableStateOf(false) }
+    val closeFullscreenOnce: () -> Unit = {
+        if (!isClosing) {
+            isClosing = true
+            onClose()
+        }
+    }
 
-    DisposableEffect(Unit) {
-        FullscreenVideoBridge.closeFullscreen = onClose
+    DisposableEffect(closeFullscreenOnce) {
+        FullscreenVideoBridge.closeFullscreen = closeFullscreenOnce
         onDispose { FullscreenVideoBridge.closeFullscreen = null }
     }
 
@@ -510,8 +517,8 @@ private fun FullscreenVideoContent(
                 onResetStretch = { stretchX = 1f; PlayerPreferences.setStretchScale(context, 1f) },
                 displayMode = displayMode,
                 onDisplayModeChange = { displayMode = it; PlayerPreferences.setDisplayMode(context, it) },
-                onToggleFullscreen = onClose,
-                onBack = onClose
+                onToggleFullscreen = closeFullscreenOnce,
+                onBack = closeFullscreenOnce
             )
         }
     }
