@@ -122,6 +122,12 @@ data class ProfileUiState(
     val activitiesHasNextPage: Boolean = false,
     /** True while an older activity page is being fetched (drives the inline spinner). */
     val isActivitiesPaginating: Boolean = false,
+    val expandedRepliesActivityId: Int? = null,
+    val replyDetails: Map<Int, com.anisync.android.domain.ActivityDetail> = emptyMap(),
+    val loadingReplyIds: Set<Int> = emptySet(),
+    val replyLoadErrors: Map<Int, String> = emptyMap(),
+    val replyDrafts: Map<Int, String> = emptyMap(),
+    val submittingReplyIds: Set<Int> = emptySet(),
     /** Activity currently being edited via the inline compose sheet, or null if none. */
     val editingActivity: com.anisync.android.domain.UserActivity? = null,
     val isSavingActivityEdit: Boolean = false,
@@ -384,6 +390,10 @@ sealed interface ProfileAction {
     data class SendMessage(val text: String, val isPrivate: Boolean) : ProfileAction
     data object ConsumeMessageSentEvent : ProfileAction
     data object LoadMoreActivities : ProfileAction
+    data class ToggleActivityReplies(val activityId: Int) : ProfileAction
+    data class RetryActivityReplies(val activityId: Int) : ProfileAction
+    data class UpdateActivityReplyDraft(val activityId: Int, val text: String) : ProfileAction
+    data class SubmitActivityReply(val activityId: Int) : ProfileAction
     data object LoadMoreSocial : ProfileAction
     data class AskToRemoveFollower(val follower: SocialUser) : ProfileAction
     data object ConfirmRemoveFollower : ProfileAction
