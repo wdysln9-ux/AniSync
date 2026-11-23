@@ -262,7 +262,14 @@ private fun FullscreenVideoContent(
     var stretchX by remember { mutableFloatStateOf(PlayerPreferences.stretchScale(context)) }
     var isStretching by remember { mutableStateOf(false) }
     var snappedRatio by remember { mutableStateOf<Float?>(null) }
-    var cinematicIntensity by remember { mutableFloatStateOf(0f) }
+    var cinematicIntensity by remember { mutableFloatStateOf(if (PlayerPreferences.cinematicEnabled(context)) PlayerPreferences.cinematicIntensity(context) else 0f) }
+    LaunchedEffect(Unit) {
+        FullscreenVideoBridge.cinematicIntensity.floatValue = cinematicIntensity
+        FullscreenVideoBridge.cinematicBlur.floatValue = PlayerPreferences.cinematicBlur(context)
+        FullscreenVideoBridge.cinematicBrightness.floatValue = PlayerPreferences.cinematicBrightness(context)
+        FullscreenVideoBridge.cinematicVignette.floatValue = PlayerPreferences.cinematicVignette(context)
+        FullscreenVideoBridge.cinematicZoom.floatValue = PlayerPreferences.cinematicZoom(context)
+    }
     var displayMode by remember { mutableStateOf(PlayerPreferences.displayMode(context)) }
     // Seeded from the launch extra, then corrected off the player itself, so the fitted box tracks
     // the real picture even when the inline player never reported a size before the handoff.
@@ -515,7 +522,12 @@ private fun FullscreenVideoContent(
                 sourceOptions = emptyList(),
                 onSelectSource = {},
                 onAutoNextChange = { FullscreenVideoBridge.onAutoNextChange?.invoke(it) },
-                onCinematicLightingChange = { FullscreenVideoBridge.cinematicIntensity.floatValue = 0f },
+                onCinematicLightingChange = { intensity ->
+                    cinematicIntensity = intensity
+                    PlayerPreferences.setCinematicEnabled(context, intensity > 0f)
+                    if (intensity > 0f) PlayerPreferences.setCinematicIntensity(context, intensity)
+                    FullscreenVideoBridge.cinematicIntensity.floatValue = intensity
+                },
                 onResetStretch = { stretchX = 1f; PlayerPreferences.setStretchScale(context, 1f) },
                 displayMode = displayMode,
                 onDisplayModeChange = { displayMode = it; PlayerPreferences.setDisplayMode(context, it) },
