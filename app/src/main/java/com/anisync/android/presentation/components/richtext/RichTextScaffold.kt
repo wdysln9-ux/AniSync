@@ -103,6 +103,7 @@ fun RichTextScaffold(
     onBodyChange: (String) -> Unit = {},
     isExternallyValid: Boolean = true,
     hasExternalUnsavedChanges: Boolean = false,
+    confirmDiscardChanges: Boolean = true,
     autoFocusBody: Boolean = true,
     minLength: Int = 1,
     maxLength: Int = 10_000,
@@ -187,7 +188,7 @@ fun RichTextScaffold(
     val hasBodyChanges by remember {
         derivedStateOf { bodyState.text.toString() != initialBodySnapshot }
     }
-    val hasUnsavedChanges = hasBodyChanges || hasExternalUnsavedChanges
+    val hasUnsavedChanges = confirmDiscardChanges && (hasBodyChanges || hasExternalUnsavedChanges)
     val canSubmit = meetsMinLength && withinMaxLength && isExternallyValid
     val maxLengthTransform = remember(maxLength) { MaxLengthInputTransformation(maxLength) }
 
