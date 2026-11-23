@@ -104,7 +104,10 @@ fun ActivityCard(
     isSubmittingReply: Boolean = false,
     onReplyDraftChange: (String) -> Unit = {},
     onSubmitReply: () -> Unit = {},
-    onRetryReplies: () -> Unit = {}
+    onRetryReplies: () -> Unit = {},
+    showEngagement: Boolean = true,
+    showOverflow: Boolean = true,
+    postTitle: String? = null
 ) {
     if (activity.type == ActivityType.MEDIA_LIST) {
         ActivityListCard(
@@ -193,8 +196,19 @@ fun ActivityCard(
                 onDeleteClick = onDeleteClick,
                 onOpenActivity = onClick,
                 showPinIcon = !labelled,
-                timeText = timeText
+                timeText = timeText,
+                showOverflow = showOverflow
             )
+
+            postTitle?.takeIf { it.isNotBlank() }?.let { title ->
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 12.dp, bottom = 2.dp)
+                )
+            }
 
             val isTextual = activity.type == ActivityType.TEXT || activity.type == ActivityType.MESSAGE
             when {
@@ -231,12 +245,14 @@ fun ActivityCard(
                 else -> ActivityCardBody(activity = activity)
             }
 
-            ActivityCardFooter(
-                activity = activity,
-                onLastReplyClick = onLastReplyClick,
-                onCommentClick = onCommentToggle ?: onClick,
-                onLikeClick = onLikeClick
-            )
+            if (showEngagement) {
+                ActivityCardFooter(
+                    activity = activity,
+                    onLastReplyClick = onLastReplyClick,
+                    onCommentClick = onCommentToggle ?: onClick,
+                    onLikeClick = onLikeClick
+                )
+            }
 
             if (showInlineReplies) {
                 FeedInlineReplies(
@@ -421,7 +437,8 @@ private fun ActivityCardHeader(
     onDeleteClick: (() -> Unit)?,
     onOpenActivity: () -> Unit,
     showPinIcon: Boolean = true,
-    timeText: String? = null
+    timeText: String? = null,
+    showOverflow: Boolean = true
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -508,12 +525,14 @@ private fun ActivityCardHeader(
                 }
             }
 
-            ActivityOverflowButton(
-                activity = activity,
-                onOpenActivity = onOpenActivity,
-                onEditClick = onEditClick,
-                onDeleteClick = onDeleteClick
-            )
+            if (showOverflow) {
+                ActivityOverflowButton(
+                    activity = activity,
+                    onOpenActivity = onOpenActivity,
+                    onEditClick = onEditClick,
+                    onDeleteClick = onDeleteClick
+                )
+            }
         }
     }
 }
