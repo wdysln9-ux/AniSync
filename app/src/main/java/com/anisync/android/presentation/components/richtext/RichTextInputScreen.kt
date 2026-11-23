@@ -25,6 +25,7 @@ fun RichTextInputScreen(
     maxLength: Int = 10_000,
     onBodyChange: (String) -> Unit = {},
     hasExternalUnsavedChanges: Boolean = false,
+    confirmDiscardChanges: Boolean = true,
     headerSlot: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     // Hide main bottom nav bar while overlay visible — covers the Edit Profile case
@@ -47,6 +48,7 @@ fun RichTextInputScreen(
         maxLength = maxLength,
         onBodyChange = onBodyChange,
         hasExternalUnsavedChanges = hasExternalUnsavedChanges,
+        confirmDiscardChanges = confirmDiscardChanges,
         headerSlot = headerSlot
     )
 }
