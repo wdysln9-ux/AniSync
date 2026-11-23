@@ -190,7 +190,7 @@ fun LazyListScope.profileActivityTab(
                     )
                 } else {
                     ActivityCard(
-                        activity = activity,
+                        activity = replyDetails[activity.id]?.let { activity.copy(replyCount = it.replyCount) } ?: activity,
                         onClick = { onActivityClick(activity.id) },
                         modifier = modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
                         onUserClick = onUserClick,
