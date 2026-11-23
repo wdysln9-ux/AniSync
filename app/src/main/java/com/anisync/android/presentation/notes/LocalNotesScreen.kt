@@ -237,6 +237,18 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 }
             }
         } else Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(inset)) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
+                Text(
+                    text = if (trash) "Sampah" else if (archived) "Arsip catatan" else "Ruang catatanmu",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = if (trash) "Catatan yang dihapus akan tersimpan di sini." else "Simpan ide, daftar, dan hal penting dalam satu tempat.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 placeholder = { Text("Cari catatan...") }, leadingIcon = { Icon(Icons.Default.Search, null) },
                 singleLine = true, shape = RoundedCornerShape(18.dp))
@@ -275,9 +287,36 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 TextButton(onClick = { editingFolderId = null; newFolder = ""; folderDialog = true }) { Icon(Icons.Default.Add, null); Text("Tab") }
                 TextButton(onClick = { sortNewestFirst = !sortNewestFirst }) { Text(if (sortNewestFirst) "Terbaru" else "Terlama") }
             }
-            if (visible.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(if (trash) "Sampah masih kosong" else if (archived) "Belum ada arsip" else "Belum ada catatan. Tekan + untuk mulai.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (visible.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 32.dp, vertical = 28.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = if (trash) Icons.Default.Delete else Icons.Default.NoteAdd,
+                        contentDescription = null,
+                        modifier = Modifier.size(54.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = if (trash) "Sampah masih kosong" else if (archived) "Belum ada arsip" else if (query.isNotBlank()) "Catatan tidak ditemukan" else "Belum ada catatan",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = if (trash) "Catatan yang kamu hapus akan muncul di sini." else if (archived) "Catatan yang diarsipkan akan tersimpan di sini." else if (query.isNotBlank()) "Coba kata kunci lain." else "Mulai tulis ide atau hal penting yang ingin kamu simpan.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (!trash && !archived && query.isBlank()) {
+                        FilledTonalButton(onClick = {
+                            val item = LocalNote(folderId = folderId.takeUnless { it == "all" } ?: data.folders.firstOrNull()?.id ?: "default")
+                            data = data.copy(notes = listOf(item) + data.notes)
+                            editing = item.id
+                        }) { Icon(Icons.Default.NoteAdd, null); Text("Buat catatan") }
+                    }
+                }
             } else LazyColumn(contentPadding = PaddingValues(start = 16.dp, top = 6.dp, end = 16.dp, bottom = 90.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(visible, key = { it.id }) { item ->
