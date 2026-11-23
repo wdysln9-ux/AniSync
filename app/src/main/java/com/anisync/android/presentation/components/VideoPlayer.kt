@@ -213,7 +213,6 @@ fun VideoPlayer(
     // and the lifecycle observer stops pausing, so the same instance keeps playing over there.
     var handedOff by remember { mutableStateOf(false) }
     val isHandedOff by rememberUpdatedState(handedOff)
-    var cinematicOverlayIntensity by remember { mutableFloatStateOf(0f) }
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
     val currentOnAutoNextChange by rememberUpdatedState(onAutoNextChange)
     LaunchedEffect(url, aniskipMalId, aniskipEpisodeNumber, durationMs) {
@@ -478,11 +477,6 @@ fun VideoPlayer(
             // part of the picture rather than a pale frame around it.
             .background(Color.Black)
     ) {
-        // Keep the ambient cinematic tint behind the actual picture. It must never dim or recolor
-        // the video itself; neutral brightness therefore remains identical to the source video.
-        if (cinematicOverlayIntensity > 0f) {
-            Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0xFFFFD6A0).copy(alpha = cinematicOverlayIntensity * 0.22f), Color.Transparent))))
-        }
         if (playerState != PlayerState.Error) {
             PlayerSurface(
                 exoPlayer = exoPlayer,
@@ -537,10 +531,7 @@ fun VideoPlayer(
                 sourceOptions = sourceOptions,
                 onSelectSource = onSelectSource,
                 onAutoNextChange = onAutoNextChange,
-                onCinematicLightingChange = { intensity ->
-                    cinematicOverlayIntensity = 0f
-                    FullscreenVideoBridge.cinematicIntensity.floatValue = 0f
-                },
+                onCinematicLightingChange = { FullscreenVideoBridge.cinematicIntensity.floatValue = 0f },
                 displayMode = displayMode,
                 onDisplayModeChange = { mode ->
                     displayMode = mode
