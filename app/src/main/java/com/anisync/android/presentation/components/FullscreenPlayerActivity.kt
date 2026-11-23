@@ -137,6 +137,7 @@ internal object FullscreenVideoBridge {
     @Volatile var isFullscreen: Boolean = false
     var closeFullscreen: (() -> Unit)? = null
     var onPlaybackEnded: (() -> Unit)? = null
+    var onAutoNextChange: ((Boolean) -> Unit)? = null
     val cinematicIntensity = mutableFloatStateOf(0f)
     val cinematicBlur = mutableFloatStateOf(18f)
     val cinematicBrightness = mutableFloatStateOf(0f)
@@ -504,6 +505,7 @@ private fun FullscreenVideoContent(
                 onSetPlaybackSpeed = { player.setPlaybackParameters(androidx.media3.common.PlaybackParameters(it, 1f)) },
                 sourceOptions = emptyList(),
                 onSelectSource = {},
+                onAutoNextChange = { FullscreenVideoBridge.onAutoNextChange?.invoke(it) },
                 onCinematicLightingChange = { FullscreenVideoBridge.cinematicIntensity.floatValue = 0f },
                 onResetStretch = { stretchX = 1f; PlayerPreferences.setStretchScale(context, 1f) },
                 displayMode = displayMode,
