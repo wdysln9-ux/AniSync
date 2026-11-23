@@ -1193,7 +1193,9 @@ fun AniSyncNavHost(
                             threadId = route.threadId,
                             threadTitle = route.threadTitle,
                             targetCommentId = if (route.commentId != 0) route.commentId else null,
-                            commentDetailMode = route.commentDetailMode,
+                            // A direct AniList /comment/{id} deep link must open the focused
+                            // comment view just like tapping Comment from a user's profile.
+                            commentDetailMode = route.commentDetailMode || route.commentId != 0,
                             onBackClick = { navController.popBackStack() },
                             onOpenThread = { threadId, threadTitle ->
                                 navController.navigate(ForumThreadDetail(threadId, threadTitle))
