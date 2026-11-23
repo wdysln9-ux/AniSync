@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import com.anisync.android.presentation.components.AsyncRichTextRenderer
+import com.anisync.android.presentation.profile.components.ActivityPostBody
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -290,8 +291,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 if (preview) {
                     if (note.body.isBlank()) Text("Belum ada isi.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     else Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 14.dp)) {
-                        AsyncRichTextRenderer(html = note.body, modifier = Modifier.fillMaxWidth(),
-                            style = MaterialTheme.typography.bodyLarge)
+                        ActivityPostBody(html = note.body, modifier = Modifier.fillMaxWidth())
                     }
                 }
                 else {
@@ -455,8 +455,9 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                             Text(item.title.ifBlank { "Tanpa judul" }, style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             if (item.body.isNotBlank()) {
-                                AsyncRichTextRenderer(html = item.body, modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp),
-                                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                                Box(Modifier.heightIn(max = 220.dp)) {
+                                    ActivityPostBody(html = item.body, modifier = Modifier.fillMaxWidth())
+                                }
                             } else Text("Catatan kosong", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
                             Row(verticalAlignment = Alignment.CenterVertically) {
