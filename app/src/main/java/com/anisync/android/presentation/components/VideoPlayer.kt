@@ -968,6 +968,7 @@ internal fun VideoControlsOverlay(
     var levelHud by remember { mutableStateOf<String?>(null) }
     var levelHudRevision by remember { mutableIntStateOf(0) }
     var controlsVisible by remember { mutableStateOf(true) }
+    var suppressPauseReveal by remember { mutableStateOf(false) }
     // Bumped on every interaction to restart the auto-hide countdown.
     var interactions by remember { mutableIntStateOf(0) }
     var seekFeedback by remember { mutableStateOf<String?>(null) }
@@ -1025,7 +1026,7 @@ internal fun VideoControlsOverlay(
     }
     // Always reveal controls when playback pauses or stalls.
     LaunchedEffect(isPlaying, isBuffering) {
-        if (!isPlaying) controlsVisible = true
+        if (!isPlaying && !suppressPauseReveal) controlsVisible = true
     }
 
     val poke: () -> Unit = { interactions++ }
@@ -1127,9 +1128,11 @@ internal fun VideoControlsOverlay(
                                 // A double-tap is a seek/playback gesture, not a request
                                 // to reveal the player controls. Keep the overlay hidden.
                                 controlsVisible = false
+                                suppressPauseReveal = true
                                 lastTapTime = now
                                 lastTapPosition = up.position
                             } else {
+                                suppressPauseReveal = false
                                 controlsVisible = !controlsVisible
                                 poke()
                                 lastTapTime = now
