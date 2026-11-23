@@ -310,6 +310,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     }
                 }
             }
+            }
         } else Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(inset)) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
                 Text(
