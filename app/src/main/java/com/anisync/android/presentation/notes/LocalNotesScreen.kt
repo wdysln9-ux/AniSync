@@ -333,7 +333,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 }
             } else LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.weight(1f).fillMaxWidth(),
                 contentPadding = PaddingValues(start = 14.dp, top = 8.dp, end = 14.dp, bottom = 104.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
