@@ -670,39 +670,64 @@ internal fun PlayerSurface(
     DisposableEffect(exoPlayer, textureView) {
         onDispose { textureView?.let { exoPlayer.clearVideoTextureView(it) } }
     }
-    LaunchedEffect(textureView, active, cinematicEnabled) {
+    DisposableEffect(textureView, active, cinematicEnabled, exoPlayer) {
         val view = textureView
         if (view == null || !active || !cinematicEnabled) {
             backgroundFrame = null
-            return@LaunchedEffect
-        }
-        var buffers = arrayOfNulls<android.graphics.Bitmap>(2)
-        var bufferWidth = 0
-        var bufferHeight = 0
-        var bufferIndex = 0
-        while (true) {
-            if (exoPlayer.isPlaying && view.isAvailable && view.width > 0 && view.height > 0) {
-                // Keep the backdrop deliberately low-resolution: the main video remains sharp,
-                // while a 480px capture is substantially cheaper to copy and blur on mobile GPUs.
-                val maxDimension = 480f
-                val scale = minOf(1f, maxDimension / maxOf(view.width, view.height).toFloat())
-                val captureWidth = (view.width * scale).roundToInt().coerceAtLeast(1)
-                val captureHeight = (view.height * scale).roundToInt().coerceAtLeast(1)
-                if (captureWidth != bufferWidth || captureHeight != bufferHeight) {
+            onDispose { }
+        } else {
+            // Mirror the exact TextureView output used by the main video. Capture at
+            // the source surface's native dimensions; never downscale the backdrop.
+            // TextureView reports each newly presented frame, so there is no polling
+            // timer (the old 42ms loop added visible latency and could miss frames).
+            var buffers = arrayOfNulls<android.graphics.Bitmap>(2)
+            var bufferWidth = 0
+            var bufferHeight = 0
+            var bufferIndex = 0
+
+            fun captureLatestFrame() {
+                if (!exoPlayer.isPlaying || !view.isAvailable || view.width <= 0 || view.height <= 0) return
+                val width = view.width
+                val height = view.height
+                if (width != bufferWidth || height != bufferHeight) {
+                    buffers.forEach { bitmap ->
+                        if (bitmap != null && !bitmap.isRecycled) bitmap.recycle()
+                    }
                     buffers = arrayOf(
-                        android.graphics.Bitmap.createBitmap(captureWidth, captureHeight, android.graphics.Bitmap.Config.ARGB_8888),
-                        android.graphics.Bitmap.createBitmap(captureWidth, captureHeight, android.graphics.Bitmap.Config.ARGB_8888)
+                        android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888),
+                        android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
                     )
-                    bufferWidth = captureWidth
-                    bufferHeight = captureHeight
+                    bufferWidth = width
+                    bufferHeight = height
                     bufferIndex = 0
                 }
-                val target = buffers[bufferIndex]!!
-                val frame = runCatching { view.getBitmap(target) }.getOrNull()
-                if (frame != null) backgroundFrame = frame
+                val target = buffers[bufferIndex] ?: return
+                val frame = runCatching { view.getBitmap(target) }.getOrNull() ?: return
+                backgroundFrame = frame
                 bufferIndex = 1 - bufferIndex
             }
-            delay(42L)
+
+            val listener = object : TextureView.SurfaceTextureListener {
+                override fun onSurfaceTextureAvailable(surface: android.graphics.SurfaceTexture, width: Int, height: Int) {
+                    captureLatestFrame()
+                }
+                override fun onSurfaceTextureSizeChanged(surface: android.graphics.SurfaceTexture, width: Int, height: Int) {
+                    captureLatestFrame()
+                }
+                override fun onSurfaceTextureUpdated(surface: android.graphics.SurfaceTexture) {
+                    captureLatestFrame()
+                }
+                override fun onSurfaceTextureDestroyed(surface: android.graphics.SurfaceTexture): Boolean = true
+            }
+            view.surfaceTextureListener = listener
+            if (view.isAvailable) captureLatestFrame()
+
+            onDispose {
+                if (view.surfaceTextureListener === listener) view.surfaceTextureListener = null
+                buffers.forEach { bitmap ->
+                    if (bitmap != null && bitmap !== backgroundFrame && !bitmap.isRecycled) bitmap.recycle()
+                }
+            }
         }
     }
     Box(modifier) {
