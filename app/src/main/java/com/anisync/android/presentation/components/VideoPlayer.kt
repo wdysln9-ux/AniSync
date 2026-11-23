@@ -605,20 +605,6 @@ private const val HTTP_NOT_FOUND = 404
 private const val HTTP_GONE = 410
 
 /**
- * TextureView frame callback that does not replace TextureView's SurfaceTextureListener.
- * Media3 owns that listener while rendering; replacing it breaks surface reattachment after
- * leaving the fullscreen Activity and can leave the inline player black.
- */
-private class CinematicTextureView(context: Context) : TextureView(context) {
-    var onFrameUpdated: (() -> Unit)? = null
-
-    override fun onSurfaceTextureUpdated(surface: android.graphics.SurfaceTexture) {
-        super.onSurfaceTextureUpdated(surface)
-        onFrameUpdated?.invoke()
-    }
-}
-
-/**
  * The native video surface. [active] hands the shared [exoPlayer] to exactly one surface at a time
  * (inline vs. fullscreen activity), so the two never fight over it. [ContentScale.Fit] letterboxes
  * the real video inside whatever frame it's given. A TextureView rather than a SurfaceView, so the
@@ -692,19 +678,19 @@ internal fun PlayerSurface(
         } else {
             // Mirror the current frame for the blurred backdrop. A quarter-size copy is
             // visually sufficient after blur and cuts per-frame bitmap bandwidth substantially.
-            // Do not install a SurfaceTextureListener here: Media3 owns that listener on the
-            // TextureView. Replacing it prevents the decoder surface from reconnecting after
-            // fullscreen handoff and is a direct cause of the portrait black-screen bug.
-            val cinematicView = view as? CinematicTextureView ?: return@DisposableEffect onDispose { }
+            // Use Choreographer instead of taking over TextureView.SurfaceTextureListener:
+            // Media3 owns that listener and needs it to reconnect the decoder surface on return
+            // from fullscreen. Capture is scheduled only while playback is active.
+            val choreographer = android.view.Choreographer.getInstance()
             var buffers = arrayOfNulls<android.graphics.Bitmap>(2)
             var bufferWidth = 0
             var bufferHeight = 0
             var bufferIndex = 0
 
             fun captureLatestFrame() {
-                if (!exoPlayer.isPlaying || !cinematicView.isAvailable || cinematicView.width <= 0 || cinematicView.height <= 0) return
-                val width = (cinematicView.width / 4).coerceAtLeast(1)
-                val height = (cinematicView.height / 4).coerceAtLeast(1)
+                if (!exoPlayer.isPlaying || !view.isAvailable || view.width <= 0 || view.height <= 0) return
+                val width = (view.width / 4).coerceAtLeast(1)
+                val height = (view.height / 4).coerceAtLeast(1)
                 if (width != bufferWidth || height != bufferHeight) {
                     buffers.forEach { bitmap ->
                         if (bitmap != null && !bitmap.isRecycled) bitmap.recycle()
@@ -718,16 +704,29 @@ internal fun PlayerSurface(
                     bufferIndex = 0
                 }
                 val target = buffers[bufferIndex] ?: return
-                val frame = runCatching { cinematicView.getBitmap(target, width, height) }.getOrNull() ?: return
+                val frame = runCatching { view.getBitmap(target, width, height) }.getOrNull() ?: return
                 backgroundFrame = frame
                 bufferIndex = 1 - bufferIndex
             }
 
-            cinematicView.onFrameUpdated = ::captureLatestFrame
-            if (cinematicView.isAvailable) captureLatestFrame()
+            val frameCallback = object : android.view.Choreographer.FrameCallback {
+                override fun doFrame(frameTimeNanos: Long) {
+                    captureLatestFrame()
+                    if (exoPlayer.isPlaying) choreographer.postFrameCallback(this)
+                }
+            }
+            val playbackListener = object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    if (isPlaying) choreographer.postFrameCallback(frameCallback)
+                    else choreographer.removeFrameCallback(frameCallback)
+                }
+            }
+            exoPlayer.addListener(playbackListener)
+            if (exoPlayer.isPlaying) choreographer.postFrameCallback(frameCallback)
 
             onDispose {
-                cinematicView.onFrameUpdated = null
+                choreographer.removeFrameCallback(frameCallback)
+                exoPlayer.removeListener(playbackListener)
                 buffers.forEach { bitmap ->
                     if (bitmap != null && bitmap !== backgroundFrame && !bitmap.isRecycled) bitmap.recycle()
                 }
@@ -754,7 +753,7 @@ internal fun PlayerSurface(
         }
         AndroidView(
             factory = { ctx ->
-                CinematicTextureView(ctx).also { view ->
+                TextureView(ctx).also { view ->
                     textureView = view
                     view.addOnLayoutChangeListener { changed, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
                         updateTextureTransform(changed as TextureView)
