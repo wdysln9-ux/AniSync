@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.geometry.Offset
@@ -141,6 +143,7 @@ internal object FullscreenVideoBridge {
     val cinematicVignette = mutableFloatStateOf(0f)
     val cinematicZoom = mutableFloatStateOf(1.22f)
     val aniSkipSegments = mutableStateOf<List<AniSkipSegment>>(emptyList())
+    val episodeLabel = mutableStateOf<String?>(null)
 }
 
 /**
@@ -257,6 +260,15 @@ private fun FullscreenVideoContent(
         mutableFloatStateOf(aspectRatio.takeIf { it > 0f } ?: DEFAULT_VIDEO_ASPECT)
     }
     var playbackEndHandled by remember(player) { mutableStateOf(false) }
+    val episodeLabel by FullscreenVideoBridge.episodeLabel
+    var episodePopupVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(episodeLabel) {
+        episodePopupVisible = !episodeLabel.isNullOrBlank()
+        if (episodePopupVisible) {
+            delay(10_000L)
+            episodePopupVisible = false
+        }
+    }
 
     DisposableEffect(player) {
         val listener = object : Player.Listener {
@@ -397,16 +409,6 @@ private fun FullscreenVideoContent(
         // of stranding the scrubber at the bottom of the screen, far from the picture.
         val videoModifier = Modifier.fillMaxSize()
 
-        if (cinematicIntensity > 0f) {
-            Box(
-                Modifier.fillMaxSize().background(
-                    Brush.radialGradient(
-                        colors = listOf(Color(0xFFFFC47A).copy(alpha = cinematicIntensity * 0.34f), Color(0xFF8B5CF6).copy(alpha = cinematicIntensity * 0.12f), Color.Transparent),
-                        radius = 1400f
-                    )
-                )
-            )
-        }
         Box(videoModifier) {
             if (playerState != PlayerState.Error) {
                 PlayerSurface(
@@ -440,6 +442,22 @@ private fun FullscreenVideoContent(
             }
         }
 
+        if (episodePopupVisible && !episodeLabel.isNullOrBlank()) {
+            androidx.compose.material3.Surface(
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 18.dp),
+                shape = RoundedCornerShape(10.dp),
+                color = Color.Black.copy(alpha = 0.78f),
+                contentColor = Color.White,
+                tonalElevation = 6.dp
+            ) {
+                androidx.compose.material3.Text(
+                    episodeLabel.orEmpty(),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+                    style = MaterialTheme.typography.titleSmall
+                )
+            }
+        }
+
         PlayerStatusVisuals(
             isLoading = playerState == PlayerState.Loading,
             isBuffering = playerState == PlayerState.Buffering,
@@ -452,7 +470,7 @@ private fun FullscreenVideoContent(
             }
         )
 
-        if (playerState == PlayerState.Ready || playerState == PlayerState.Buffering) {
+        if (playerState == PlayerState.Ready) {
             VideoControlsOverlay(
                 modifier = videoModifier,
                 isPlaying = isPlaying,
