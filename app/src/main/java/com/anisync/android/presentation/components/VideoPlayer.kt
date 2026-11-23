@@ -504,10 +504,10 @@ fun VideoPlayer(
             onRetry = onRetry
         )
 
-        if (playerState == PlayerState.Ready || playerState == PlayerState.Error) {
+        if (playerState == PlayerState.Ready || playerState == PlayerState.Buffering || playerState == PlayerState.Loading || playerState == PlayerState.Error) {
             VideoControlsOverlay(
                 isPlaying = isPlaying,
-                isBuffering = playerState == PlayerState.Buffering,
+                isBuffering = playerState == PlayerState.Buffering || playerState == PlayerState.Loading,
                 isMuted = isMuted,
                 positionMs = positionMs,
                 durationMs = durationMs,
@@ -1026,7 +1026,8 @@ internal fun VideoControlsOverlay(
     }
     // Always reveal controls when playback pauses or stalls.
     LaunchedEffect(isPlaying, isBuffering) {
-        if (!isPlaying && !suppressPauseReveal) controlsVisible = true
+        if (isBuffering) controlsVisible = false
+        else if (!isPlaying && !suppressPauseReveal) controlsVisible = true
     }
 
     val poke: () -> Unit = { interactions++ }
