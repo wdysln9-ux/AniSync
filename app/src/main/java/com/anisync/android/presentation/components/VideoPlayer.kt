@@ -213,7 +213,7 @@ fun VideoPlayer(
     // and the lifecycle observer stops pausing, so the same instance keeps playing over there.
     var handedOff by remember { mutableStateOf(false) }
     val isHandedOff by rememberUpdatedState(handedOff)
-    var cinematicOverlayIntensity by remember { mutableFloatStateOf(if (PlayerPreferences.cinematicEnabled(context)) PlayerPreferences.cinematicIntensity(context) else 0f) }
+    var cinematicOverlayIntensity by remember { mutableFloatStateOf(0f) }
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
     LaunchedEffect(url, aniskipMalId, aniskipEpisodeNumber, durationMs) {
         aniSkipSegments = emptyList()
@@ -535,9 +535,8 @@ fun VideoPlayer(
                 onSelectSource = onSelectSource,
                 onAutoNextChange = onAutoNextChange,
                 onCinematicLightingChange = { intensity ->
-                    cinematicOverlayIntensity = intensity
-                    FullscreenVideoBridge.cinematicIntensity.floatValue = intensity
-                    onCinematicLightingChange(intensity)
+                    cinematicOverlayIntensity = 0f
+                    FullscreenVideoBridge.cinematicIntensity.floatValue = 0f
                 },
                 displayMode = displayMode,
                 onDisplayModeChange = { mode ->
@@ -631,7 +630,7 @@ internal fun PlayerSurface(
     var videoSize by remember(exoPlayer) { mutableStateOf(exoPlayer.videoSize) }
     var surfaceLayoutRevision by remember(exoPlayer) { mutableIntStateOf(0) }
     var backgroundFrame by remember(exoPlayer) { mutableStateOf<android.graphics.Bitmap?>(null) }
-    val cinematicEnabled = PlayerPreferences.cinematicEnabled(context)
+    val cinematicEnabled = false
     val latestContentScale by rememberUpdatedState(contentScale)
     val latestStretchScaleX by rememberUpdatedState(stretchScaleX)
     fun updateTextureTransform(view: TextureView) {
@@ -990,11 +989,11 @@ internal fun VideoControlsOverlay(
     var cinematicVignette by remember { mutableFloatStateOf(PlayerPreferences.cinematicVignette(context)) }
     var cinematicZoom by remember { mutableFloatStateOf(PlayerPreferences.cinematicZoom(context)) }
     LaunchedEffect(Unit) {
-        FullscreenVideoBridge.cinematicIntensity.floatValue = if (cinematicEnabled) cinematicIntensity else 0f
-        FullscreenVideoBridge.cinematicBlur.floatValue = cinematicBlur
-        FullscreenVideoBridge.cinematicBrightness.floatValue = cinematicBrightness
-        FullscreenVideoBridge.cinematicVignette.floatValue = cinematicVignette
-        FullscreenVideoBridge.cinematicZoom.floatValue = cinematicZoom
+        FullscreenVideoBridge.cinematicIntensity.floatValue = 0f
+        FullscreenVideoBridge.cinematicBlur.floatValue = 0f
+        FullscreenVideoBridge.cinematicBrightness.floatValue = 0f
+        FullscreenVideoBridge.cinematicVignette.floatValue = 0f
+        FullscreenVideoBridge.cinematicZoom.floatValue = 1f
     }
 
     // Restore the window's original brightness when this player surface is disposed.
