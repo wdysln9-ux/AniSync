@@ -534,6 +534,27 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun bodyWithoutDuplicateNoteTitle(title: String, body: String): String {
+    val normalizedTitle = title.trim()
+    if (normalizedTitle.isBlank()) return body
+
+    val trimmedBody = body.trimStart()
+    val firstLine = trimmedBody.lineSequence().firstOrNull().orEmpty().trim()
+    val markdownHeading = firstLine.replace(Regex("^#{1,6}\\s+"), "").trim()
+    if (markdownHeading.equals(normalizedTitle, ignoreCase = true)) {
+        return trimmedBody.substringAfter(firstLine).trimStart()
+    }
+
+    val htmlHeading = Regex(
+        "^<h[1-6]\\b[^>]*>\\s*([^<]*?)\\s*</h[1-6]>",
+        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+    ).find(trimmedBody)
+    if (htmlHeading?.groupValues?.getOrNull(1)?.trim()?.equals(normalizedTitle, ignoreCase = true) == true) {
+        return trimmedBody.removeRange(htmlHeading.range).trimStart()
+    }
+    return body
+}
+
 private fun LocalNoteDetailScreen(
     note: LocalNote,
     onBack: () -> Unit,
@@ -666,10 +687,13 @@ private fun LocalNoteDetailScreen(
                     )
                 }
             }
-            if (note.body.isNotBlank()) {
+            val displayedBody = remember(note.title, note.body) {
+                bodyWithoutDuplicateNoteTitle(note.title, note.body)
+            }
+            if (displayedBody.isNotBlank()) {
                 item(key = "note_body") {
                     AsyncRichTextRenderer(
-                        html = note.body,
+                        html = displayedBody,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f
