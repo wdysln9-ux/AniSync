@@ -650,7 +650,7 @@ private fun LocalNoteDetailScreen(
                         )
                     }
                     Text(
-                        "Dibuat ${dateFormat.format(java.util.Date(note.createdAt))} | Diperbarui ${dateFormat.format(java.util.Date(note.updatedAt))}",
+                        "${dateFormat.format(java.util.Date(note.createdAt))} | Diperbarui ${dateFormat.format(java.util.Date(note.updatedAt))}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
