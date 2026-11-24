@@ -163,15 +163,6 @@ private fun MediaLinkCard(
                     )
                 }
 
-            preview?.score?.let { score ->
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = "${score.coerceIn(0, 100)}%",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
         }
     }
 }
@@ -329,7 +320,7 @@ private fun MediaLinkCardPreview() {
                         "Mushoku Tensei: Jobless Reincarnation",
                         null,
                         "#5C8AA6",
-                        "TV · Spring 2021 · 23 Episode · ⭐ 8.4",
+                        "TV · Spring 2021 · 23 Episode · 84%",
                         score = 84,
                         genres = listOf("Adventure", "Drama", "Fantasy")
                     ),
