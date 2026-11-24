@@ -454,10 +454,19 @@ fun VideoPlayer(
         FullscreenVideoBridge.player = exoPlayer
         handedOff = true
         onFullscreenEntered()
-        fullscreenLauncher.launch(
-            Intent(context, FullscreenPlayerActivity::class.java)
-                .putExtra(FullscreenPlayerActivity.EXTRA_ASPECT, videoAspectRatio)
-        )
+    }
+
+    // Wait until the inline PlayerSurface has recomposed with active=false and detached its
+    // TextureView. Launching the Activity in the click callback races that detach: the new
+    // fullscreen TextureView can attach while the old panel surface still owns the player.
+    LaunchedEffect(handedOff) {
+        if (handedOff) {
+            delay(120L)
+            fullscreenLauncher.launch(
+                Intent(context, FullscreenPlayerActivity::class.java)
+                    .putExtra(FullscreenPlayerActivity.EXTRA_ASPECT, videoAspectRatio)
+            )
+        }
     }
 
     LaunchedEffect(playerState, autoEnterFullscreen, handedOff) {
