@@ -165,7 +165,7 @@ class LinkPreviewProviderImpl @Inject constructor(
             format?.let(::prettyFormat),
             seasonAndYear,
             count,
-            score?.takeIf { it > 0 }?.let { "⭐ " + String.format(java.util.Locale.US, "%.1f", it / 10.0) }
+            score?.takeIf { it > 0 }?.let { "$it%" }
         )
         return parts.joinToString(" • ").takeIf { it.isNotBlank() }
     }
