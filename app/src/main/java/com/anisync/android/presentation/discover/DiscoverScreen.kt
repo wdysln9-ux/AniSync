@@ -152,7 +152,7 @@ fun DiscoverScreen(
     searchBarState: SearchBarState,
     textFieldState: TextFieldState,
     searchAnchor: SearchBarAnchor,
-    returnToPreviousMediaDetailsOnBack: Boolean = false,
+    shouldReturnToPreviousMediaDetailsOnBack: Boolean = false,
     // sourceSection = TransitionKeys.DISCOVER_* prefix of the section the tap came from; must
     // reach MediaDetails.sourceScreen so the return morph targets the exact card tapped (the
     // same media can sit in several Discover sections at once).
@@ -415,7 +415,7 @@ internal fun DiscoverSearch(
         showAdultContent = showAdultContent,
         coroutineScope = coroutineScope,
         navController = navController,
-        returnToPreviousMediaDetailsOnBack = returnToPreviousMediaDetailsOnBack,
+        shouldReturnToPreviousMediaDetailsOnBack = shouldReturnToPreviousMediaDetailsOnBack,
         onAction = viewModel::onAction,
         actions = SearchResultActions(
             onMedia = { id -> open { onMediaClick(id) } },
@@ -954,7 +954,7 @@ private fun DiscoverSearchOverlay(
     showAdultContent: Boolean,
     coroutineScope: CoroutineScope,
     navController: NavHostController?,
-    returnToPreviousMediaDetailsOnBack: Boolean = false,
+    shouldReturnToPreviousMediaDetailsOnBack: Boolean = false,
     onAction: (DiscoverAction) -> Unit,
     actions: SearchResultActions
 ) {
@@ -989,7 +989,7 @@ private fun DiscoverSearchOverlay(
     EmbeddedFullScreenSearchBar(
         state = searchBarState,
         anchor = searchAnchor,
-        collapseOnBack = !returnToPreviousMediaDetailsOnBack,
+        collapseOnBack = !shouldReturnToPreviousMediaDetailsOnBack,
         inputField = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SearchInputField(
