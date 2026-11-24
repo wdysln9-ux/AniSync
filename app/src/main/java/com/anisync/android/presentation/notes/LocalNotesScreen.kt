@@ -532,8 +532,6 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 private fun bodyWithoutDuplicateNoteTitle(title: String, body: String): String {
     val normalizedTitle = title.trim()
     if (normalizedTitle.isBlank()) return body
@@ -555,6 +553,8 @@ private fun bodyWithoutDuplicateNoteTitle(title: String, body: String): String {
     return body
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun LocalNoteDetailScreen(
     note: LocalNote,
     onBack: () -> Unit,
