@@ -96,7 +96,7 @@ fun DiscoverListDetail(
     val searchAnchor = remember { SearchBarAnchor() }
     // If this Discover page was pushed from a media detail, Back from its preset
     // search should pop Discover itself rather than only collapsing the search.
-    val returnToPreviousMediaDetailsOnBack =
+    val shouldReturnToPreviousMediaDetailsOnBack =
         navController.previousBackStackEntry?.destination?.route
             ?.startsWith(MediaDetails::class.qualifiedName.orEmpty()) == true
     val initialQuery = rememberSaveable { viewModel.uiState.value.searchQuery }
@@ -108,7 +108,7 @@ fun DiscoverListDetail(
     ) -> Unit = { onMediaClick, onReviewClick ->
         DiscoverScreen(
             searchBarState = searchBarState,
-            returnToPreviousMediaDetailsOnBack = returnToPreviousMediaDetailsOnBack,
+            shouldReturnToPreviousMediaDetailsOnBack = shouldReturnToPreviousMediaDetailsOnBack,
             textFieldState = textFieldState,
             searchAnchor = searchAnchor,
             onMediaClick = onMediaClick,
