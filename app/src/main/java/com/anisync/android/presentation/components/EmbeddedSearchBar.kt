@@ -144,6 +144,7 @@ fun EmbeddedFullScreenSearchBar(
     modifier: Modifier = Modifier,
     colors: SearchBarColors = SearchBarDefaults.colors(),
     windowInsets: WindowInsets = SearchBarDefaults.fullScreenWindowInsets,
+    collapseOnBack: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // Outlives the expanded bar, so the collapse a back gesture starts runs to the end.
@@ -155,7 +156,7 @@ fun EmbeddedFullScreenSearchBar(
     var firstBackEvent by remember { mutableStateOf<BackEventCompat?>(null) }
     var lastBackEvent by remember { mutableStateOf<BackEventCompat?>(null) }
 
-    PredictiveBackHandler(enabled = state.targetValue == SearchBarValue.Expanded) { events ->
+    PredictiveBackHandler(enabled = collapseOnBack && state.targetValue == SearchBarValue.Expanded) { events ->
         try {
             events.collect { event ->
                 if (firstBackEvent == null) firstBackEvent = event
