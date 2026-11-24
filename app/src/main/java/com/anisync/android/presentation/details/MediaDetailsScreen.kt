@@ -566,6 +566,13 @@ fun MediaDetailsScreen(
                                     onHeaderMetadataFilterClick = { filters ->
                                         viewModel.openDiscoverSearch(filters, state.details.type)
                                     },
+                                    onEnglishTitleClick = { title ->
+                                        viewModel.openDiscoverSearch(
+                                            com.anisync.android.domain.SearchFilters(),
+                                            state.details.type,
+                                            query = title
+                                        )
+                                    },
                                     onGenreClick = { genre ->
                                         viewModel.openDiscoverSearch(
                                             com.anisync.android.domain.SearchFilters(genresIncluded = setOf(genre)),
@@ -948,6 +955,7 @@ fun DetailsPageContent(
     onRankingClick: (com.anisync.android.domain.MediaRanking) -> Unit,
     onInfoFilterClick: (com.anisync.android.domain.SearchFilters) -> Unit,
     onHeaderMetadataFilterClick: (com.anisync.android.domain.SearchFilters) -> Unit,
+    onEnglishTitleClick: (String) -> Unit,
     onGenreClick: (String) -> Unit,
     onTagClick: (com.anisync.android.domain.Tag) -> Unit,
     onRelationClick: (Int) -> Unit,
@@ -1212,7 +1220,8 @@ fun DetailsPageContent(
                         onTabSelected(DetailsTab.OVERVIEW)
                         showTitlesSheet = true
                     },
-                    onMetadataFilterClick = onHeaderMetadataFilterClick
+                    onMetadataFilterClick = onHeaderMetadataFilterClick,
+                    onEnglishTitleClick = onEnglishTitleClick
                 )
             }
 
@@ -1908,6 +1917,7 @@ fun PageHeaderSection(
     onScoreClick: () -> Unit = {},
     onTitleClick: () -> Unit = {},
     onMetadataFilterClick: (com.anisync.android.domain.SearchFilters) -> Unit = {},
+    onEnglishTitleClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -1959,6 +1969,7 @@ fun PageHeaderSection(
             onScoreClick = onScoreClick,
             onTitleClick = onTitleClick,
             onMetadataFilterClick = onMetadataFilterClick,
+            onEnglishTitleClick = onEnglishTitleClick,
             titleLanguage = titleLanguage
         )
     }
@@ -2183,6 +2194,7 @@ private fun ContentRow(
     onScoreClick: () -> Unit = {},
     onTitleClick: () -> Unit = {},
     onMetadataFilterClick: (com.anisync.android.domain.SearchFilters) -> Unit = {},
+    onEnglishTitleClick: (String) -> Unit = {},
     titleLanguage: TitleLanguage
 ) {
     val context = LocalContext.current
@@ -2287,7 +2299,11 @@ private fun ContentRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
+                    modifier = if (secondaryTitle == details.titleEnglish) {
+                        Modifier.clickable { onEnglishTitleClick(secondaryTitle) }
+                    } else {
+                        Modifier
+                    }
                 )
             }
 
