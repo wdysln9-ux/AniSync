@@ -479,26 +479,23 @@ fun RichTextRenderer(
                 // AniList often wraps each link in its own paragraph and leaves whitespace-only
                 // paragraph blocks between them. Treat those as separators, not real content, so
                 // consecutive media previews stay visually grouped in profile posts and comments.
+                fun isWhitespaceSeparator(candidate: RichTextBlock): Boolean =
+                    candidate is RichTextBlock.Text && candidate.inlines.all { inline ->
+                        inline is RichTextInline.Text && inline.value.isBlank() ||
+                            inline is RichTextInline.LineBreak
+                    }
+
                 val compactBlocks = blocks.filterIndexed { index, block ->
-                    val isBlankText = block is RichTextBlock.Text &&
-                        block.inlines.all { inline ->
-                            inline is RichTextInline.Text && inline.value.isBlank() ||
-                                inline is RichTextInline.LineBreak
-                        }
-                    if (!isBlankText) return@filterIndexed true
-                    val previousLink = blocks.subList(0, index).lastOrNull { candidate ->
-                        !(candidate is RichTextBlock.Text && candidate.inlines.all { inline ->
-                            inline is RichTextInline.Text && inline.value.isBlank() ||
-                                inline is RichTextInline.LineBreak
-                        })
-                    } is RichTextBlock.AnilistLink
-                    val nextLink = blocks.drop(index + 1).firstOrNull { candidate ->
-                        !(candidate is RichTextBlock.Text && candidate.inlines.all { inline ->
-                            inline is RichTextInline.Text && inline.value.isBlank() ||
-                                inline is RichTextInline.LineBreak
-                        })
-                    } is RichTextBlock.AnilistLink
-                    !(previousLink && nextLink)
+                    if (!isWhitespaceSeparator(block)) {
+                        true
+                    } else {
+                        val previousContent = blocks.subList(0, index)
+                            .lastOrNull { candidate -> !isWhitespaceSeparator(candidate) }
+                        val nextContent = blocks.drop(index + 1)
+                            .firstOrNull { candidate -> !isWhitespaceSeparator(candidate) }
+                        !(previousContent is RichTextBlock.AnilistLink &&
+                            nextContent is RichTextBlock.AnilistLink)
+                    }
                 }
                 Column {
                     compactBlocks.forEachIndexed { index, block ->
