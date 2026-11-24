@@ -94,6 +94,10 @@ fun DiscoverListDetail(
     // Held here rather than in the feed: on expanded widths the search covers both panes.
     val searchBarState = rememberSearchBarState()
     val searchAnchor = remember { SearchBarAnchor() }
+    // If this Discover page was pushed from a media detail, Back from its preset
+    // search should pop Discover itself rather than only collapsing the search.
+    val returnToPreviousMediaDetailsOnBack =
+        navController.previousBackStackEntry?.destination?.hasRoute<MediaDetails>() == true
     val initialQuery = rememberSaveable { viewModel.uiState.value.searchQuery }
     val textFieldState = rememberTextFieldState(initialText = initialQuery)
 
@@ -103,6 +107,7 @@ fun DiscoverListDetail(
     ) -> Unit = { onMediaClick, onReviewClick ->
         DiscoverScreen(
             searchBarState = searchBarState,
+            returnToPreviousMediaDetailsOnBack = returnToPreviousMediaDetailsOnBack,
             textFieldState = textFieldState,
             searchAnchor = searchAnchor,
             onMediaClick = onMediaClick,
