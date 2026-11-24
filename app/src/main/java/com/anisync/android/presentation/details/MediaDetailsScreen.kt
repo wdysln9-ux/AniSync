@@ -2276,7 +2276,13 @@ private fun ContentRow(
                         )
                         .copyOnLongPress(
                             displayTitle.orEmpty(), titleClipLabel, copiedTitleMessage,
-                            onClick = onTitleClick
+                            onClick = {
+                                if (!details.titleEnglish.isNullOrBlank() && displayTitle == details.titleEnglish) {
+                                    onEnglishTitleClick(details.titleEnglish)
+                                } else {
+                                    onTitleClick()
+                                }
+                            }
                         )
                 )
             }
