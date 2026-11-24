@@ -32,8 +32,12 @@ class DiscoverSearchLauncher @Inject constructor() {
     private val _navigationRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 4)
     val navigationRequests: SharedFlow<Unit> = _navigationRequests.asSharedFlow()
 
-    fun launch(filters: SearchFilters, category: ResultCategory = ResultCategory.ALL) {
-        _pending.value = DiscoverSearchRequest(filters, category)
+    fun launch(
+        filters: SearchFilters,
+        category: ResultCategory = ResultCategory.ALL,
+        query: String = ""
+    ) {
+        _pending.value = DiscoverSearchRequest(filters, category, query)
         _navigationRequests.tryEmit(Unit)
     }
 
@@ -43,4 +47,8 @@ class DiscoverSearchLauncher @Inject constructor() {
 }
 
 /** What a preset opens Discover search on: its filters, and the category its results land in. */
-data class DiscoverSearchRequest(val filters: SearchFilters, val category: ResultCategory)
+data class DiscoverSearchRequest(
+    val filters: SearchFilters,
+    val category: ResultCategory,
+    val query: String = ""
+)
