@@ -550,6 +550,9 @@ private fun LocalNoteDetailScreen(
     val dateFormat = remember {
         java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID"))
     }
+    val displayedBody = remember(note.title, note.body) {
+        bodyWithoutDuplicateNoteTitle(note.title, note.body)
+    }
 
     CollapsingTopBarScaffold(
         title = note.title.ifBlank { "Catatan" },
@@ -637,9 +640,6 @@ private fun LocalNoteDetailScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-            val displayedBody = remember(note.title, note.body) {
-                bodyWithoutDuplicateNoteTitle(note.title, note.body)
             }
             if (displayedBody.isNotBlank()) {
                 item(key = "note_body") {
