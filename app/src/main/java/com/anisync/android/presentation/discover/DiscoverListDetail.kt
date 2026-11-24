@@ -17,7 +17,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.hasRoute
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.anisync.android.R
@@ -98,7 +97,8 @@ fun DiscoverListDetail(
     // If this Discover page was pushed from a media detail, Back from its preset
     // search should pop Discover itself rather than only collapsing the search.
     val returnToPreviousMediaDetailsOnBack =
-        navController.previousBackStackEntry?.destination?.hasRoute<MediaDetails>() == true
+        navController.previousBackStackEntry?.destination?.route
+            ?.startsWith(MediaDetails::class.qualifiedName.orEmpty()) == true
     val initialQuery = rememberSaveable { viewModel.uiState.value.searchQuery }
     val textFieldState = rememberTextFieldState(initialText = initialQuery)
 
