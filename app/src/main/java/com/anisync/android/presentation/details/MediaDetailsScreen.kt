@@ -2277,11 +2277,7 @@ private fun ContentRow(
                         .copyOnLongPress(
                             displayTitle.orEmpty(), titleClipLabel, copiedTitleMessage,
                             onClick = {
-                                if (!details.titleEnglish.isNullOrBlank() && displayTitle == details.titleEnglish) {
-                                    onEnglishTitleClick(details.titleEnglish)
-                                } else {
-                                    onTitleClick()
-                                }
+                                onTitleClick()
                             }
                         )
                 )
@@ -2305,11 +2301,7 @@ private fun ContentRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = if (secondaryTitle == details.titleEnglish) {
-                        Modifier.clickable { onEnglishTitleClick(secondaryTitle) }
-                    } else {
-                        Modifier
-                    }
+                    modifier = Modifier.clickable { onTitleClick() }
                 )
             }
 
