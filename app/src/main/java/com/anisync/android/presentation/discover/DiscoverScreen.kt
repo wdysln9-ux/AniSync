@@ -386,6 +386,7 @@ internal fun DiscoverSearch(
     textFieldState: TextFieldState,
     searchAnchor: SearchBarAnchor,
     navController: NavHostController,
+    shouldReturnToPreviousMediaDetailsOnBack: Boolean = false,
     onMediaClick: (Int) -> Unit,
     onCharacterClick: (Int) -> Unit,
     onStaffClick: (Int) -> Unit,
