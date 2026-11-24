@@ -363,7 +363,8 @@ fun ThreadCommentItem(
                         style = MaterialTheme.typography.bodyMedium.copy(
                             lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.35f
                         ),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        compactAdjacentMediaLinks = true
                     )
 
                     Spacer(Modifier.height(12.dp))
