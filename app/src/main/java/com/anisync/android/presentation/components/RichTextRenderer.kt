@@ -476,14 +476,38 @@ fun RichTextRenderer(
                     )
                 }
             } else {
+                // AniList often wraps each link in its own paragraph and leaves whitespace-only
+                // paragraph blocks between them. Treat those as separators, not real content, so
+                // consecutive media previews stay visually grouped in profile posts and comments.
+                val compactBlocks = blocks.filterIndexed { index, block ->
+                    val isBlankText = block is RichTextBlock.Text &&
+                        block.inlines.all { inline ->
+                            inline is RichTextInline.Text && inline.value.isBlank() ||
+                                inline is RichTextInline.LineBreak
+                        }
+                    if (!isBlankText) return@filterIndexed true
+                    val previousLink = blocks.subList(0, index).lastOrNull { candidate ->
+                        !(candidate is RichTextBlock.Text && candidate.inlines.all { inline ->
+                            inline is RichTextInline.Text && inline.value.isBlank() ||
+                                inline is RichTextInline.LineBreak
+                        })
+                    } is RichTextBlock.AnilistLink
+                    val nextLink = blocks.drop(index + 1).firstOrNull { candidate ->
+                        !(candidate is RichTextBlock.Text && candidate.inlines.all { inline ->
+                            inline is RichTextInline.Text && inline.value.isBlank() ||
+                                inline is RichTextInline.LineBreak
+                        })
+                    } is RichTextBlock.AnilistLink
+                    !(previousLink && nextLink)
+                }
                 Column {
-                    blocks.forEachIndexed { index, block ->
+                    compactBlocks.forEachIndexed { index, block ->
                         if (index > 0) {
                             val adjacentMediaLinks =
                                 block is RichTextBlock.AnilistLink &&
-                                blocks[index - 1] is RichTextBlock.AnilistLink
+                                compactBlocks[index - 1] is RichTextBlock.AnilistLink
                             androidx.compose.foundation.layout.Spacer(
-                                Modifier.height(if (adjacentMediaLinks) 0.5.dp else 8.dp)
+                                Modifier.height(if (adjacentMediaLinks) 1.dp else 8.dp)
                             )
                         }
                         RenderSingleBlock(
