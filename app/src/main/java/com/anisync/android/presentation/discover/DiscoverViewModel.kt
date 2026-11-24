@@ -130,15 +130,15 @@ class DiscoverViewModel @Inject constructor(
             searchLauncher.pending.collect { request ->
                 if (request == null) return@collect
                 searchLauncher.consume()
-                openPresetSearch(request.filters, request.category)
+                openPresetSearch(request.filters, request.category, request.query)
             }
         }
     }
 
-    private fun openPresetSearch(filters: SearchFilters, category: ResultCategory) {
+    private fun openPresetSearch(filters: SearchFilters, category: ResultCategory, query: String = "") {
         _uiState.update {
             it.copy(
-                searchQuery = "",
+                searchQuery = query,
                 searchFilters = filters,
                 activeCategory = category,
                 searchOverlayRequest = it.searchOverlayRequest + 1
@@ -146,7 +146,7 @@ class DiscoverViewModel @Inject constructor(
         }
         loadTaxonomyIfNeeded()
         searchTrigger.value = SearchTriggerState(
-            query = "",
+            query = query,
             filterHash = filters.hashCode(),
             browsingStudios = category == ResultCategory.STUDIOS
         )
