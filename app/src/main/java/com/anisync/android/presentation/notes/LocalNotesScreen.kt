@@ -387,7 +387,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
             }
             if (visible.isEmpty()) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 32.dp, vertical = 28.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -416,7 +416,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     }
                 }
             } else Column(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 visible.forEach { item ->
