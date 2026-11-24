@@ -6,6 +6,8 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.CookieManager
+import android.net.Uri
+import android.util.Log
 import android.view.View
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -33,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -112,6 +115,11 @@ private fun YouTubeWebView(
     modifier: Modifier = Modifier
 ) {
     val webViewState = remember { mutableStateOf<WebView?>(null) }
+    val context = LocalContext.current
+    // YouTube requires the installed app's identifier as the HTTP Referer for WebView embeds.
+    // Using youtube.com here identifies YouTube itself, not AniSync, and can cause error 153.
+    val appOrigin = remember(context) { "https://${context.packageName}" }
+    val encodedAppOrigin = remember(appOrigin) { Uri.encode(appOrigin) }
 
     Box(modifier = modifier.background(Color.Black)) {
         AndroidView(
@@ -133,15 +141,47 @@ private fun YouTubeWebView(
                     settings.allowContentAccess = false
                     settings.allowFileAccess = false
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                    webViewClient = WebViewClient()
-                    webChromeClient = WebChromeClient()
+                    webViewClient = object : WebViewClient() {
+                        override fun onReceivedError(
+                            view: WebView,
+                            request: android.webkit.WebResourceRequest,
+                            error: android.webkit.WebResourceError
+                        ) {
+                            super.onReceivedError(view, request, error)
+                            Log.w(
+                                "AniSyncYouTube",
+                                "Web resource failed: ${request.url} (code=${error.errorCode})"
+                            )
+                        }
+
+                        override fun onReceivedHttpError(
+                            view: WebView,
+                            request: android.webkit.WebResourceRequest,
+                            errorResponse: android.webkit.WebResourceResponse
+                        ) {
+                            super.onReceivedHttpError(view, request, errorResponse)
+                            Log.w(
+                                "AniSyncYouTube",
+                                "HTTP ${errorResponse.statusCode} for ${request.url}"
+                            )
+                        }
+                    }
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onConsoleMessage(message: android.webkit.ConsoleMessage): Boolean {
+                            Log.w(
+                                "AniSyncYouTube",
+                                "${message.message()} (line ${message.lineNumber()})"
+                            )
+                            return true
+                        }
+                    }
                     isFocusable = true
                     isFocusableInTouchMode = true
-                    // Use a real HTTPS document origin for the iframe. A package-name
-                    // pseudo-domain is not a valid web origin and can still trigger YouTube
-                    // error 153 (missing/invalid HTTP Referer), producing a black player.
-                    // loadDataWithBaseURL gives the iframe a valid origin/referrer while the
-                    // video itself is still served by YouTube's official embed player.
+                    // The HTTPS host MUST be the installed Android application ID, not
+                    // youtube.com. YouTube's embedded-player policy requires the app ID in
+                    // HTTP Referer for WebView clients; using YouTube's own host identifies
+                    // the wrong client and can trigger error 153 / a permanently black player.
+                    // loadDataWithBaseURL supplies that Referer to the iframe request.
                     val html = """
                         <!doctype html>
                         <html>
@@ -154,7 +194,7 @@ private fun YouTubeWebView(
                         </head>
                         <body>
                           <iframe
-                            src="https://www.youtube.com/embed/$videoId?autoplay=0&playsinline=1&controls=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fwww.youtube.com"
+                            src="https://www.youtube.com/embed/$videoId?autoplay=0&playsinline=1&controls=1&rel=0&enablejsapi=1&origin=$encodedAppOrigin"
                             title="YouTube video player"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                             referrerpolicy="strict-origin-when-cross-origin"
@@ -164,7 +204,7 @@ private fun YouTubeWebView(
                         </html>
                     """.trimIndent()
                     loadDataWithBaseURL(
-                        "https://www.youtube.com/",
+                        "$appOrigin/",
                         html,
                         "text/html",
                         "UTF-8",
