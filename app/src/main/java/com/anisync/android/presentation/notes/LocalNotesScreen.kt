@@ -33,6 +33,9 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import com.anisync.android.presentation.components.AsyncRichTextRenderer
+import com.anisync.android.presentation.components.CollapsingTopBarScaffold
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.filled.Lock
 import com.anisync.android.domain.ActivityType
 import com.anisync.android.domain.UserActivity
 import com.anisync.android.presentation.components.richtext.RichTextInputScreen
@@ -281,15 +284,6 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                         }
                     }
                 }
-            } else if (preview) {
-                androidx.compose.material3.TopAppBar(
-                    title = { Text("Catatan", fontWeight = FontWeight.Bold) },
-                    navigationIcon = {
-                        IconButton(onClick = { editing = null }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali")
-                        }
-                    }
-                )
             }
         },
         floatingActionButton = { if (note == null && !trash) FloatingActionButton(onClick = {
@@ -357,77 +351,29 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     )
                 }
             } else {
-                Column(
-                    Modifier.fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(inset)
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(onClick = { preview = false }) { Text("Edit catatan") }
-                        Spacer(Modifier.weight(1f))
-                        IconButton(onClick = {
-                            data = data.copy(notes = data.notes.map {
-                                if (it.id == note.id) it.copy(pinned = !it.pinned) else it
-                            })
-                        }) {
-                            Icon(Icons.Default.PushPin, "Sematkan", tint = if (note.pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        var noteActionsExpanded by remember(note.id) { mutableStateOf(false) }
-                        Box {
-                            IconButton(onClick = { noteActionsExpanded = true }) { Icon(Icons.Default.MoreVert, "Opsi catatan") }
-                            DropdownMenu(noteActionsExpanded, { noteActionsExpanded = false }) {
-                                DropdownMenuItem(text = { Text("Arsipkan") }, leadingIcon = { Icon(Icons.Default.Archive, null) },
-                                    onClick = {
-                                        noteActionsExpanded = false
-                                        data = data.copy(notes = data.notes.map { if (it.id == note.id) it.copy(archived = true) else it })
-                                        editing = null
-                                    })
-                                DropdownMenuItem(text = { Text("Pindahkan ke sampah") }, leadingIcon = { Icon(Icons.Default.Delete, null) },
-                                    onClick = {
-                                        noteActionsExpanded = false
-                                        data = data.copy(notes = data.notes.map { if (it.id == note.id) it.copy(deleted = true) else it })
-                                        editing = null
-                                    })
-                            }
-                        }
+                LocalNoteDetailScreen(
+                    note = note,
+                    onBack = { editing = null },
+                    onEdit = { preview = false },
+                    onTogglePin = {
+                        data = data.copy(notes = data.notes.map {
+                            if (it.id == note.id) it.copy(pinned = !it.pinned) else it
+                        })
+                    },
+                    onArchive = {
+                        data = data.copy(notes = data.notes.map {
+                            if (it.id == note.id) it.copy(archived = true) else it
+                        })
+                        editing = null
+                    },
+                    onTrash = {
+                        data = data.copy(notes = data.notes.map {
+                            if (it.id == note.id) it.copy(deleted = true) else it
+                        })
+                        editing = null
                     }
-                    val noteActivity = remember(note) {
-                        val postBody = buildString {
-                            if (note.title.isNotBlank()) {
-                                append("# ")
-                                append(note.title.trim())
-                                if (note.body.isNotBlank()) append("\n\n")
-                            }
-                            append(note.body)
-                        }
-                        UserActivity(
-                            id = note.id.hashCode(),
-                            type = ActivityType.TEXT,
-                            timestamp = note.createdAt / 1000L,
-                            text = postBody.ifBlank { " " },
-                            userName = "Catatan lokal",
-                            isPinned = note.pinned
-                        )
-                    }
-                    ActivityCard(
-                        activity = noteActivity,
-                        onClick = {},
-                        modifier = Modifier.fillMaxWidth(),
-                        showAuthor = true,
-                        showEngagement = false,
-                        showOverflow = false,
-                        pinnedLabel = note.pinned,
-                        timeText = java.text.SimpleDateFormat(
-                            "d MMM yyyy · HH:mm",
-                            java.util.Locale("id", "ID")
-                        ).format(java.util.Date(note.updatedAt))
-                    )
-                    }
-                }
+                )
+            }
         } else Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(inset)) {
             OutlinedTextField(
                 value = query,
@@ -582,4 +528,166 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
             folderDialog = false; newFolder = ""; editingFolderId = null
         }) { Text(if (editingFolderId == null) "Buat" else "Simpan") } },
         dismissButton = { TextButton(onClick = { folderDialog = false; editingFolderId = null; newFolder = "" }) { Text("Batal") } })
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LocalNoteDetailScreen(
+    note: LocalNote,
+    onBack: () -> Unit,
+    onEdit: () -> Unit,
+    onTogglePin: () -> Unit,
+    onArchive: () -> Unit,
+    onTrash: () -> Unit
+) {
+    val listState = rememberLazyListState()
+    var menuExpanded by remember(note.id) { mutableStateOf(false) }
+    val dateFormat = remember {
+        java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID"))
+    }
+
+    CollapsingTopBarScaffold(
+        title = note.title.ifBlank { "Catatan" },
+        onBackClick = onBack,
+        scrollableState = listState,
+        scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+        enableEnterAnimation = true,
+        actions = {
+            IconButton(onClick = onTogglePin) {
+                Icon(
+                    Icons.Default.PushPin,
+                    contentDescription = if (note.pinned) "Lepas pin" else "Sematkan",
+                    tint = if (note.pinned) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit catatan")
+            }
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Opsi catatan")
+                }
+                DropdownMenu(menuExpanded, { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Arsipkan") },
+                        leadingIcon = { Icon(Icons.Default.Archive, null) },
+                        onClick = { menuExpanded = false; onArchive() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Pindahkan ke sampah") },
+                        leadingIcon = { Icon(Icons.Default.Delete, null) },
+                        onClick = { menuExpanded = false; onTrash() }
+                    )
+                }
+            }
+        }
+    ) { topPadding ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                top = topPadding,
+                bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding() + 32.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            item(key = "note_header") {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            modifier = Modifier.size(42.dp),
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.NoteAdd,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+                        Column(
+                            modifier = Modifier.weight(1f).padding(start = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                "Catatan lokal",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                dateFormat.format(java.util.Date(note.createdAt)),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            Icons.Default.Lock,
+                            contentDescription = "Pribadi",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    if (note.pinned) {
+                        Row(
+                            modifier = Modifier.padding(top = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.PushPin,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                "Disematkan",
+                                modifier = Modifier.padding(start = 6.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+            if (note.title.isNotBlank()) {
+                item(key = "note_title") {
+                    Text(
+                        text = note.title,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+            if (note.body.isNotBlank()) {
+                item(key = "note_body") {
+                    AsyncRichTextRenderer(
+                        html = note.body,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+            item(key = "note_updated") {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp)) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Text(
+                        "Diperbarui ${dateFormat.format(java.util.Date(note.updatedAt))}",
+                        modifier = Modifier.padding(top = 12.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
 }
