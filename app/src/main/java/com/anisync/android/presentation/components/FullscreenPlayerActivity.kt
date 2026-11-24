@@ -165,6 +165,8 @@ internal object FullscreenVideoBridge {
 @OptIn(UnstableApi::class)
 class FullscreenPlayerActivity : ComponentActivity() {
 
+    private var attachedPlayer: ExoPlayer? = null
+
     companion object {
         /** Float extra: the clip's width/height, used to pick the launch orientation. */
         const val EXTRA_ASPECT = "com.anisync.android.extra.ASPECT"
@@ -205,6 +207,7 @@ class FullscreenPlayerActivity : ComponentActivity() {
             return
         }
 
+        attachedPlayer = player
         FullscreenVideoBridge.isFullscreen = true
         setContent {
             AppTheme(darkTheme = true) {
@@ -219,10 +222,15 @@ class FullscreenPlayerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Release the shared reference; the inline player keeps its own and reattaches on return.
-        FullscreenVideoBridge.isFullscreen = false
-        FullscreenVideoBridge.player = null
-        FullscreenVideoBridge.closeFullscreen = null
+        // A configuration recreation must not invalidate the process-wide handoff slot:
+        // the replacement Activity still needs the same live ExoPlayer instance.
+        if (!isChangingConfigurations) {
+            FullscreenVideoBridge.isFullscreen = false
+            if (FullscreenVideoBridge.player === attachedPlayer) {
+                FullscreenVideoBridge.player = null
+            }
+            FullscreenVideoBridge.closeFullscreen = null
+        }
     }
 }
 
