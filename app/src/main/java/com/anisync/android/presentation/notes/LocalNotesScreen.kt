@@ -329,7 +329,10 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     }
                 )
             }
-        } else Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(inset)) {
+        } else Column(
+            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+                .padding(inset).verticalScroll(rememberScrollState())
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -412,17 +415,11 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                         }) { Icon(Icons.Default.NoteAdd, null); Text("Buat catatan") }
                     }
                 }
-            } else LazyColumn(
+            } else Column(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(
-                    start = 24.dp,
-                    end = 24.dp,
-                    top = 8.dp,
-                    bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding() + 96.dp
-                ),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(visible, key = { it.id }) { item ->
+                visible.forEach { item ->
                     var menu by remember { mutableStateOf(false) }
                     val activityPost = remember(item) {
                         val postBody = buildString {
