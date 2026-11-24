@@ -650,8 +650,8 @@ private fun LocalNoteDetailScreen(
                         )
                     }
                     Text(
-                        dateFormat.format(java.util.Date(note.createdAt)),
-                        style = MaterialTheme.typography.labelMedium,
+                        "Dibuat ${dateFormat.format(java.util.Date(note.createdAt))} | Diperbarui ${dateFormat.format(java.util.Date(note.updatedAt))}",
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -671,17 +671,7 @@ private fun LocalNoteDetailScreen(
                     )
                 }
             }
-            item(key = "note_updated") {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp)) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Text(
-                        "Diperbarui ${dateFormat.format(java.util.Date(note.updatedAt))}",
-                        modifier = Modifier.padding(top = 12.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+
         }
     }
 }
