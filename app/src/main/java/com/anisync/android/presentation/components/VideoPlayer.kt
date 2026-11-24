@@ -785,6 +785,18 @@ internal fun PlayerStatusVisuals(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Keep the loading timer alive when Media3 transitions from initial Loading to Buffering.
+    // The player continues buffering immediately; only the visual indicator is delayed.
+    var showLoadingIndicator by remember { mutableStateOf(false) }
+    val loadingActive = isLoading || isBuffering
+    LaunchedEffect(loadingActive) {
+        showLoadingIndicator = false
+        if (loadingActive) {
+            delay(1_000L)
+            showLoadingIndicator = true
+        }
+    }
+
     Box(modifier.fillMaxSize()) {
         AnimatedVisibility(visible = isLoading, enter = fadeIn(), exit = fadeOut()) {
             Box(
@@ -793,17 +805,20 @@ internal fun PlayerStatusVisuals(
                     .then(if (showShimmer) Modifier.shimmerEffect() else Modifier.background(Color.Black)),
                 contentAlignment = Alignment.Center
             ) {
-                // Keep a real media-loading indicator; shimmer alone is reserved for images.
-                CircularProgressIndicator(
-                    modifier = Modifier.size(36.dp),
-                    color = Color.White,
-                    strokeWidth = 3.dp
-                )
+                // Keep the loading background responsive, but only show the spinner after
+                // one uninterrupted second of loading or buffering.
+                if (showLoadingIndicator) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(36.dp),
+                        color = Color.White,
+                        strokeWidth = 3.dp
+                    )
+                }
             }
         }
 
         AnimatedVisibility(
-            visible = isBuffering && !isLoading && errorMessage == null,
+            visible = isBuffering && !isLoading && errorMessage == null && showLoadingIndicator,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
