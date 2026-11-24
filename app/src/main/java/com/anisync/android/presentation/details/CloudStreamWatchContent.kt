@@ -79,6 +79,7 @@ internal fun CloudStreamWatchContent(
     var preloadStream by remember { mutableStateOf<Map<String, Any?>?>(null) }
     var preloadRequestId by remember { mutableIntStateOf(0) }
     var resolving by remember { mutableStateOf(false) }
+    var sourceLoadRequestId by remember { mutableIntStateOf(0) }
     var status by remember { mutableStateOf("Menyiapkan Auto Resolve…") }
     var error by remember { mutableStateOf<String?>(null) }
     var correction by remember { mutableStateOf(false) }
@@ -88,17 +89,39 @@ internal fun CloudStreamWatchContent(
     var episodePopupVisible by remember { mutableStateOf(false) }
     var manualQuery by remember(mediaTitle) { mutableStateOf(mediaTitle) }
 
-    fun loadHit(hit: ResolveHit) {
+    fun loadHit(hit: ResolveHit, allowFallback: Boolean = true) {
+        val requestId = ++sourceLoadRequestId
         selected = hit
-        val cachedAnime = CloudStreamWatchCache.anime[mediaId]
-        if (cachedAnime != null && cachedAnime.first.provider == hit.provider && cachedAnime.first.item["url"] == hit.item["url"]) { anime = cachedAnime.second; episodes = cachedAnime.third; resolving = false; error = null; return }
+
+        // Switching provider must detach every piece of episode/player state from the old source.
         anime = null
         episodes = emptyList()
+        episode = null
+        sheet = false
+        streams = emptyList()
+        subtitles = emptyList()
+        selectedStream = null
+        preloadStream = null
+        preloadRequestId++
+        FullscreenVideoBridge.episodeLabel.value = null
+        error = null
+
+        val cachedAnime = CloudStreamWatchCache.anime[mediaId]
+        if (cachedAnime != null &&
+            cachedAnime.first.provider == hit.provider &&
+            cachedAnime.first.item["url"] == hit.item["url"]
+        ) {
+            anime = cachedAnime.second
+            episodes = cachedAnime.third
+            resolving = false
+            return
+        }
+
         resolving = true
-        status = "Memuat episode dari ${hit.provider}…"
+        status = "Memuat ulang episode dari ${hit.provider}…"
         scope.launch {
             try {
-                val candidates = listOf(hit) + hits.filter { it != hit }
+                val candidates = if (allowFallback) listOf(hit) + hits.filter { it != hit } else listOf(hit)
                 var chosen: ResolveHit? = null
                 var detail: Map<String, Any?>? = null
                 var episodeList = emptyList<Map<String, Any?>>()
@@ -113,7 +136,9 @@ internal fun CloudStreamWatchContent(
                         episodeList = loadedEpisodes
                         break
                     }
+                    if (requestId != sourceLoadRequestId) return@launch
                 }
+                if (requestId != sourceLoadRequestId) return@launch
                 if (chosen != null) {
                     selected = chosen
                     anime = detail
@@ -121,11 +146,17 @@ internal fun CloudStreamWatchContent(
                     CloudStreamWatchCache.anime[mediaId] = Triple(chosen, detail!!, episodeList)
                     prefs.edit().putString("match_$mediaId", chosen.provider + "|" + chosen.item["url"].toString()).apply()
                 } else {
-                    error = "Anime ditemukan, tetapi provider yang cocok tidak menyediakan daftar episode."
+                    error = if (allowFallback) {
+                        "Provider yang cocok tidak menyediakan daftar episode."
+                    } else {
+                        "Provider ${hit.provider} tidak menyediakan daftar episode untuk judul ini."
+                    }
                 }
             } catch (t: Throwable) {
-                error = t.message ?: "Gagal memuat episode."
-            } finally { resolving = false }
+                if (requestId == sourceLoadRequestId) error = t.message ?: "Gagal memuat episode dari ${hit.provider}."
+            } finally {
+                if (requestId == sourceLoadRequestId) resolving = false
+            }
         }
     }
 
@@ -284,7 +315,8 @@ internal fun CloudStreamWatchContent(
         status = "Mencari sumber video…"
         scope.launch {
             val number = (chosen["episode"] as? Number)?.toInt()
-            val cacheKey = "$mediaId:${number ?: chosen["data"] ?: chosen["name"]}"
+            val activeHit = selected
+            val cacheKey = "${activeHit?.provider}:${activeHit?.item?.get("url")}:$mediaId:${number ?: chosen["data"] ?: chosen["name"]}"
             val cachedStreams = CloudStreamWatchCache.streams[cacheKey]
             if (cachedStreams != null) {
                 streams = cachedStreams.first
@@ -298,7 +330,9 @@ internal fun CloudStreamWatchContent(
                 }
                 return@launch
             }
-            val candidates = listOfNotNull(selected) + hits.filter { it != selected }
+            // Episodes were loaded from the selected provider; never resolve their data
+            // against another provider, or the player can silently mix episode sources.
+            val candidates = listOfNotNull(selected)
             var success = false
             for (hit in candidates) {
                 try {
@@ -521,7 +555,7 @@ internal fun CloudStreamWatchContent(
                     Text("Hasil pencarian — pilih judul yang benar", style = MaterialTheme.typography.titleSmall)
                     LazyColumn(Modifier.heightIn(max = 280.dp)) {
                         items(hits, key = { it.provider + "|" + it.item["url"] }) { hit ->
-                            TextButton(onClick = { correction = false; loadHit(hit) }, modifier = Modifier.fillMaxWidth()) {
+                            TextButton(onClick = { correction = false; loadHit(hit, allowFallback = false) }, modifier = Modifier.fillMaxWidth()) {
                                 Column(Modifier.fillMaxWidth()) {
                                     Text(hit.item["name"]?.toString() ?: manualQuery, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                     Text("${hit.provider} · ${hit.score}% kecocokan", style = MaterialTheme.typography.labelSmall)
