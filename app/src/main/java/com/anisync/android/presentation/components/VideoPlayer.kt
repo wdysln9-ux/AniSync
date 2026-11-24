@@ -631,7 +631,6 @@ internal fun PlayerSurface(
     val context = LocalContext.current
     var textureView by remember(exoPlayer) { mutableStateOf<TextureView?>(null) }
     var videoSize by remember(exoPlayer) { mutableStateOf(exoPlayer.videoSize) }
-    var surfaceLayoutRevision by remember(exoPlayer) { mutableIntStateOf(0) }
     var backgroundFrame by remember(exoPlayer) { mutableStateOf<android.graphics.Bitmap?>(null) }
     val cinematicEnabled = PlayerPreferences.cinematicEnabled(context)
     val latestContentScale by rememberUpdatedState(contentScale)
@@ -669,7 +668,7 @@ internal fun PlayerSurface(
     val brightness = FullscreenVideoBridge.cinematicBrightness.floatValue
     val vignette = FullscreenVideoBridge.cinematicVignette.floatValue
     val zoom = FullscreenVideoBridge.cinematicZoom.floatValue
-    LaunchedEffect(exoPlayer, active, textureView, surfaceLayoutRevision) {
+    LaunchedEffect(exoPlayer, active, textureView) {
         val view = textureView ?: return@LaunchedEffect
         if (active) {
             exoPlayer.setVideoTextureView(view)
@@ -766,9 +765,6 @@ internal fun PlayerSurface(
                     textureView = view
                     view.addOnLayoutChangeListener { changed, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
                         updateTextureTransform(changed as TextureView)
-                        if ((right - left) != (oldRight - oldLeft) || (bottom - top) != (oldBottom - oldTop)) {
-                            surfaceLayoutRevision++
-                        }
                     }
                 }
             },
