@@ -647,7 +647,8 @@ class MediaDetailsViewModel @Inject constructor(
      */
     fun openDiscoverSearch(
         filters: com.anisync.android.domain.SearchFilters,
-        type: com.anisync.android.type.MediaType?
+        type: com.anisync.android.type.MediaType?,
+        query: String = ""
     ) {
         discoverSearchLauncher.launch(
             filters,
@@ -655,7 +656,8 @@ class MediaDetailsViewModel @Inject constructor(
                 com.anisync.android.domain.ResultCategory.MANGA
             } else {
                 com.anisync.android.domain.ResultCategory.ANIME
-            }
+            },
+            query
         )
     }
 
