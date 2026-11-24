@@ -147,6 +147,7 @@ fun DiscoverListDetail(
             textFieldState = textFieldState,
             searchAnchor = searchAnchor,
             navController = navController,
+            shouldReturnToPreviousMediaDetailsOnBack = shouldReturnToPreviousMediaDetailsOnBack,
             onMediaClick = { onMediaClickFullScreen(it, TransitionKeys.DISCOVER) },
             onCharacterClick = { navController.navigate(CharacterDetails(it)) },
             onStaffClick = { navController.navigate(StaffDetails(it)) },
