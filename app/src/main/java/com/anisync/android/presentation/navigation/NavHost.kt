@@ -1342,7 +1342,7 @@ fun AniSyncNavHost(
             ) {
                 LocalNotesScreen(
                     onBackClick = { navController.popBackStack() },
-                    onOpenNote = { noteId -> navController.navigate(LocalNoteDetail(noteId)) }
+                    onOpenNote = { noteId, openInEditMode -> navController.navigate(LocalNoteDetail(noteId, openInEditMode)) }
                 )
             }
 
@@ -1355,6 +1355,7 @@ fun AniSyncNavHost(
                 val route: LocalNoteDetail = backStackEntry.toRoute()
                 LocalNoteDetailScreenRoute(
                     noteId = route.noteId,
+                    openInEditMode = route.openInEditMode,
                     onBack = { navController.popBackStack() }
                 )
             }
