@@ -507,15 +507,9 @@ fun RichTextRenderer(
                 Column {
                     compactBlocks.forEachIndexed { index, block ->
                         if (index > 0) {
-                            val currentIsMediaPreview = block is RichTextBlock.AnilistLink
-                            val previousIsMediaPreview =
-                                compactBlocks[index - 1] is RichTextBlock.AnilistLink
-                            // Keep every rich-text block boundary consistent. Media previews
-                            // are full cards, so a smaller gap made them look stuck together
-                            // compared with the surrounding text paragraphs.
-                            val spacing = 8.dp
+                            // Use the same gap for text, media previews, and other blocks.
                             androidx.compose.foundation.layout.Spacer(
-                                Modifier.height(spacing)
+                                Modifier.height(8.dp)
                             )
                         }
                         RenderSingleBlock(
