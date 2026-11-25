@@ -140,6 +140,7 @@ private fun YouTubeWebView(
                     setLayerType(View.LAYER_TYPE_HARDWARE, null)
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
+                    settings.mediaPlaybackRequiresUserGesture = false
                     settings.loadsImagesAutomatically = true
                     settings.databaseEnabled = true
                     settings.javaScriptCanOpenWindowsAutomatically = false
