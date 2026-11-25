@@ -117,7 +117,7 @@ private fun YouTubeWebView(
     // with the same mobile browser user-agent and explicit Referer/Origin headers.
     // This avoids the extra local HTML/iframe wrapper used by the previous AniSync code.
     val embedUrl = remember(videoId) {
-        "https://www.youtube-nocookie.com/embed/$videoId?playsinline=1"
+        "https://www.youtube.com/embed/$videoId?playsinline=1"
     }
     val requestHeaders = remember {
         mapOf(
