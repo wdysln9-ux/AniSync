@@ -592,25 +592,13 @@ private fun LocalNoteDetailScreen(
                     }
                 }
             }
-            item(key = "note_title_and_date") {
-                Column(
+            item(key = "note_date") {
+                Text(
+                    "${dateFormat.format(java.util.Date(note.createdAt))} | Diperbarui ${dateFormat.format(java.util.Date(note.updatedAt))}",
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    if (note.title.isNotBlank()) {
-                        Text(
-                            text = note.title,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Text(
-                        "${dateFormat.format(java.util.Date(note.createdAt))} | Diperbarui ${dateFormat.format(java.util.Date(note.updatedAt))}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             if (displayedBody.isNotBlank()) {
                 item(key = "note_body") {
