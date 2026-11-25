@@ -224,6 +224,24 @@ internal fun CloudStreamWatchContent(
         return candidate.equals(preferredName.trim(), ignoreCase = true)
     }
 
+    // Provider episode arrays are not guaranteed to arrive in playback order. Use the
+    // chronological episode number for Auto Next, matching the ascending list shown by default.
+    fun nextEpisodeAfter(chosen: Map<String, Any?>): Map<String, Any?>? {
+        val ordered = episodes.sortedWith(
+            compareBy<Map<String, Any?>> { (it["episode"] as? Number)?.toInt() ?: Int.MAX_VALUE }
+                .thenBy { it["name"]?.toString().orEmpty() }
+        )
+        val currentNumber = (chosen["episode"] as? Number)?.toInt()
+        if (currentNumber != null) {
+            return ordered.firstOrNull { item ->
+                val number = (item["episode"] as? Number)?.toInt()
+                number != null && number > currentNumber
+            }
+        }
+        val currentIndex = ordered.indexOfFirst { it === chosen || it == chosen }
+        return ordered.getOrNull(currentIndex + 1)
+    }
+
     suspend fun resolvePreloadSource(
         chosen: Map<String, Any?>,
         preferredServerName: String? = selectedStream?.get("name")?.toString()
@@ -300,8 +318,7 @@ internal fun CloudStreamWatchContent(
             preloadStream = null
             resolving = false
             status = "Memutar episode berikutnya…"
-            val nextIndex = episodes.indexOfFirst { it === chosen || it == chosen }
-            episodes.getOrNull(nextIndex + 1)?.let { nextEpisode ->
+            nextEpisodeAfter(chosen)?.let { nextEpisode ->
                 scheduleNextPreload(nextEpisode, preloadedSource)
             }
             return
@@ -324,8 +341,7 @@ internal fun CloudStreamWatchContent(
                 selectedStream = cachedStreams.first.firstOrNull { sameServer(it, preferredServerName) }
                     ?: cachedStreams.first.firstOrNull()
                 resolving = false
-                val currentIndex = episodes.indexOfFirst { it === chosen || it == chosen }
-                episodes.getOrNull(currentIndex + 1)?.let { nextEpisode ->
+                nextEpisodeAfter(chosen)?.let { nextEpisode ->
                     selectedStream?.let { scheduleNextPreload(nextEpisode, it) }
                 }
                 return@launch
@@ -380,9 +396,7 @@ internal fun CloudStreamWatchContent(
             if (!success) error = "Tidak ada provider yang berhasil menyediakan video untuk episode ini."
             resolving = false
             if (success) {
-                val currentIndex = episodes.indexOfFirst { it === chosen || it == chosen }
-                val nextEpisode = episodes.getOrNull(currentIndex + 1)
-                if (nextEpisode != null) {
+                nextEpisodeAfter(chosen)?.let { nextEpisode ->
                     selectedStream?.let { scheduleNextPreload(nextEpisode, it) }
                 }
             }
@@ -627,8 +641,8 @@ internal fun CloudStreamWatchContent(
                                     // Reuse the fullscreen Activity when the preloaded source is ready.
                                     // Otherwise close/re-enter only as a fallback while resolving.
                                     autoNextFullscreen = wasFullscreen && readyNextSource == null
-                                    val index = episodes.indexOfFirst { it === current || it == current }
-                                    episodes.getOrNull(index + 1)?.let { next ->
+                                    val next = nextEpisodeAfter(current)
+                                    if (next != null) {
                                         playEpisode(
                                             next,
                                             selectedStream?.get("name")?.toString(),
