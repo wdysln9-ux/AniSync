@@ -68,8 +68,8 @@ fun ThreadHeaderTop(
         Column(
             modifier = Modifier.padding(
                 top = 16.dp,
-                start = 16.dp,
-                end = 16.dp,
+                start = 20.dp,
+                end = 20.dp,
                 bottom = 8.dp
             )
         ) {
@@ -224,7 +224,7 @@ fun ThreadBodyItem(
     ) {
         ActivityPostBody(
             html = html,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(horizontal = 20.dp)
         )
     }
 }
@@ -275,7 +275,7 @@ fun ContentStatsBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.End),
             verticalAlignment = Alignment.CenterVertically
         ) {
