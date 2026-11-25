@@ -129,7 +129,7 @@ private fun MediaLinkCard(
             accent = accent,
             modifier = Modifier
                 .size(MediaCoverWidth, MediaCoverHeight)
-                .clip(RoundedCornerShape(6.dp))
+                .clip(RoundedCornerShape(10.dp))
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
