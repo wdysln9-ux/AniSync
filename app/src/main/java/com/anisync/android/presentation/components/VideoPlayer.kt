@@ -614,6 +614,34 @@ private const val HTTP_NOT_FOUND = 404
 private const val HTTP_GONE = 410
 
 /**
+ * Tracks the one TextureView currently allowed to own an ExoPlayer output.
+ *
+ * During the inline/fullscreen handoff, Compose can dispose the old view after the new view has
+ * already attached. A blind clear from that stale view would then clear the new output too,
+ * leaving audio running over a black picture. Detach is therefore conditional on the view still
+ * being the registered owner.
+ */
+@OptIn(UnstableApi::class)
+private object PlayerSurfaceRegistry {
+    private val attachedViews = java.util.WeakHashMap<ExoPlayer, TextureView>()
+
+    @Synchronized
+    fun attach(player: ExoPlayer, view: TextureView) {
+        if (attachedViews[player] === view) return
+        // Media3 replaces the previous video output when a new TextureView is attached.
+        player.setVideoTextureView(view)
+        attachedViews[player] = view
+    }
+
+    @Synchronized
+    fun detach(player: ExoPlayer, view: TextureView) {
+        if (attachedViews[player] !== view) return
+        player.clearVideoTextureView(view)
+        attachedViews.remove(player)
+    }
+}
+
+/**
  * The native video surface. [active] hands the shared [exoPlayer] to exactly one surface at a time
  * (inline vs. fullscreen activity), so the two never fight over it. [ContentScale.Fit] letterboxes
  * the real video inside whatever frame it's given. A TextureView rather than a SurfaceView, so the
@@ -671,12 +699,16 @@ internal fun PlayerSurface(
     LaunchedEffect(exoPlayer, active, textureView) {
         val view = textureView ?: return@LaunchedEffect
         if (active) {
-            exoPlayer.setVideoTextureView(view)
+            PlayerSurfaceRegistry.attach(exoPlayer, view)
             if (exoPlayer.playbackState == Player.STATE_IDLE) exoPlayer.prepare()
-        } else exoPlayer.clearVideoTextureView(view)
+        } else {
+            PlayerSurfaceRegistry.detach(exoPlayer, view)
+        }
     }
     DisposableEffect(exoPlayer, textureView) {
-        onDispose { textureView?.let { exoPlayer.clearVideoTextureView(it) } }
+        onDispose {
+            textureView?.let { PlayerSurfaceRegistry.detach(exoPlayer, it) }
+        }
     }
     DisposableEffect(textureView, active, cinematicEnabled, exoPlayer) {
         val view = textureView
