@@ -118,7 +118,6 @@ fun FeedScreen(
             // taller gesture inset / edge-to-edge enforcement (e.g. Android 16). (#34)
             Box(
                 modifier = Modifier
-                    .navigationBarsPadding()
                     .padding(bottom = LocalMainNavBarInset.current)
             ) {
                 if (!hasRail) {
