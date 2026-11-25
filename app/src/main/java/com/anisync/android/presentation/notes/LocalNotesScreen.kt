@@ -101,7 +101,7 @@ private fun saveTree(context: Context, uri: Uri, data: LocalNotesBackup): Boolea
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LocalNotesScreen(onBackClick: () -> Unit, onOpenNote: (String) -> Unit) {
+fun LocalNotesScreen(onBackClick: () -> Unit, onOpenNote: (String, Boolean) -> Unit) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
     var data by remember { mutableStateOf(loadNotes(context)) }
@@ -194,7 +194,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit, onOpenNote: (String) -> Unit) {
                         val item = LocalNote(folderId = folderId.takeUnless { it == "all" } ?: data.folders.firstOrNull()?.id ?: "default")
                         data = data.copy(notes = listOf(item) + data.notes)
                         prefs.edit().putString(PAYLOAD, notesJson.encodeToString(data)).apply()
-                        onOpenNote(item.id)
+                        onOpenNote(item.id, true)
                     }) {
                         Icon(Icons.Default.NoteAdd, "Buat catatan")
                     }
@@ -297,7 +297,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit, onOpenNote: (String) -> Unit) {
                     items(visible, key = { it.id }) { item ->
                         var menu by remember(item.id) { mutableStateOf(false) }
                         Surface(
-                            modifier = Modifier.fillMaxWidth().clickable { onOpenNote(item.id) },
+                            modifier = Modifier.fillMaxWidth().clickable { onOpenNote(item.id, false) },
                             shape = RoundedCornerShape(18.dp),
                             color = MaterialTheme.colorScheme.surfaceContainer
                         ) {
@@ -412,11 +412,11 @@ fun LocalNotesScreen(onBackClick: () -> Unit, onOpenNote: (String) -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LocalNoteDetailScreenRoute(noteId: String, onBack: () -> Unit) {
+fun LocalNoteDetailScreenRoute(noteId: String, openInEditMode: Boolean = false, onBack: () -> Unit) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
     var data by remember(noteId) { mutableStateOf(loadNotes(context)) }
-    var editing by remember(noteId) { mutableStateOf(false) }
+    var editing by remember(noteId) { mutableStateOf(openInEditMode) }
     val backupTreeUri = remember { prefs.getString(TREE, null)?.let(Uri::parse) }
     val note = data.notes.firstOrNull { it.id == noteId }
 
