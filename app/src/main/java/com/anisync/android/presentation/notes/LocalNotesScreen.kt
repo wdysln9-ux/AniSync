@@ -35,7 +35,8 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
-import com.anisync.android.presentation.components.AsyncRichTextRenderer
+import com.anisync.android.presentation.components.rememberParsedRichText
+import com.anisync.android.presentation.forum.components.ThreadBodyItem
 import com.anisync.android.presentation.util.LocalMainNavBarInset
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.filled.Lock
@@ -529,6 +530,7 @@ private fun LocalNoteDetailScreen(
     var menuExpanded by remember(note.id) { mutableStateOf(false) }
     val dateFormat = remember { java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")) }
     val displayedBody = remember(note.title, note.body) { bodyWithoutDuplicateNoteTitle(note.title, note.body) }
+    val parsedBody = rememberParsedRichText(displayedBody)
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(
@@ -572,17 +574,15 @@ private fun LocalNoteDetailScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (displayedBody.isNotBlank()) {
+            parsedBody?.let { body ->
                 item {
-                    Spacer(Modifier.height(12.dp))
-                    AsyncRichTextRenderer(
-                        html = displayedBody,
+                    ThreadBodyItem(
+                        body = body,
                         modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f
                         ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        compactAdjacentMediaLinks = false
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
