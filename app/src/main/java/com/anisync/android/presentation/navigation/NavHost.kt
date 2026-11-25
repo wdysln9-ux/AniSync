@@ -43,6 +43,7 @@ import com.anisync.android.presentation.components.MediaArtworkThemeOverride
 import com.anisync.android.presentation.components.ProfileColorThemeOverride
 import com.anisync.android.presentation.notes.NotesJournalScreen
 import com.anisync.android.presentation.notes.LocalNotesScreen
+import com.anisync.android.presentation.notes.LocalNoteDetailScreenRoute
 import com.anisync.android.presentation.details.CharacterDetailsScreen
 import com.anisync.android.presentation.details.CharacterMediaGridScreen
 import com.anisync.android.presentation.details.MediaDetailsScreen
@@ -1339,7 +1340,23 @@ fun AniSyncNavHost(
                 popEnterTransition = { sharedAxisZPopEnter() },
                 popExitTransition = { sharedAxisZPopExit() }
             ) {
-                LocalNotesScreen(onBackClick = { navController.popBackStack() })
+                LocalNotesScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onOpenNote = { noteId -> navController.navigate(LocalNoteDetail(noteId)) }
+                )
+            }
+
+            composable<LocalNoteDetail>(
+                enterTransition = { sharedAxisZEnter() },
+                exitTransition = { sharedAxisZExit() },
+                popEnterTransition = { sharedAxisZPopEnter() },
+                popExitTransition = { sharedAxisZPopExit() }
+            ) { backStackEntry ->
+                val route: LocalNoteDetail = backStackEntry.toRoute()
+                LocalNoteDetailScreenRoute(
+                    noteId = route.noteId,
+                    onBack = { navController.popBackStack() }
+                )
             }
 
             // Create forum thread
