@@ -518,9 +518,9 @@ fun ThreadDetailScreen(
                                 }
                             }
 
-                            if (!commentDetailMode) uiState.parsedBody?.let { body ->
+                            if (!commentDetailMode) thread.body?.let { html ->
                                 item(key = "thread_body") {
-                                    ThreadBodyItem(body = body, modifier = Modifier.fillMaxWidth())
+                                    ThreadBodyItem(html = html, modifier = Modifier.fillMaxWidth())
                                 }
                             }
 
