@@ -410,6 +410,93 @@ fun LocalNotesScreen(onBackClick: () -> Unit, onOpenNote: (String) -> Unit) {
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LocalNoteDetailScreenRoute(noteId: String, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
+    var data by remember(noteId) { mutableStateOf(loadNotes(context)) }
+    var editing by remember(noteId) { mutableStateOf(false) }
+    val note = data.notes.firstOrNull { it.id == noteId }
+
+    fun updateNote(transform: (LocalNote) -> LocalNote) {
+        val updated = data.copy(notes = data.notes.map { if (it.id == noteId) transform(it) else it })
+        data = updated
+        prefs.edit().putString(PAYLOAD, notesJson.encodeToString(updated)).apply()
+    }
+
+    BackHandler(enabled = editing) { editing = false }
+
+    if (note == null) {
+        LaunchedEffect(noteId) { onBack() }
+    } else if (editing) {
+        key(note.id) {
+            RichTextInputScreen(
+                title = "Edit catatan",
+                placeholder = "Tulis catatan dengan Markdown...",
+                initialBody = note.body,
+                isSubmitting = false,
+                submitLabel = "Simpan",
+                onBodyChange = { body ->
+                    updateNote { if (it.body != body) it.copy(body = body, updatedAt = System.currentTimeMillis()) else it }
+                },
+                onSubmit = { body ->
+                    updateNote { it.copy(body = body, updatedAt = System.currentTimeMillis()) }
+                    editing = false
+                },
+                onDismiss = { editing = false },
+                hasExternalUnsavedChanges = false,
+                confirmDiscardChanges = false,
+                headerSlot = {
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = note.title,
+                        onValueChange = { value -> updateNote { it.copy(title = value, updatedAt = System.currentTimeMillis()) } },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                        textStyle = MaterialTheme.typography.headlineSmall.copy(
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        decorationBox = { inner ->
+                            Box {
+                                if (note.title.isEmpty()) Text("Judul catatan", color = MaterialTheme.colorScheme.outline)
+                                inner()
+                            }
+                        }
+                    )
+                    Text(
+                        "Dibuat " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(note.createdAt)),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Text(
+                        "Diperbarui " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(note.updatedAt)),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(top = 10.dp))
+                }
+            )
+        }
+    } else {
+        LocalNoteDetailScreen(
+            note = note,
+            onBack = onBack,
+            onEdit = { editing = true },
+            onTogglePin = { updateNote { it.copy(pinned = !it.pinned) } },
+            onArchive = {
+                updateNote { it.copy(archived = true) }
+                onBack()
+            },
+            onTrash = {
+                updateNote { it.copy(deleted = true) }
+                onBack()
+            }
+        )
+    }
+}
+
 private fun bodyWithoutDuplicateNoteTitle(title: String, body: String): String {
     val normalizedTitle = title.trim()
     if (normalizedTitle.isBlank()) return body
