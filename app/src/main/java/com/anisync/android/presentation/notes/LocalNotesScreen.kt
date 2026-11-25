@@ -417,12 +417,21 @@ fun LocalNoteDetailScreenRoute(noteId: String, onBack: () -> Unit) {
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
     var data by remember(noteId) { mutableStateOf(loadNotes(context)) }
     var editing by remember(noteId) { mutableStateOf(false) }
+    val backupTreeUri = remember { prefs.getString(TREE, null)?.let(Uri::parse) }
     val note = data.notes.firstOrNull { it.id == noteId }
 
     fun updateNote(transform: (LocalNote) -> LocalNote) {
         val updated = data.copy(notes = data.notes.map { if (it.id == noteId) transform(it) else it })
         data = updated
         prefs.edit().putString(PAYLOAD, notesJson.encodeToString(updated)).apply()
+    }
+
+    LaunchedEffect(data, backupTreeUri) {
+        delay(500)
+        withContext(Dispatchers.IO) {
+            prefs.edit().putString(PAYLOAD, notesJson.encodeToString(data)).apply()
+            backupTreeUri?.let { saveTree(context, it, data) }
+        }
     }
 
     BackHandler(enabled = editing) { editing = false }
