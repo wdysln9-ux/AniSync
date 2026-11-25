@@ -318,9 +318,7 @@ internal fun CloudStreamWatchContent(
             preloadStream = null
             resolving = false
             status = "Memutar episode berikutnya…"
-            nextEpisodeAfter(chosen)?.let { nextEpisode ->
-                scheduleNextPreload(nextEpisode, preloadedSource)
-            }
+            // The next episode is resolved only after the current episode's buffer is full.
             return
         }
 
@@ -341,9 +339,6 @@ internal fun CloudStreamWatchContent(
                 selectedStream = cachedStreams.first.firstOrNull { sameServer(it, preferredServerName) }
                     ?: cachedStreams.first.firstOrNull()
                 resolving = false
-                nextEpisodeAfter(chosen)?.let { nextEpisode ->
-                    selectedStream?.let { scheduleNextPreload(nextEpisode, it) }
-                }
                 return@launch
             }
             // Episodes were loaded from the selected provider; never resolve their data
@@ -395,11 +390,7 @@ internal fun CloudStreamWatchContent(
             }
             if (!success) error = "Tidak ada provider yang berhasil menyediakan video untuk episode ini."
             resolving = false
-            if (success) {
-                nextEpisodeAfter(chosen)?.let { nextEpisode ->
-                    selectedStream?.let { scheduleNextPreload(nextEpisode, it) }
-                }
-            }
+            // Do not resolve the next episode here; wait for the current video buffer to reach its end.
         }
     }
 
@@ -628,6 +619,15 @@ internal fun CloudStreamWatchContent(
                             preloadHeaders = (preloadStream?.get("headers") as? Map<*, *>)?.entries?.associate {
                                 it.key.toString() to it.value.toString()
                             }.orEmpty(),
+                            onBufferComplete = {
+                                if (autoNextEnabled) {
+                                    val nextEpisode = nextEpisodeAfter(current)
+                                    val source = selectedStream
+                                    if (nextEpisode != null && source != null && preloadStream == null) {
+                                        scheduleNextPreload(nextEpisode, source)
+                                    }
+                                }
+                            },
                             aniskipMalId = malId,
                             aniskipEpisodeNumber = number,
                             onPlaybackEnded = {
@@ -708,11 +708,11 @@ internal fun CloudStreamWatchContent(
                                 label = listOfNotNull(name, quality).joinToString(" · "),
                                 isSelected = selectedStream === source,
                                 onClick = {
+                                    // Changing server invalidates any pending preload. The new
+                                    // server's next episode will be prepared only at buffer completion.
+                                    preloadRequestId++
+                                    preloadStream = null
                                     selectedStream = source
-                                    val index = episodes.indexOfFirst { it === current || it == current }
-                                    episodes.getOrNull(index + 1)?.let { nextEpisode ->
-                                        scheduleNextPreload(nextEpisode, source)
-                                    }
                                 }
                             )
                         }
