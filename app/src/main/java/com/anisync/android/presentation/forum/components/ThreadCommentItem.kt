@@ -53,7 +53,7 @@ import androidx.compose.ui.util.lerp
 import com.anisync.android.R
 import com.anisync.android.domain.CommentNode
 import com.anisync.android.presentation.components.AnimatedFavoriteButton
-import com.anisync.android.presentation.components.AsyncRichTextRenderer
+import com.anisync.android.presentation.profile.components.ActivityPostBody
 import com.anisync.android.presentation.forum.components.shared.AuthorRow
 import com.anisync.android.presentation.util.pluralStringResourceOrDefault
 import com.anisync.android.presentation.util.rememberHapticFeedback
@@ -349,8 +349,6 @@ fun ThreadCommentItem(
             }
 
             if (!isCollapsed) {
-                Spacer(Modifier.height(12.dp))
-
                 Column(
                     modifier = Modifier.padding(
                         start = headerHorizontalPadding + contentIndent,
@@ -358,14 +356,9 @@ fun ThreadCommentItem(
                         bottom = 4.dp
                     )
                 ) {
-                    AsyncRichTextRenderer(
-                        html = comment.body,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        compactAdjacentMediaLinks = false
-                    )
+                    // Use the exact same rich-text body component as Feed activity posts.
+                    // It owns the 12dp header-to-body spacing and all rich-text/media layout.
+                    ActivityPostBody(html = comment.body)
 
                     Spacer(Modifier.height(12.dp))
 
