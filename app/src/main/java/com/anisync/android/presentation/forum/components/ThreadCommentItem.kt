@@ -349,7 +349,7 @@ fun ThreadCommentItem(
             }
 
             if (!isCollapsed) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(12.dp))
 
                 Column(
                     modifier = Modifier.padding(
@@ -361,10 +361,10 @@ fun ThreadCommentItem(
                     AsyncRichTextRenderer(
                         html = comment.body,
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.35f
+                            lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f
                         ),
                         color = MaterialTheme.colorScheme.onSurface,
-                        compactAdjacentMediaLinks = true
+                        compactAdjacentMediaLinks = false
                     )
 
                     Spacer(Modifier.height(12.dp))
