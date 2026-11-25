@@ -2,6 +2,7 @@ package com.anisync.android.presentation.components
 
 import android.annotation.SuppressLint
 import android.graphics.Color as AndroidColor
+import android.view.View
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -57,6 +58,10 @@ fun YouTubeInlinePlayer(
             WebView(context).apply {
                 webViewState.value = this
                 setBackgroundColor(AndroidColor.BLACK)
+                // Keep the inline WebView on its own hardware layer. The dialog player uses
+                // the same setting; without it, Chromium's video surface can composite as a
+                // permanently black rectangle inside Compose's AndroidView on some devices.
+                setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
