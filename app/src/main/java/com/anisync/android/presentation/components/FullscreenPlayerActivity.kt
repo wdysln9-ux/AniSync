@@ -366,14 +366,16 @@ private fun FullscreenVideoContent(
         }
     }
 
-    // Drive the scrubber while playing (paused while dragging).
-    LaunchedEffect(isPlaying, isScrubbing) {
-        while (isPlaying && !isScrubbing) {
-            positionMs = player.currentPosition
+    // Keep the timeline and buffered range moving during playback and buffering.
+// Media3 reports isPlaying=false while buffering; using it as the loop condition freezes
+// the buffer bar exactly when it should continue tracking downloaded data.
+    LaunchedEffect(player, isScrubbing) {
+        while (!isScrubbing) {
+            positionMs = player.currentPosition.coerceAtLeast(0L)
             bufferedPositionMs = player.bufferedPosition.coerceAtLeast(0L)
             val d = player.duration
             if (d > 0) durationMs = d
-            delay(250)
+            delay(250L)
         }
     }
 
