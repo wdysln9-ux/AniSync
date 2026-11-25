@@ -6,17 +6,14 @@ import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
@@ -55,19 +52,18 @@ fun YouTubeInlinePlayer(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(8.dp))
             .background(Color.Black),
         factory = { context ->
             WebView(context).apply {
                 webViewState.value = this
                 setBackgroundColor(AndroidColor.BLACK)
-                setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
                 settings.mediaPlaybackRequiresUserGesture = false
                 settings.loadsImagesAutomatically = true
                 settings.databaseEnabled = true
+                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                 settings.javaScriptCanOpenWindowsAutomatically = false
                 settings.setSupportMultipleWindows(false)
                 settings.userAgentString = mobileUserAgent
@@ -75,8 +71,25 @@ fun YouTubeInlinePlayer(
                 CookieManager.getInstance().setAcceptCookie(true)
                 CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 
-                webViewClient = WebViewClient()
-                webChromeClient = WebChromeClient()
+                webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView, url: String) {
+                        android.util.Log.d("AniSyncYouTube", "Embed loaded: $url")
+                    }
+                    override fun onReceivedError(view: WebView, request: android.webkit.WebResourceRequest, error: android.webkit.WebResourceError) {
+                        super.onReceivedError(view, request, error)
+                        android.util.Log.e("AniSyncYouTube", "Load failed: " + request.url + ", code=" + error.errorCode + ", " + error.description)
+                    }
+                    override fun onReceivedHttpError(view: WebView, request: android.webkit.WebResourceRequest, response: android.webkit.WebResourceResponse) {
+                        super.onReceivedHttpError(view, request, response)
+                        android.util.Log.e("AniSyncYouTube", "HTTP " + response.statusCode + ": " + request.url)
+                    }
+                }
+                webChromeClient = object : WebChromeClient() {
+                    override fun onConsoleMessage(message: android.webkit.ConsoleMessage): Boolean {
+                        android.util.Log.e("AniSyncYouTube", "JS " + message.message() + " at " + message.sourceId() + ":" + message.lineNumber())
+                        return true
+                    }
+                }
 
                 isFocusable = true
                 isFocusableInTouchMode = true
