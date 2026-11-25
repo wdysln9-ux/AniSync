@@ -124,7 +124,7 @@ private fun YouTubeWebView(
     val requestHeaders = remember {
         mapOf(
             "Referer" to "https://www.youtube.com/",
-            "Origin" to "https://www.youtube.com/"
+            "Origin" to "https://www.youtube.com"
         )
     }
     val mobileUserAgent = remember {
