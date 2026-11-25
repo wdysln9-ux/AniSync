@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
-import com.anisync.android.presentation.components.RichTextRenderer
 import com.anisync.android.presentation.components.rememberParsedRichText
 import com.anisync.android.presentation.forum.components.ThreadBodyItem
 import com.anisync.android.presentation.util.LocalMainNavBarInset
