@@ -350,14 +350,13 @@ fun ThreadCommentItem(
 
             if (!isCollapsed) {
                 Column(
-                    modifier = Modifier.padding(
-                        start = headerHorizontalPadding + contentIndent,
-                        end = headerHorizontalPadding,
-                        bottom = 4.dp
-                    )
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp)
                 ) {
-                    // Use the exact same rich-text body component as Feed activity posts.
-                    // It owns the 12dp header-to-body spacing and all rich-text/media layout.
+                    // Match the Feed activity body's horizontal bounds: the outer comment
+                    // container already supplies the content inset, so adding the header's
+                    // 4dp inset here made text and media previews narrower than Feed.
                     ActivityPostBody(html = comment.body)
 
                     Spacer(Modifier.height(12.dp))
