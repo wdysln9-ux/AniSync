@@ -385,14 +385,16 @@ fun VideoPlayer(
         }
     }
 
-    // Drive the scrubber while playing (paused when the user is dragging it).
-    LaunchedEffect(isPlaying, isScrubbing) {
-        while (isPlaying && !isScrubbing) {
-            positionMs = exoPlayer.currentPosition
+    // Keep the timeline and buffered range moving during both playback and buffering.
+    // isPlaying becomes false while Media3 is buffering, so gating this loop on isPlaying
+    // freezes the buffer bar precisely when it needs to show progress.
+    LaunchedEffect(exoPlayer, isScrubbing) {
+        while (!isScrubbing) {
+            positionMs = exoPlayer.currentPosition.coerceAtLeast(0L)
             bufferedPositionMs = exoPlayer.bufferedPosition.coerceAtLeast(0L)
             val d = exoPlayer.duration
             if (d > 0) durationMs = d
-            delay(250)
+            delay(250L)
         }
     }
 
