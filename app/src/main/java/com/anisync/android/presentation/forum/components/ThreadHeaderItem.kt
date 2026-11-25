@@ -41,6 +41,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.anisync.android.domain.ForumThread
+import com.anisync.android.domain.parser.ParsedRichText
+import com.anisync.android.presentation.components.RichTextRenderer
 import com.anisync.android.presentation.profile.components.ActivityPostBody
 import com.anisync.android.presentation.components.AnimatedFavoriteButton
 import com.anisync.android.presentation.components.NameWithDonatorBadge
@@ -225,6 +227,31 @@ fun ThreadBodyItem(
         ActivityPostBody(
             html = html,
             modifier = Modifier.padding(horizontal = 20.dp)
+        )
+    }
+}
+
+/**
+ * Renders a body that has already been parsed by the screen's rich-text state.
+ * Keeping this overload alongside the HTML version avoids parsing the same content twice.
+ */
+@Composable
+fun ThreadBodyItem(
+    body: ParsedRichText,
+    modifier: Modifier = Modifier,
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
+        RichTextRenderer(
+            parsedData = body,
+            modifier = Modifier.padding(horizontal = 20.dp),
+            style = style,
+            color = color
         )
     }
 }
