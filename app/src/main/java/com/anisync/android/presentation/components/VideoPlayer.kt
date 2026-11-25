@@ -192,6 +192,7 @@ fun VideoPlayer(
     onCinematicLightingChange: (Float) -> Unit = {},
     preloadUrl: String? = null,
     preloadHeaders: Map<String, String> = emptyMap(),
+    onBufferComplete: () -> Unit = {},
     aniskipMalId: Int? = null,
     aniskipEpisodeNumber: Int? = null
 ) {
@@ -215,6 +216,8 @@ fun VideoPlayer(
     val isHandedOff by rememberUpdatedState(handedOff)
     val currentOnPlaybackEnded by rememberUpdatedState(onPlaybackEnded)
     val currentOnAutoNextChange by rememberUpdatedState(onAutoNextChange)
+    val currentOnBufferComplete by rememberUpdatedState(onBufferComplete)
+    var bufferCompletionNotified by remember(url) { mutableStateOf(false) }
     LaunchedEffect(url, aniskipMalId, aniskipEpisodeNumber, durationMs) {
         aniSkipSegments = emptyList()
         FullscreenVideoBridge.aniSkipSegments.value = emptyList()
@@ -395,6 +398,18 @@ fun VideoPlayer(
             val d = exoPlayer.duration
             if (d > 0) durationMs = d
             delay(250L)
+        }
+    }
+
+    // Resolve the next episode only when the current episode is fully buffered.
+    // This avoids network/provider work during normal playback.
+    LaunchedEffect(url, bufferedPositionMs, durationMs, bufferCompletionNotified) {
+        if (!bufferCompletionNotified &&
+            durationMs > 0L &&
+            bufferedPositionMs >= durationMs
+        ) {
+            bufferCompletionNotified = true
+            currentOnBufferComplete()
         }
     }
 
