@@ -52,6 +52,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.documentfile.provider.DocumentFile
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import androidx.compose.ui.layout.ContentScale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -394,14 +398,38 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                                         }
                                     }
                                 }
+                                val previewImage = remember(item.body) {
+                                    Regex("""!\\[[^]]*]\\((https?://[^)]+)\\)|<img[^>]+src=["'](https?://[^"']+)["']""", RegexOption.IGNORE_CASE)
+                                        .find(item.body)?.let { match ->
+                                            match.groupValues.getOrNull(1).orEmpty().ifBlank { match.groupValues.getOrNull(2).orEmpty() }
+                                        }?.takeIf { it.isNotBlank() }
+                                }
                                 val snippet = item.body
                                     .replace(Regex("<[^>]*>"), " ")
                                     .replace(Regex("!\\[[^]]*]\\([^)]*\\)"), "Gambar")
                                     .replace(Regex("[#*_~`>]"), "")
                                     .replace(Regex("\\s+"), " ")
                                     .trim()
-                                if (snippet.isNotBlank()) {
-                                    Text(snippet, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (snippet.isNotBlank()) {
+                                        Text(
+                                            snippet,
+                                            modifier = Modifier.weight(1f),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    if (previewImage != null) {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(LocalContext.current).data(previewImage).crossfade(true).build(),
+                                            contentDescription = "Gambar catatan",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.padding(start = 10.dp).size(width = 56.dp, height = 64.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                        )
+                                    }
                                 }
                                 Text(
                                     java.text.SimpleDateFormat("d MMM · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(item.updatedAt)),
