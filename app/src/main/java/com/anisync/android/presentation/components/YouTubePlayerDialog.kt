@@ -34,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -114,7 +113,6 @@ private fun YouTubeWebView(
     modifier: Modifier = Modifier
 ) {
     val webViewState = remember { mutableStateOf<WebView?>(null) }
-    val context = LocalContext.current
     // Match the working AnimeW player path: load YouTube's embed URL directly,
     // with the same mobile browser user-agent and explicit Referer/Origin headers.
     // This avoids the extra local HTML/iframe wrapper used by the previous AniSync code.
@@ -189,12 +187,8 @@ private fun YouTubeWebView(
                     loadUrl(embedUrl, requestHeaders)
                 }
             },
-            update = { webView ->
-                // The dialog is keyed by video id; re-load only if its requested URL changed.
-                if (webView.url != embedUrl) {
-                    webView.loadUrl(embedUrl, requestHeaders)
-                }
-            }
+            // key(safeVideoId) recreates the WebView for a different video id.
+            // Do not reload from update: YouTube may navigate internally after startup.
         )
     }
 
