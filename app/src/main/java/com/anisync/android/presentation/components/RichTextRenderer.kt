@@ -1013,11 +1013,46 @@ private fun RenderSingleBlock(
                     val videoId = remember(block.videoIdOrUrl) {
                         youtubeVideoIdFromUrl(block.videoIdOrUrl)
                     }
+
                     if (videoId != null) {
-                        YouTubeInlinePlayer(
-                            videoId = videoId,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    onLinkClick("https://www.youtube.com/watch?v=$videoId")
+                                }
+                        ) {
+                            SubcomposeAsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data("https://img.youtube.com/vi/$videoId/hqdefault.jpg")
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = stringResource(R.string.cd_youtube_thumbnail),
+                                contentScale = ContentScale.Crop,
+                                loading = {
+                                    ImageLoadingSkeleton(Modifier.fillMaxWidth())
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(16f / 9f)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .size(48.dp)
+                                    .background(Color.Black.copy(alpha = 0.6f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.PlayArrow,
+                                    contentDescription = stringResource(R.string.cd_play_video),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        }
                     }
                 }
 
