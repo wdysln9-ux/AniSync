@@ -87,7 +87,7 @@ fun YouTubeInlinePlayer(
             // Keep the same WebView alive through recompositions. Only navigate if
             // its current document is not already the requested video.
             val current = webView.url
-            if (current == null || current == "about:blank") {
+            if (current == null || current == "about:blank" || !current.contains(safeId)) {
                 webView.loadUrl(embedUrl, requestHeaders)
             }
         }
