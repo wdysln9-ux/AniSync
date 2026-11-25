@@ -34,6 +34,10 @@ object Notes
 @Serializable
 object LocalNotes
 
+/** Standalone destination for one offline note. */
+@Serializable
+data class LocalNoteDetail(val noteId: String)
+
 @Serializable
 object Feed
 
