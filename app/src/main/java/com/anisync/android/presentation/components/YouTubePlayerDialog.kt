@@ -6,7 +6,6 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.CookieManager
-import android.net.Uri
 import android.util.Log
 import android.view.View
 import androidx.activity.compose.BackHandler
@@ -116,10 +115,22 @@ private fun YouTubeWebView(
 ) {
     val webViewState = remember { mutableStateOf<WebView?>(null) }
     val context = LocalContext.current
-    // YouTube requires the installed app's identifier as the HTTP Referer for WebView embeds.
-    // Using youtube.com here identifies YouTube itself, not AniSync, and can cause error 153.
-    val appOrigin = remember(context) { "https://${context.packageName}" }
-    val encodedAppOrigin = remember(appOrigin) { Uri.encode(appOrigin) }
+    // Match the working AnimeW player path: load YouTube's embed URL directly,
+    // with the same mobile browser user-agent and explicit Referer/Origin headers.
+    // This avoids the extra local HTML/iframe wrapper used by the previous AniSync code.
+    val embedUrl = remember(videoId) {
+        "https://www.youtube-nocookie.com/embed/$videoId?playsinline=1"
+    }
+    val requestHeaders = remember {
+        mapOf(
+            "Referer" to "https://www.youtube.com/",
+            "Origin" to "https://www.youtube.com/"
+        )
+    }
+    val mobileUserAgent = remember {
+        "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 " +
+            "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+    }
 
     Box(modifier = modifier.background(Color.Black)) {
         AndroidView(
@@ -128,18 +139,16 @@ private fun YouTubeWebView(
                 WebView(context).apply {
                     webViewState.value = this
                     setBackgroundColor(AndroidColor.BLACK)
-                    // Keep video compositing on the hardware layer. Some Android WebView
-                    // versions otherwise show the embedded video surface as a black rectangle.
                     setLayerType(View.LAYER_TYPE_HARDWARE, null)
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
-                    settings.mediaPlaybackRequiresUserGesture = false
                     settings.loadsImagesAutomatically = true
                     settings.databaseEnabled = true
                     settings.javaScriptCanOpenWindowsAutomatically = false
                     settings.setSupportMultipleWindows(false)
                     settings.allowContentAccess = false
                     settings.allowFileAccess = false
+                    settings.userAgentString = mobileUserAgent
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                     webViewClient = object : WebViewClient() {
                         override fun onReceivedError(
@@ -177,42 +186,15 @@ private fun YouTubeWebView(
                     }
                     isFocusable = true
                     isFocusableInTouchMode = true
-                    // The HTTPS host MUST be the installed Android application ID, not
-                    // youtube.com. YouTube's embedded-player policy requires the app ID in
-                    // HTTP Referer for WebView clients; using YouTube's own host identifies
-                    // the wrong client and can trigger error 153 / a permanently black player.
-                    // loadDataWithBaseURL supplies that Referer to the iframe request.
-                    val html = """
-                        <!doctype html>
-                        <html>
-                        <head>
-                          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-                          <style>
-                            html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; }
-                            iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
-                          </style>
-                        </head>
-                        <body>
-                          <iframe
-                            src="https://www.youtube.com/embed/$videoId?autoplay=0&playsinline=1&controls=1&rel=0&enablejsapi=1&origin=$encodedAppOrigin"
-                            title="YouTube video player"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            referrerpolicy="strict-origin-when-cross-origin"
-                            allowfullscreen>
-                          </iframe>
-                        </body>
-                        </html>
-                    """.trimIndent()
-                    loadDataWithBaseURL(
-                        "$appOrigin/",
-                        html,
-                        "text/html",
-                        "UTF-8",
-                        null
-                    )
+                    loadUrl(embedUrl, requestHeaders)
                 }
             },
-            update = { _ -> }
+            update = { webView ->
+                // The dialog is keyed by video id; re-load only if its requested URL changed.
+                if (webView.url != embedUrl) {
+                    webView.loadUrl(embedUrl, requestHeaders)
+                }
+            }
         )
     }
 
