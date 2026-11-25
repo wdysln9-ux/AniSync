@@ -7,6 +7,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -61,7 +62,7 @@ fun YouTubeInlinePlayer(
             WebView(context).apply {
                 webViewState.value = this
                 setBackgroundColor(AndroidColor.BLACK)
-                setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
+                setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
