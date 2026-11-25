@@ -489,22 +489,30 @@ fun RichTextRenderer(
                     if (!isWhitespaceSeparator(block)) {
                         true
                     } else {
-                        val previousContent = blocks.subList(0, index)
-                            .lastOrNull { candidate -> !isWhitespaceSeparator(candidate) }
-                        val nextContent = blocks.drop(index + 1)
-                            .firstOrNull { candidate -> !isWhitespaceSeparator(candidate) }
-                        !(previousContent is RichTextBlock.AnilistLink &&
-                            nextContent is RichTextBlock.AnilistLink)
+                        // Empty paragraph blocks between any two real blocks are layout artifacts,
+                        // not content. Keeping one between text and a media preview adds an entire
+                        // blank text line on top of the normal block spacing, making that gap look
+                        // much larger than text-to-text spacing.
+                        val hasPreviousContent = blocks.subList(0, index)
+                            .any { candidate -> !isWhitespaceSeparator(candidate) }
+                        val hasNextContent = blocks.drop(index + 1)
+                            .any { candidate -> !isWhitespaceSeparator(candidate) }
+                        !(hasPreviousContent && hasNextContent)
                     }
                 }
                 Column {
                     compactBlocks.forEachIndexed { index, block ->
                         if (index > 0) {
-                            val adjacentMediaLinks =
-                                block is RichTextBlock.AnilistLink &&
+                            val currentIsMediaPreview = block is RichTextBlock.AnilistLink
+                            val previousIsMediaPreview =
                                 compactBlocks[index - 1] is RichTextBlock.AnilistLink
+                            val spacing = when {
+                                currentIsMediaPreview && previousIsMediaPreview -> 4.dp
+                                currentIsMediaPreview || previousIsMediaPreview -> 4.dp
+                                else -> 8.dp
+                            }
                             androidx.compose.foundation.layout.Spacer(
-                                Modifier.height(if (adjacentMediaLinks) 1.dp else 8.dp)
+                                Modifier.height(spacing)
                             )
                         }
                         RenderSingleBlock(
