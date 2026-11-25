@@ -41,10 +41,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.anisync.android.domain.ForumThread
-import com.anisync.android.domain.parser.ParsedRichText
+import com.anisync.android.presentation.profile.components.ActivityPostBody
 import com.anisync.android.presentation.components.AnimatedFavoriteButton
 import com.anisync.android.presentation.components.NameWithDonatorBadge
-import com.anisync.android.presentation.components.RichTextRenderer
 import com.anisync.android.presentation.components.UserAvatar
 import com.anisync.android.presentation.forum.components.shared.formatCount
 import com.anisync.android.presentation.forum.components.shared.toRelativeTime
@@ -69,8 +68,8 @@ fun ThreadHeaderTop(
         Column(
             modifier = Modifier.padding(
                 top = 16.dp,
-                start = 20.dp,
-                end = 20.dp,
+                start = 16.dp,
+                end = 16.dp,
                 bottom = 8.dp
             )
         ) {
@@ -215,23 +214,17 @@ private fun ThreadAuthorBlock(
  */
 @Composable
 fun ThreadBodyItem(
-    body: ParsedRichText,
+    html: String,
     modifier: Modifier = Modifier,
-    style: TextStyle = MaterialTheme.typography.bodyLarge.copy(
-        lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.4f
-    ),
-    color: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
     ) {
-        RichTextRenderer(
-            parsedData = body,
-            style = style,
-            color = color,
-            modifier = Modifier.padding(horizontal = 20.dp)
+        ActivityPostBody(
+            html = html,
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
     }
 }
@@ -282,7 +275,7 @@ fun ContentStatsBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 16.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.End),
             verticalAlignment = Alignment.CenterVertically
         ) {
