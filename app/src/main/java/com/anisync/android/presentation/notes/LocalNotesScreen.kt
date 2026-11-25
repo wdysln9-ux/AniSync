@@ -61,7 +61,7 @@ import java.util.UUID
 
 @Serializable private data class LocalNote(
     val id: String = UUID.randomUUID().toString(), val title: String = "", val body: String = "",
-    val folderId: String = "default", val createdAt: Long = System.currentTimeMillis(),
+    val favorite: Boolean = false, val folderId: String = "default", val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(), val pinned: Boolean = false,
     val archived: Boolean = false, val deleted: Boolean = false
 )
@@ -110,6 +110,8 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     var folderMenuId by remember { mutableStateOf<String?>(null) }
     var movingNoteId by remember { mutableStateOf<String?>(null) }
     var sortNewestFirst by remember { mutableStateOf(true) }
+    var favoriteOnly by remember { mutableStateOf(false) }
+    var bottomDestination by remember { mutableStateOf("home") }
     var backupMenu by remember { mutableStateOf(false) }
 
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -165,10 +167,11 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     val note = data.notes.firstOrNull { it.id == editing }
     var preview by remember(editing) { mutableStateOf(true) }
     BackHandler(enabled = note != null) { editing = null }
-    val visible = remember(data, folderId, query, archived, trash, sortNewestFirst) {
+    val visible = remember(data, folderId, query, archived, trash, sortNewestFirst, favoriteOnly) {
         data.notes.filter {
             (if (trash) it.deleted else if (archived) it.archived && !it.deleted else !it.archived && !it.deleted) &&
                 (folderId == "all" || it.folderId == folderId) &&
+                (!favoriteOnly || it.favorite) &&
                 (query.isBlank() || it.title.contains(query, true) || it.body.contains(query, true))
         }.sortedWith(compareByDescending<LocalNote> { it.pinned }.thenBy { if (sortNewestFirst) -it.updatedAt else it.updatedAt })
     }
@@ -176,69 +179,13 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            if (note == null) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth().statusBarsPadding(),
-                    color = MaterialTheme.colorScheme.background,
-                    shape = RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp),
-                    tonalElevation = 2.dp
-                ) {
-                    androidx.compose.foundation.lazy.LazyRow(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        item(key = "all_notes") {
-                            FilterChip(
-                                selected = folderId == "all",
-                                onClick = { folderId = "all" },
-                                label = { Text("Semua") }
-                            )
-                        }
-                        items(data.folders, key = { it.id }) { folder ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                FilterChip(
-                                    selected = folderId == folder.id,
-                                    onClick = { folderId = folder.id; archived = false; trash = false },
-                                    label = { Text(folder.name) }
-                                )
-                                Box {
-                                    TextButton(onClick = { folderMenuId = folder.id }) { Text("⋮") }
-                                    DropdownMenu(
-                                        expanded = folderMenuId == folder.id,
-                                        onDismissRequest = { folderMenuId = null }
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = { Text("Ganti nama tab") },
-                                            onClick = {
-                                                folderMenuId = null
-                                                editingFolderId = folder.id
-                                                newFolder = folder.name
-                                                folderDialog = true
-                                            }
-                                        )
-                                        if (data.folders.size > 1) DropdownMenuItem(
-                                            text = { Text("Hapus tab") },
-                                            onClick = {
-                                                folderMenuId = null
-                                                val fallback = data.folders.firstOrNull { it.id != folder.id }?.id ?: "default"
-                                                data = data.copy(
-                                                    folders = data.folders.filterNot { it.id == folder.id },
-                                                    notes = data.notes.map {
-                                                        if (it.folderId == folder.id) it.copy(folderId = fallback) else it
-                                                    }
-                                                )
-                                                if (folderId == folder.id) folderId = "all"
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+        topBar = {},
+        bottomBar = {
+            if (note == null) NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                NavigationBarItem(selected = bottomDestination == "home", onClick = { bottomDestination = "home"; archived = false; trash = false; favoriteOnly = false; folderId = "all" }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Beranda") })
+                NavigationBarItem(selected = bottomDestination == "folders", onClick = { bottomDestination = "folders"; archived = false; trash = false; favoriteOnly = false; folderId = "all" }, icon = { Icon(Icons.Default.Folder, null) }, label = { Text("Folder") })
+                NavigationBarItem(selected = bottomDestination == "favorites", onClick = { bottomDestination = "favorites"; archived = false; trash = false; favoriteOnly = true; folderId = "all" }, icon = { Icon(Icons.Default.Star, null) }, label = { Text("Favorit") })
+                NavigationBarItem(selected = bottomDestination == "trash", onClick = { bottomDestination = "trash"; trash = true; archived = false; favoriteOnly = false; folderId = "all" }, icon = { Icon(Icons.Default.Delete, null) }, label = { Text("Sampah") })
             }
         },
         floatingActionButton = { if (note == null && !trash) FloatingActionButton(onClick = {
@@ -334,33 +281,23 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 .padding(inset).verticalScroll(rememberScrollState())
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(start = 20.dp, end = 8.dp, top = 16.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ConnectedToggleSegment(
-                    icon = Icons.Default.NoteAdd,
-                    label = "Catatan",
-                    selected = !archived && !trash,
-                    leading = true,
-                    modifier = Modifier.weight(1f),
-                    onClick = { archived = false; trash = false; folderId = "all" }
-                )
-                ConnectedToggleSegment(
-                    icon = Icons.Default.Archive,
-                    label = "Arsip",
-                    selected = archived,
-                    leading = false,
-                    modifier = Modifier.weight(1f),
-                    onClick = { archived = true; trash = false; folderId = "all" }
-                )
+                Surface(shape = RoundedCornerShape(15.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(48.dp)) {
+                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.NoteAdd, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(26.dp)) }
+                }
+                Column(Modifier.weight(1f).padding(start = 13.dp)) {
+                    Text("Catatan Lokal", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(if (trash) "Catatan yang sudah dihapus" else if (archived) "Catatan yang disimpan di arsip" else "Simpan catatan, ide, dan lainnya di sini", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 Box {
-                    IconButton(onClick = { backupMenu = true }) { Icon(Icons.Default.Backup, "Cadangan") }
+                    IconButton(onClick = { backupMenu = true }) { Icon(Icons.Default.MoreVert, "Menu lainnya") }
                     DropdownMenu(backupMenu, { backupMenu = false }) {
                         DropdownMenuItem(text = { Text("Pilih folder cadangan") }, leadingIcon = { Icon(Icons.Default.Folder, null) }, onClick = { backupMenu = false; folderPicker.launch(null) })
                         DropdownMenuItem(text = { Text("Pulihkan dari file") }, leadingIcon = { Icon(Icons.Default.Restore, null) }, onClick = { backupMenu = false; importPicker.launch(arrayOf("application/json", "text/json")) })
                         DropdownMenuItem(text = { Text("Ekspor cadangan") }, leadingIcon = { Icon(Icons.Default.Download, null) }, onClick = { backupMenu = false; exportPicker.launch(BACKUP_FILE) })
-                        DropdownMenuItem(text = { Text("Sampah") }, leadingIcon = { Icon(Icons.Default.Delete, null) }, onClick = { backupMenu = false; trash = true; archived = false; folderId = "all" })
+                        DropdownMenuItem(text = { Text(if (archived) "Kembali ke catatan" else "Arsip") }, leadingIcon = { Icon(Icons.Default.Archive, null) }, onClick = { backupMenu = false; archived = !archived; trash = false; favoriteOnly = false; folderId = "all"; bottomDestination = "home" })
                     }
                 }
             }
@@ -379,11 +316,43 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     focusedBorderColor = MaterialTheme.colorScheme.primary
                 )
             )
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("${visible.size} catatan", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = { editingFolderId = null; newFolder = ""; folderDialog = true }) { Icon(Icons.Default.Add, null); Text("Folder") }
-                TextButton(onClick = { sortNewestFirst = !sortNewestFirst }) { Text(if (sortNewestFirst) "Terbaru" else "Terlama") }
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = !favoriteOnly && !archived && !trash, onClick = { favoriteOnly = false; archived = false; trash = false; folderId = "all"; bottomDestination = "home" }, label = { Text("Semua") })
+                FilterChip(selected = favoriteOnly, onClick = { favoriteOnly = true; archived = false; trash = false; folderId = "all"; bottomDestination = "favorites" }, label = { Text("Favorit") }, leadingIcon = { Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp)) })
+                FilterChip(selected = archived, onClick = { archived = !archived; trash = false; favoriteOnly = false; folderId = "all"; bottomDestination = "home" }, label = { Text("Arsip") }, leadingIcon = { Icon(Icons.Default.Archive, null, modifier = Modifier.size(16.dp)) })
+                FilterChip(selected = !sortNewestFirst, onClick = { sortNewestFirst = !sortNewestFirst }, label = { Text(if (sortNewestFirst) "Terbaru" else "Terlama") })
+            }
+            if (!trash && !archived) {
+                Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 2.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Folder", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = { editingFolderId = null; newFolder = ""; folderDialog = true }) { Icon(Icons.Default.Add, null); Text("Buat folder") }
+                }
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                    data.folders.forEach { folder ->
+                        val count = data.notes.count { it.folderId == folder.id && !it.deleted && !it.archived }
+                        Surface(onClick = { folderId = if (folderId == folder.id) "all" else folder.id; favoriteOnly = false; bottomDestination = "folders" }, shape = RoundedCornerShape(16.dp), color = if (folderId == folder.id) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer) {
+                            Row(Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.Folder, null, tint = MaterialTheme.colorScheme.primary)
+                                Column { Text(folder.name, style = MaterialTheme.typography.labelLarge); Text("$count catatan", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                Box {
+                                    IconButton(onClick = { folderMenuId = folder.id }, modifier = Modifier.size(24.dp)) { Icon(Icons.Default.MoreVert, "Opsi folder", modifier = Modifier.size(16.dp)) }
+                                    DropdownMenu(folderMenuId == folder.id, { folderMenuId = null }) {
+                                        DropdownMenuItem(text = { Text("Ganti nama folder") }, onClick = { folderMenuId = null; editingFolderId = folder.id; newFolder = folder.name; folderDialog = true })
+                                        if (data.folders.size > 1) DropdownMenuItem(text = { Text("Hapus folder") }, onClick = { folderMenuId = null; val fallback = data.folders.firstOrNull { it.id != folder.id }?.id ?: "default"; data = data.copy(folders = data.folders.filterNot { it.id == folder.id }, notes = data.notes.map { if (it.folderId == folder.id) it.copy(folderId = fallback) else it }); if (folderId == folder.id) folderId = "all" })
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(if (trash) "Sampah" else if (archived) "Arsip" else if (favoriteOnly) "Favorit" else if (folderId != "all") data.folders.firstOrNull { it.id == folderId }?.name ?: "Catatan" else "Semua catatan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("${visible.size} catatan", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (treeUri != null) Text("Cadangan aktif", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
             if (visible.isEmpty()) {
                 Column(
@@ -398,16 +367,16 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = if (trash) "Sampah masih kosong" else if (archived) "Belum ada arsip" else if (query.isNotBlank()) "Catatan tidak ditemukan" else "Belum ada catatan",
+                        text = if (trash) "Sampah masih kosong" else if (archived) "Belum ada arsip" else if (favoriteOnly) "Belum ada favorit" else if (query.isNotBlank()) "Catatan tidak ditemukan" else "Belum ada catatan",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = if (trash) "Catatan yang kamu hapus akan muncul di sini." else if (archived) "Catatan yang diarsipkan akan tersimpan di sini." else if (query.isNotBlank()) "Coba kata kunci lain." else "Mulai tulis ide atau hal penting yang ingin kamu simpan.",
+                        text = if (trash) "Catatan yang kamu hapus akan muncul di sini." else if (archived) "Catatan yang diarsipkan akan tersimpan di sini." else if (favoriteOnly) "Tandai catatan sebagai favorit agar mudah ditemukan." else if (query.isNotBlank()) "Coba kata kunci lain." else "Mulai tulis ide atau hal penting yang ingin kamu simpan.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (!trash && !archived && query.isBlank()) {
+                    if (!trash && !archived && !favoriteOnly && query.isBlank()) {
                         FilledTonalButton(onClick = {
                             val item = LocalNote(folderId = folderId.takeUnless { it == "all" } ?: data.folders.firstOrNull()?.id ?: "default")
                             data = data.copy(notes = listOf(item) + data.notes)
