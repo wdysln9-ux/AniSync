@@ -35,9 +35,8 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
-import com.anisync.android.presentation.components.rememberParsedRichText
-import com.anisync.android.presentation.forum.components.ThreadBodyItem
-import com.anisync.android.presentation.util.LocalMainNavBarInset
+import com.anisync.android.presentation.components.AsyncRichTextRenderer
+import com.anisync.android.presentation.components.CollapsingTopBarScaffold
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.filled.Lock
 import com.anisync.android.domain.ActivityType
@@ -188,23 +187,10 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {},
-        floatingActionButton = {
-            if (note == null && !trash) {
-                Box(
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .padding(bottom = LocalMainNavBarInset.current)
-                ) {
-                    FloatingActionButton(onClick = {
-                        val item = LocalNote(folderId = folderId.takeUnless { it == "all" } ?: data.folders.firstOrNull()?.id ?: "default")
-                        data = data.copy(notes = listOf(item) + data.notes)
-                        editing = item.id
-                    }) {
-                        Icon(Icons.Default.NoteAdd, "Buat catatan")
-                    }
-                }
-            }
-        }
+        floatingActionButton = { if (note == null && !trash) FloatingActionButton(onClick = {
+            val item = LocalNote(folderId = folderId.takeUnless { it == "all" } ?: data.folders.firstOrNull()?.id ?: "default")
+            data = data.copy(notes = listOf(item) + data.notes); editing = item.id
+        }) { Icon(Icons.Default.NoteAdd, "Buat catatan") } }
     ) { inset ->
         if (note != null) {
             if (!preview) {
@@ -297,65 +283,63 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
             Row(
                 Modifier.fillMaxWidth().statusBarsPadding()
                     .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Cari catatan") },
-                    leadingIcon = { Icon(Icons.Default.Search, null) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(28.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.surfaceContainer,
-                        focusedBorderColor = MaterialTheme.colorScheme.surfaceContainer
-                    )
+                Icon(
+                    Icons.Default.NoteAdd,
+                    contentDescription = "Catatan",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(26.dp)
                 )
-                Box {
-                    IconButton(onClick = { backupMenu = true }) {
-                        Icon(Icons.Default.MoreVert, "Menu lainnya")
-                    }
-                    DropdownMenu(backupMenu, { backupMenu = false }) {
-                        DropdownMenuItem(
-                            text = { Text(if (favoriteOnly) "Tampilkan semua catatan" else "Favorit") },
-                            leadingIcon = { Icon(Icons.Default.Star, null) },
-                            onClick = { backupMenu = false; favoriteOnly = !favoriteOnly; archived = false; trash = false; folderId = "all" }
-                        )
-                        DropdownMenuItem(text = { Text(if (archived) "Kembali ke catatan" else "Arsip") }, leadingIcon = { Icon(Icons.Default.Archive, null) }, onClick = { backupMenu = false; archived = !archived; trash = false; favoriteOnly = false; folderId = "all" })
-                        DropdownMenuItem(text = { Text(if (trash) "Kembali ke catatan" else "Sampah") }, leadingIcon = { Icon(Icons.Default.Delete, null) }, onClick = { backupMenu = false; trash = !trash; archived = false; favoriteOnly = false; folderId = "all" })
-                        DropdownMenuItem(text = { Text("Pilih folder cadangan") }, leadingIcon = { Icon(Icons.Default.Folder, null) }, onClick = { backupMenu = false; folderPicker.launch(null) })
-                        DropdownMenuItem(text = { Text("Pulihkan dari file") }, leadingIcon = { Icon(Icons.Default.Restore, null) }, onClick = { backupMenu = false; importPicker.launch(arrayOf("application/json", "text/json")) })
-                        DropdownMenuItem(text = { Text("Ekspor cadangan") }, leadingIcon = { Icon(Icons.Default.Download, null) }, onClick = { backupMenu = false; exportPicker.launch(BACKUP_FILE) })
-                    }
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { favoriteOnly = !favoriteOnly; archived = false; trash = false; folderId = "all" }) {
+                    Icon(Icons.Default.Star, "Favorit", tint = if (favoriteOnly) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = { backupMenu = true }) {
+                    Icon(Icons.Default.MoreVert, "Menu lainnya")
+                }
+                DropdownMenu(backupMenu, { backupMenu = false }) {
+                    DropdownMenuItem(text = { Text("Pilih folder cadangan") }, leadingIcon = { Icon(Icons.Default.Folder, null) }, onClick = { backupMenu = false; folderPicker.launch(null) })
+                    DropdownMenuItem(text = { Text("Pulihkan dari file") }, leadingIcon = { Icon(Icons.Default.Restore, null) }, onClick = { backupMenu = false; importPicker.launch(arrayOf("application/json", "text/json")) })
+                    DropdownMenuItem(text = { Text("Ekspor cadangan") }, leadingIcon = { Icon(Icons.Default.Download, null) }, onClick = { backupMenu = false; exportPicker.launch(BACKUP_FILE) })
+                    DropdownMenuItem(text = { Text(if (archived) "Kembali ke catatan" else "Arsip") }, leadingIcon = { Icon(Icons.Default.Archive, null) }, onClick = { backupMenu = false; archived = !archived; trash = false; favoriteOnly = false; folderId = "all" })
+                    if (!trash) DropdownMenuItem(text = { Text("Sampah") }, leadingIcon = { Icon(Icons.Default.Delete, null) }, onClick = { backupMenu = false; trash = true; archived = false; favoriteOnly = false; folderId = "all" })
                 }
             }
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 6.dp),
+                placeholder = { Text("Cari catatan") },
+                leadingIcon = { Icon(Icons.Default.Search, null) },
+                singleLine = true,
+                shape = RoundedCornerShape(28.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedBorderColor = MaterialTheme.colorScheme.surfaceContainer
+                )
+            )
             Row(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
                     .padding(horizontal = 18.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FilterChip(
-                    selected = folderId == "all" && !favoriteOnly && !archived && !trash,
-                    onClick = { folderId = "all"; favoriteOnly = false; archived = false; trash = false },
-                    label = { Text("Semua") }
-                )
+                FilterChip(selected = !favoriteOnly && !archived && !trash && folderId == "all", onClick = { favoriteOnly = false; archived = false; trash = false; folderId = "all" }, label = { Text("Semua") })
+                FilterChip(selected = favoriteOnly, onClick = { favoriteOnly = true; archived = false; trash = false; folderId = "all" }, label = { Text("Favorit") }, leadingIcon = { Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp)) })
+                FilterChip(selected = archived, onClick = { archived = true; trash = false; favoriteOnly = false; folderId = "all" }, label = { Text("Arsip") })
+                FilterChip(selected = trash, onClick = { trash = true; archived = false; favoriteOnly = false; folderId = "all" }, label = { Text("Sampah") })
+                FilterChip(selected = !sortNewestFirst, onClick = { sortNewestFirst = !sortNewestFirst }, label = { Text(if (sortNewestFirst) "Terbaru" else "Terlama") })
                 data.folders.forEach { folder ->
                     FilterChip(
                         selected = folderId == folder.id,
-                        onClick = { folderId = if (folderId == folder.id) "all" else folder.id; favoriteOnly = false; archived = false; trash = false },
+                        onClick = { folderId = if (folderId == folder.id) "all" else folder.id; favoriteOnly = false },
                         label = { Text(folder.name) },
                         leadingIcon = { Icon(Icons.Default.Folder, null, modifier = Modifier.size(15.dp)) }
                     )
                 }
-                FilterChip(
-                    selected = false,
-                    onClick = { editingFolderId = null; newFolder = ""; folderDialog = true },
-                    label = { Text("Buat folder +") }
-                )
+                FilterChip(selected = false, onClick = { editingFolderId = null; newFolder = ""; folderDialog = true }, label = { Text("Buat folder +") })
             }
             if (visible.isEmpty()) {
                 Column(
@@ -463,7 +447,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     }
     if (movingNoteId != null) AlertDialog(
         onDismissRequest = { movingNoteId = null },
-        title = { Text("Pindahkan catatan ke folder") },
+        title = { Text("Pindahkan catatan ke tab") },
         text = {
             Column {
                 data.folders.forEach { folder ->
@@ -478,7 +462,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
         confirmButton = { TextButton(onClick = { movingNoteId = null }) { Text("Batal") } }
     )
     if (folderDialog) AlertDialog(onDismissRequest = { folderDialog = false; newFolder = ""; editingFolderId = null },
-        title = { Text(if (editingFolderId == null) "Buat folder" else "Ganti nama folder") },
+        title = { Text(if (editingFolderId == null) "Buat tab" else "Ganti nama tab") },
         text = { OutlinedTextField(newFolder, { newFolder = it }, label = { Text("Nama folder") }, singleLine = true) },
         confirmButton = { TextButton(onClick = {
             if (newFolder.isNotBlank()) {
@@ -530,7 +514,6 @@ private fun LocalNoteDetailScreen(
     var menuExpanded by remember(note.id) { mutableStateOf(false) }
     val dateFormat = remember { java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")) }
     val displayedBody = remember(note.title, note.body) { bodyWithoutDuplicateNoteTitle(note.title, note.body) }
-    val parsedBody = rememberParsedRichText(displayedBody)
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(
@@ -574,14 +557,12 @@ private fun LocalNoteDetailScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            parsedBody?.let { body ->
+            if (displayedBody.isNotBlank()) {
                 item {
-                    ThreadBodyItem(
-                        body = body,
+                    AsyncRichTextRenderer(
+                        html = displayedBody,
                         modifier = Modifier.fillMaxWidth(),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f
-                        ),
+                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.45f),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
