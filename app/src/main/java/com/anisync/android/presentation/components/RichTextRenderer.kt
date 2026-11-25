@@ -386,6 +386,31 @@ fun RichTextHost(
 }
 
 /**
+ * Empty paragraphs emitted between adjacent HTML blocks are parser artifacts, not visible content.
+ * Remove only interior whitespace-only blocks so the normal block spacing is the sole gap between
+ * text and link previews in every renderer path.
+ */
+private fun withoutInteriorWhitespaceSeparators(blocks: List<RichTextBlock>): List<RichTextBlock> {
+    fun isWhitespaceSeparator(candidate: RichTextBlock): Boolean =
+        candidate is RichTextBlock.Text && candidate.inlines.all { inline ->
+            (inline is RichTextInline.Text && inline.value.isBlank()) ||
+                inline is RichTextInline.LineBreak
+        }
+
+    return blocks.filterIndexed { index, block ->
+        if (!isWhitespaceSeparator(block)) {
+            true
+        } else {
+            val hasPreviousContent = blocks.subList(0, index)
+                .any { candidate -> !isWhitespaceSeparator(candidate) }
+            val hasNextContent = blocks.drop(index + 1)
+                .any { candidate -> !isWhitespaceSeparator(candidate) }
+            !(hasPreviousContent && hasNextContent)
+        }
+    }
+}
+
+/**
  * Emits one lazy item per top-level block. [itemModifier] is applied to each, which is where a
  * screen puts the horizontal padding its other content already has.
  *
@@ -396,7 +421,7 @@ fun LazyListScope.richTextItems(
     scope: RichTextRenderScope,
     itemModifier: Modifier = Modifier
 ) {
-    val blocks = scope.parsed.blocks
+    val blocks = withoutInteriorWhitespaceSeparators(scope.parsed.blocks)
     // A float image wraps everything that follows it, so those blocks are one layout and cannot be
     // split across items. Bodies built around a float are short by nature.
     val hasFloat = blocks.indexOfFirst {
@@ -456,7 +481,7 @@ fun RichTextRenderer(
 ) {
     RichTextHost(parsedData, style, color, linkColor, codeBackground, spoilerColor) { scope ->
         SelectionContainer(modifier = modifier) {
-            val blocks = scope.parsed.blocks
+            val blocks = withoutInteriorWhitespaceSeparators(scope.parsed.blocks)
             val hasFloat = blocks.indexOfFirst {
                 it is RichTextBlock.Image && it.floatSide != RichTextFloat.None
             } in 0 until blocks.lastIndex
@@ -476,30 +501,9 @@ fun RichTextRenderer(
                     )
                 }
             } else {
-                // AniList often wraps each link in its own paragraph and leaves whitespace-only
-                // paragraph blocks between them. Treat those as separators, not real content, so
-                // consecutive media previews stay visually grouped in profile posts and comments.
-                fun isWhitespaceSeparator(candidate: RichTextBlock): Boolean =
-                    candidate is RichTextBlock.Text && candidate.inlines.all { inline ->
-                        inline is RichTextInline.Text && inline.value.isBlank() ||
-                            inline is RichTextInline.LineBreak
-                    }
-
-                val compactBlocks = blocks.filterIndexed { index, block ->
-                    if (!isWhitespaceSeparator(block)) {
-                        true
-                    } else {
-                        // Empty paragraph blocks between any two real blocks are layout artifacts,
-                        // not content. Keeping one between text and a media preview adds an entire
-                        // blank text line on top of the normal block spacing, making that gap look
-                        // much larger than text-to-text spacing.
-                        val hasPreviousContent = blocks.subList(0, index)
-                            .any { candidate -> !isWhitespaceSeparator(candidate) }
-                        val hasNextContent = blocks.drop(index + 1)
-                            .any { candidate -> !isWhitespaceSeparator(candidate) }
-                        !(hasPreviousContent && hasNextContent)
-                    }
-                }
+                // Whitespace-only paragraph blocks were removed before branching, so both
+                // normal and compact renderers now use the same true content boundaries.
+                val compactBlocks = blocks
                 Column {
                     compactBlocks.forEachIndexed { index, block ->
                         if (index > 0) {
