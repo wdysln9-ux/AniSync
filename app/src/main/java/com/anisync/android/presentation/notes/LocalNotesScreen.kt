@@ -101,7 +101,7 @@ private fun saveTree(context: Context, uri: Uri, data: LocalNotesBackup): Boolea
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LocalNotesScreen(onBackClick: () -> Unit) {
+fun LocalNotesScreen(onBackClick: () -> Unit, onOpenNote: (String) -> Unit) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
     var data by remember { mutableStateOf(loadNotes(context)) }
@@ -109,7 +109,6 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
     var status by remember { mutableStateOf("Catatan tersimpan di perangkat") }
     var folderId by remember { mutableStateOf("all") }
     var query by remember { mutableStateOf("") }
-    var editing by remember { mutableStateOf<String?>(null) }
     var archived by remember { mutableStateOf(false) }
     var trash by remember { mutableStateOf(false) }
     var folderDialog by remember { mutableStateOf(false) }
@@ -172,9 +171,6 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
         if (treeUri != null) status = if (savedToTree == true) "Tersimpan • cadangan diperbarui" else "Tersimpan lokal • cadangan gagal"
     }
 
-    val note = data.notes.firstOrNull { it.id == editing }
-    var preview by remember(editing) { mutableStateOf(true) }
-    BackHandler(enabled = note != null) { editing = null }
     val visible = remember(data, folderId, query, archived, trash, sortNewestFirst, favoriteOnly) {
         data.notes.filter {
             (if (trash) it.deleted else if (archived) it.archived && !it.deleted else !it.archived && !it.deleted) &&
@@ -189,7 +185,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {},
         floatingActionButton = {
-            if (note == null && !trash) {
+            if (!trash) {
                 Box(
                     modifier = Modifier
                         .navigationBarsPadding()
@@ -197,7 +193,8 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     FloatingActionButton(onClick = {
                         val item = LocalNote(folderId = folderId.takeUnless { it == "all" } ?: data.folders.firstOrNull()?.id ?: "default")
                         data = data.copy(notes = listOf(item) + data.notes)
-                        editing = item.id
+                        prefs.edit().putString(PAYLOAD, notesJson.encodeToString(data)).apply()
+                        onOpenNote(item.id)
                     }) {
                         Icon(Icons.Default.NoteAdd, "Buat catatan")
                     }
@@ -205,90 +202,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
             }
         }
     ) { inset ->
-        if (note != null) {
-            if (!preview) {
-                key(note.id) {
-                    RichTextInputScreen(
-                        title = "Edit catatan",
-                        placeholder = "Tulis catatan dengan Markdown...",
-                        initialBody = note.body,
-                        isSubmitting = false,
-                        submitLabel = "Simpan",
-                        onBodyChange = { body ->
-                            data = data.copy(notes = data.notes.map {
-                                if (it.id == note.id && it.body != body) it.copy(body = body, updatedAt = System.currentTimeMillis()) else it
-                            })
-                        },
-                        onSubmit = { body ->
-                            data = data.copy(notes = data.notes.map {
-                                if (it.id == note.id) it.copy(body = body, updatedAt = System.currentTimeMillis()) else it
-                            })
-                            preview = true
-                        },
-                        onDismiss = { preview = true },
-                        hasExternalUnsavedChanges = false,
-                        confirmDiscardChanges = false,
-                        headerSlot = {
-                            androidx.compose.foundation.text.BasicTextField(
-                                value = note.title,
-                                onValueChange = { value ->
-                                    data = data.copy(notes = data.notes.map {
-                                        if (it.id == note.id) it.copy(title = value, updatedAt = System.currentTimeMillis()) else it
-                                    })
-                                },
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                                textStyle = MaterialTheme.typography.headlineSmall.copy(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                decorationBox = { inner ->
-                                    Box {
-                                        if (note.title.isEmpty()) Text("Judul catatan", color = MaterialTheme.colorScheme.outline)
-                                        inner()
-                                    }
-                                }
-                            )
-                            Text(
-                                "Dibuat " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(note.createdAt)),
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                            Text(
-                                "Diperbarui " + java.text.SimpleDateFormat("d MMM yyyy · HH:mm", java.util.Locale("id", "ID")).format(java.util.Date(note.updatedAt)),
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(top = 10.dp))
-                        }
-                    )
-                }
-            } else {
-                LocalNoteDetailScreen(
-                    note = note,
-                    onBack = { editing = null },
-                    onEdit = { preview = false },
-                    onTogglePin = {
-                        data = data.copy(notes = data.notes.map {
-                            if (it.id == note.id) it.copy(pinned = !it.pinned) else it
-                        })
-                    },
-                    onArchive = {
-                        data = data.copy(notes = data.notes.map {
-                            if (it.id == note.id) it.copy(archived = true) else it
-                        })
-                        editing = null
-                    },
-                    onTrash = {
-                        data = data.copy(notes = data.notes.map {
-                            if (it.id == note.id) it.copy(deleted = true) else it
-                        })
-                        editing = null
-                    }
-                )
-            }
-        } else Column(
+        Column(
             Modifier.fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(inset)
@@ -383,7 +297,7 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                     items(visible, key = { it.id }) { item ->
                         var menu by remember(item.id) { mutableStateOf(false) }
                         Surface(
-                            modifier = Modifier.fillMaxWidth().clickable { editing = item.id },
+                            modifier = Modifier.fillMaxWidth().clickable { onOpenNote(item.id) },
                             shape = RoundedCornerShape(18.dp),
                             color = MaterialTheme.colorScheme.surfaceContainer
                         ) {
