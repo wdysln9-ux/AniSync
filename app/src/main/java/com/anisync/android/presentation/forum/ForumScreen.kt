@@ -375,7 +375,6 @@ fun ForumScreen(
         floatingActionButton = {
             Box(
                 modifier = Modifier
-                    .navigationBarsPadding()
                     .padding(bottom = LocalMainNavBarInset.current)
             ) {
                 Column(
