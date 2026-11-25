@@ -284,8 +284,9 @@ private fun CoverImage(
                     .crossfade(true)
                     .build(),
                 contentDescription = null,
-                // Fit (not Crop) so the cover is never trimmed and its aspect ratio is preserved.
-                contentScale = ContentScale.Fit,
+                // Fill the rounded poster frame edge-to-edge. The frame itself uses the
+                // AniList 2:3 cover ratio, so Crop fills it without distorting the artwork.
+                contentScale = ContentScale.Crop,
                 error = { LetterGlyph(type, accent) },
                 modifier = Modifier.fillMaxSize()
             )
