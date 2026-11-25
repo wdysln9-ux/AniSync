@@ -193,7 +193,6 @@ fun LocalNotesScreen(onBackClick: () -> Unit) {
                 Box(
                     modifier = Modifier
                         .navigationBarsPadding()
-                        .padding(bottom = LocalMainNavBarInset.current)
                 ) {
                     FloatingActionButton(onClick = {
                         val item = LocalNote(folderId = folderId.takeUnless { it == "all" } ?: data.folders.firstOrNull()?.id ?: "default")
