@@ -113,21 +113,47 @@ private fun YouTubeWebView(
     modifier: Modifier = Modifier
 ) {
     val webViewState = remember { mutableStateOf<WebView?>(null) }
-    // Match the working AnimeW player path: load YouTube's embed URL directly,
-    // with the same mobile browser user-agent and explicit Referer/Origin headers.
-    // This avoids the extra local HTML/iframe wrapper used by the previous AniSync code.
-    val embedUrl = remember(videoId) {
-        "https://www.youtube.com/embed/$videoId?playsinline=1"
-    }
-    val requestHeaders = remember {
-        mapOf(
-            "Referer" to "https://www.youtube.com/",
-            "Origin" to "https://www.youtube.com"
-        )
-    }
-    val mobileUserAgent = remember {
-        "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 " +
-            "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+    // Use Android's reserved HTTPS WebView origin. A direct loadUrl(embedUrl) request
+    // has no meaningful embedding-page Referer; spoofing youtube.com as Referer/Origin
+    // identifies the wrong client and can leave the official player completely black.
+    val webOrigin = "https://appassets.androidplatform.net"
+    val encodedOrigin = remember { android.net.Uri.encode(webOrigin) }
+
+    val html = remember(videoId, encodedOrigin) {
+        """
+        <!doctype html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+          <style>
+            html, body {
+              margin: 0;
+              padding: 0;
+              width: 100%;
+              height: 100%;
+              background: #000;
+              overflow: hidden;
+            }
+            iframe {
+              position: absolute;
+              inset: 0;
+              width: 100%;
+              height: 100%;
+              border: 0;
+            }
+          </style>
+        </head>
+        <body>
+          <iframe
+            src="https://www.youtube.com/embed/$videoId?playsinline=1&controls=1&rel=0&enablejsapi=1&origin=$encodedOrigin"
+            title="YouTube video player"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen>
+          </iframe>
+        </body>
+        </html>
+        """.trimIndent()
     }
 
     Box(modifier = modifier.background(Color.Black)) {
@@ -138,58 +164,77 @@ private fun YouTubeWebView(
                     webViewState.value = this
                     setBackgroundColor(AndroidColor.BLACK)
                     setLayerType(View.LAYER_TYPE_HARDWARE, null)
+
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
-                    settings.mediaPlaybackRequiresUserGesture = false
                     settings.loadsImagesAutomatically = true
                     settings.databaseEnabled = true
+                    settings.mediaPlaybackRequiresUserGesture = true
                     settings.javaScriptCanOpenWindowsAutomatically = false
                     settings.setSupportMultipleWindows(false)
                     settings.allowContentAccess = false
                     settings.allowFileAccess = false
-                    settings.userAgentString = mobileUserAgent
+
+                    CookieManager.getInstance().setAcceptCookie(true)
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+
                     webViewClient = object : WebViewClient() {
+                        override fun onPageFinished(view: WebView, url: String) {
+                            super.onPageFinished(view, url)
+                            Log.d("AniSyncYouTube", "Player document loaded: $url")
+                        }
+
                         override fun onReceivedError(
                             view: WebView,
                             request: android.webkit.WebResourceRequest,
                             error: android.webkit.WebResourceError
                         ) {
                             super.onReceivedError(view, request, error)
-                            Log.w(
-                                "AniSyncYouTube",
-                                "Web resource failed: ${request.url} (code=${error.errorCode})"
-                            )
+                            if (request.isForMainFrame) {
+                                Log.e(
+                                    "AniSyncYouTube",
+                                    "Player page failed: ${request.url} (code=${error.errorCode}, ${error.description})"
+                                )
+                            }
                         }
 
                         override fun onReceivedHttpError(
                             view: WebView,
                             request: android.webkit.WebResourceRequest,
-                            errorResponse: android.webkit.WebResourceResponse
+                            response: android.webkit.WebResourceResponse
                         ) {
-                            super.onReceivedHttpError(view, request, errorResponse)
+                            super.onReceivedHttpError(view, request, response)
                             Log.w(
                                 "AniSyncYouTube",
-                                "HTTP ${errorResponse.statusCode} for ${request.url}"
+                                "HTTP ${response.statusCode}: ${request.url}"
                             )
                         }
                     }
+
                     webChromeClient = object : WebChromeClient() {
                         override fun onConsoleMessage(message: android.webkit.ConsoleMessage): Boolean {
                             Log.w(
                                 "AniSyncYouTube",
-                                "${message.message()} (line ${message.lineNumber()})"
+                                "JS ${message.message()} (${message.sourceId()}:${message.lineNumber()})"
                             )
                             return true
                         }
                     }
+
                     isFocusable = true
                     isFocusableInTouchMode = true
-                    loadUrl(embedUrl, requestHeaders)
+                    loadDataWithBaseURL(
+                        "$webOrigin/",
+                        html,
+                        "text/html",
+                        "UTF-8",
+                        null
+                    )
                 }
             },
-            // key(safeVideoId) recreates the WebView for a different video id.
-            // Do not reload from update: YouTube may navigate internally after startup.
+            update = { _ ->
+                // Keep the WebView document alive during Compose recompositions.
+            }
         )
     }
 
