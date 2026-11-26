@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.consume
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -40,6 +39,7 @@ import com.anisync.android.cloudstream.CloudStreamRepository
 import com.anisync.android.cloudstream.CloudStreamRepositoryManager
 import com.anisync.android.cloudstream.CloudStreamRuntime
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +67,7 @@ fun CloudStreamSettingsScreen(onBackClick: () -> Unit) {
         }
     }
     fun moveProvider(name: String, direction: Int) {
-        val current = priorityProviders.toMutableList()
+        val current = priorityPrefs.getString("order", "").orEmpty().split("\\u001F").filter(String::isNotBlank).toMutableList().ifEmpty { priorityProviders.toMutableList() }
         val from = current.indexOf(name)
         val to = (from + direction).coerceIn(0, current.lastIndex)
         if (from < 0 || from == to) return
@@ -127,7 +127,7 @@ fun CloudStreamSettingsScreen(onBackClick: () -> Unit) {
                             Text("Tekan dan tahan provider, lalu geser untuk mengatur urutan. Provider paling atas akan dicoba lebih dulu.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             priorityProviders.forEachIndexed { index, name ->
                                 Row(
-                                    Modifier.fillMaxWidth().pointerInput(name, priorityProviders) {
+                                    Modifier.fillMaxWidth().pointerInput(name) {
                                         var accumulated = 0f
                                         detectDragGesturesAfterLongPress(
                                             onDrag = { change, dragAmount ->
