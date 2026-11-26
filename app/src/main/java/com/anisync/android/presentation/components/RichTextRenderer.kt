@@ -444,14 +444,18 @@ fun LazyListScope.richTextItems(
     }
 
     items(count = blocks.size, key = { "richtext-$it" }) { index ->
-        val isAdjacentAniListPreview = index > 0 &&
-            blocks[index] is RichTextBlock.AnilistLink &&
-            blocks[index - 1] is RichTextBlock.AnilistLink
+        val current = blocks[index]
+        val previous = blocks.getOrNull(index - 1)
+        val isAdjacentAniListPreview = current is RichTextBlock.AnilistLink &&
+            previous is RichTextBlock.AnilistLink
+        val isTextImmediatelyBeforePreview = current is RichTextBlock.AnilistLink &&
+            previous is RichTextBlock.Text
         SelectionContainer(
             modifier = itemModifier.padding(
                 top = when {
                     index == 0 -> 0.dp
                     isAdjacentAniListPreview -> 0.5.dp
+                    isTextImmediatelyBeforePreview -> 0.dp
                     else -> 8.dp
                 }
             )
@@ -486,19 +490,41 @@ fun RichTextRenderer(
                 it is RichTextBlock.Image && it.floatSide != RichTextFloat.None
             } in 0 until blocks.lastIndex
             if (!compactAdjacentMediaLinks || hasFloat) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    RenderBlocks(
-                        blocks = blocks,
-                        style = scope.style,
-                        color = scope.color,
-                        linkColor = scope.linkColor,
-                        codeBackground = scope.codeBackground,
-                        spoilerColor = scope.spoilerColor,
-                        previews = scope.previews,
-                        onImageClick = scope.onImageClick,
-                        onLinkClick = scope.onLinkClick,
-                        linkListener = scope.linkListener
-                    )
+                if (hasFloat) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        RenderBlocks(
+                            blocks = blocks,
+                            style = scope.style,
+                            color = scope.color,
+                            linkColor = scope.linkColor,
+                            codeBackground = scope.codeBackground,
+                            spoilerColor = scope.spoilerColor,
+                            previews = scope.previews,
+                            onImageClick = scope.onImageClick,
+                            onLinkClick = scope.onLinkClick,
+                            linkListener = scope.linkListener
+                        )
+                    }
+                } else {
+                    Column {
+                        blocks.forEachIndexed { index, block ->
+                            if (index > 0) {
+                                val previous = blocks[index - 1]
+                                val textBeforePreview = block is RichTextBlock.AnilistLink &&
+                                    previous is RichTextBlock.Text
+                                if (!textBeforePreview) {
+                                    androidx.compose.foundation.layout.Spacer(
+                                        Modifier.height(8.dp)
+                                    )
+                                }
+                            }
+                            RenderSingleBlock(
+                                block, scope.style, scope.color, scope.linkColor,
+                                scope.codeBackground, scope.spoilerColor, scope.previews,
+                                scope.onImageClick, scope.onLinkClick, scope.linkListener
+                            )
+                        }
+                    }
                 }
             } else {
                 // Whitespace-only paragraph blocks were removed before branching, so both
