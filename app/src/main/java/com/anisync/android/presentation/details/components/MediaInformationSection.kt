@@ -463,7 +463,7 @@ private fun buildInfoItems(
     }
     // Append unit suffix based on type
     val fullEpisodesValue = if (episodesValue != "?") {
-        if (details.type == MediaType.MANGA) "$episodesValue Chs" else "$episodesValue Eps"
+        if (details.type == MediaType.MANGA) "$episodesValue Chs" else "$episodesValue Episode"
     } else {
         stringResource(R.string.unknown)
     }
@@ -484,7 +484,7 @@ private fun buildInfoItems(
             InfoItem(
                 icon = Icons.Default.AccessTime,
                 label = stringResource(R.string.stat_duration),
-                value = "$duration mins",
+                value = "$duration menit",
                 iconTint = MaterialTheme.colorScheme.secondary
             )
         )
