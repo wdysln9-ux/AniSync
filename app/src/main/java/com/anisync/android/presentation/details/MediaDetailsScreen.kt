@@ -2401,7 +2401,7 @@ private fun ScoreLine(details: MediaDetails, formattedScore: String, onClick: ()
             Spacer(modifier = Modifier.width(6.dp))
             Icon(
                 imageVector = Icons.Outlined.Visibility,
-                contentDescription = stringResource(R.string.statistics_popularity),
+                contentDescription = stringResource(R.string.sort_popularity),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(15.dp)
             )
