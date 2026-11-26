@@ -415,12 +415,21 @@ fun VideoPlayer(
 
     // Pause on background, resume on foreground (only if it was playing). Skipped while handed off
     // to fullscreen — that activity owns playback then, and pausing here would stop it.
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner, exoPlayer) {
+        var resumeAfterLifecyclePause = false
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> if (!handedOff) exoPlayer.pause()
-                Lifecycle.Event.ON_RESUME -> if (isPlaying && !handedOff) exoPlayer.play()
-                else -> {}
+                Lifecycle.Event.ON_PAUSE -> {
+                    if (!isHandedOff) {
+                        resumeAfterLifecyclePause = exoPlayer.isPlaying
+                        if (resumeAfterLifecyclePause) exoPlayer.pause()
+                    }
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    if (resumeAfterLifecyclePause && !isHandedOff) exoPlayer.play()
+                    resumeAfterLifecyclePause = false
+                }
+                else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -428,9 +437,14 @@ fun VideoPlayer(
     }
 
     // When the fullscreen activity returns, reclaim the surface.
+    var resumeAfterFullscreen by remember(exoPlayer) { mutableStateOf(false) }
     val fullscreenLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { handedOff = false }
+    ) {
+        handedOff = false
+        if (resumeAfterFullscreen) exoPlayer.play()
+        resumeAfterFullscreen = false
+    }
 
     DisposableEffect(exoPlayer) {
         FullscreenVideoBridge.onPlaybackEnded = {
@@ -468,6 +482,7 @@ fun VideoPlayer(
         exoPlayer.prepare()
     }
     val onEnterFullscreen: () -> Unit = {
+        resumeAfterFullscreen = exoPlayer.playWhenReady
         FullscreenVideoBridge.player = exoPlayer
         handedOff = true
         onFullscreenEntered()
