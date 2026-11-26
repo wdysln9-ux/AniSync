@@ -194,7 +194,7 @@ internal fun CloudStreamWatchContent(
                                 for (query in aliases) {
                                     CloudStreamRuntime.search(name, query).forEach { item ->
                                         val score = matchScore(item["name"]?.toString().orEmpty(), aliases)
-                                        if (score >= 62) local += ResolveHit(name, item, score)
+                                        if (score >= 60) local += ResolveHit(name, item, score)
                                     }
                                     if (local.any { it.score >= 96 }) break
                                 }
