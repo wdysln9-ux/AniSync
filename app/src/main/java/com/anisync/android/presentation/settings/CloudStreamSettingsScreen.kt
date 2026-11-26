@@ -6,6 +6,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.consume
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -34,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.anisync.android.cloudstream.CloudStreamPlugin
 import com.anisync.android.cloudstream.CloudStreamRepository
 import com.anisync.android.cloudstream.CloudStreamRepositoryManager
+import com.anisync.android.cloudstream.CloudStreamRuntime
 import kotlinx.coroutines.launch
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -48,6 +53,29 @@ fun CloudStreamSettingsScreen(onBackClick: () -> Unit) {
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
+    val priorityPrefs = remember(context) { context.getSharedPreferences("cloudstream_provider_priority", 0) }
+    var priorityProviders by remember { mutableStateOf<List<String>>(emptyList()) }
+    fun refreshProviderPriority() {
+        scope.launch {
+            val available = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                CloudStreamRuntime.providers().filter { p ->
+                    (p["types"] as? List<*>)?.any { it?.toString() in setOf("Anime", "AnimeMovie", "OVA") } == true
+                }.mapNotNull { it["name"]?.toString()?.takeIf(String::isNotBlank) }.distinct()
+            }
+            val saved = priorityPrefs.getString("order", "").orEmpty().split("\\u001F").filter(String::isNotBlank)
+            priorityProviders = saved.filter { it in available } + available.filterNot { it in saved }
+        }
+    }
+    fun moveProvider(name: String, direction: Int) {
+        val current = priorityProviders.toMutableList()
+        val from = current.indexOf(name)
+        val to = (from + direction).coerceIn(0, current.lastIndex)
+        if (from < 0 || from == to) return
+        val item = current.removeAt(from)
+        current.add(to, item)
+        priorityProviders = current
+        priorityPrefs.edit().putString("order", current.joinToString("\\u001F")).apply()
+    }
 
     fun refresh() {
         scope.launch {
@@ -58,7 +86,7 @@ fun CloudStreamSettingsScreen(onBackClick: () -> Unit) {
             finally { loading = false }
         }
     }
-    LaunchedEffect(Unit) { refresh() }
+    LaunchedEffect(Unit) { refresh(); refreshProviderPriority() }
 
     Scaffold(
         topBar = {
@@ -90,6 +118,35 @@ fun CloudStreamSettingsScreen(onBackClick: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
+            }
+            if (priorityProviders.isNotEmpty()) {
+                item {
+                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Prioritas Auto Resolve", style = MaterialTheme.typography.titleMedium)
+                            Text("Tekan dan tahan provider, lalu geser untuk mengatur urutan. Provider paling atas akan dicoba lebih dulu.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            priorityProviders.forEachIndexed { index, name ->
+                                Row(
+                                    Modifier.fillMaxWidth().pointerInput(name, priorityProviders) {
+                                        var accumulated = 0f
+                                        detectDragGesturesAfterLongPress(
+                                            onDrag = { change, dragAmount ->
+                                                change.consume()
+                                                accumulated += dragAmount.y
+                                                while (accumulated <= -48f) { moveProvider(name, -1); accumulated += 48f }
+                                                while (accumulated >= 48f) { moveProvider(name, 1); accumulated -= 48f }
+                                            }
+                                        )
+                                    }.padding(vertical = 7.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("${index + 1}. $name", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                    Icon(Icons.Default.DragHandle, contentDescription = "Geser untuk mengubah prioritas", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
             }
             if (loading) item { CircularProgressIndicator() }
             error?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
