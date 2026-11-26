@@ -181,6 +181,7 @@ fun CloudStreamSettingsScreen(onBackClick: () -> Unit) {
                                         try {
                                             manager.install(plugin)
                                             installed = manager.installedIds()
+                                            refreshProviderPriority()
                                         } catch (t: Throwable) { error = t.message ?: "Gagal memasang extension" }
                                         finally { loading = false }
                                     }
@@ -188,6 +189,7 @@ fun CloudStreamSettingsScreen(onBackClick: () -> Unit) {
                                 onUninstall = {
                                     manager.uninstall(plugin)
                                     installed = manager.installedIds()
+                                    refreshProviderPriority()
                                 }
                             )
                         }
