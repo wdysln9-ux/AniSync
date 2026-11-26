@@ -380,12 +380,19 @@ private fun FullscreenVideoContent(
     }
 
     // Pause when this activity is backgrounded; resume if it was playing.
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner, player) {
+        var resumeAfterLifecyclePause = false
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> player.pause()
-                Lifecycle.Event.ON_RESUME -> if (isPlaying) player.play()
-                else -> {}
+                Lifecycle.Event.ON_PAUSE -> {
+                    resumeAfterLifecyclePause = player.playWhenReady
+                    if (player.isPlaying) player.pause()
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    if (resumeAfterLifecyclePause) player.play()
+                    resumeAfterLifecyclePause = false
+                }
+                else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
