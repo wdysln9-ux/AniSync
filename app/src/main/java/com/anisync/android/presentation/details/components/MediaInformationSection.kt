@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.DateRange
@@ -740,9 +739,8 @@ private fun getSourceDisplayName(source: String): String =
 private enum class InfoSheetKind { TITLES, PRODUCERS }
 
 /**
- * Builds the tappable "expand" pills that trail the scalar info pills. Each opens a bottom
- * sheet ([onOpen]) holding data that doesn't fit a one-line pill: the alternative titles,
- * the synonym list, and the producer studios. Only pills with data are emitted.
+ * Builds the tappable "expand" pills that trail the scalar info pills. Titles and synonyms share
+ * one bottom sheet; producer studios keep their own. Only pills with data are emitted.
  */
 @Composable
 private fun buildExpandableInfoItems(
