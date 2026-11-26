@@ -171,10 +171,10 @@ class LinkPreviewProviderImpl @Inject constructor(
     }
 
     private fun prettySeason(raw: String): String = when (raw.uppercase()) {
-        "WINTER" -> "winter"
-        "SPRING" -> "spring"
-        "SUMMER" -> "summer"
-        "FALL" -> "fall"
+        "WINTER" -> "Winter"
+        "SPRING" -> "Spring"
+        "SUMMER" -> "Summer"
+        "FALL" -> "Fall"
         else -> raw.lowercase().replaceFirstChar { it.uppercase() }
     }
 
