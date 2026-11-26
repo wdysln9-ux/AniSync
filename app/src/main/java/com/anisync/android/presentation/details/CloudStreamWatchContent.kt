@@ -41,7 +41,21 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.Normalizer
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.util.Locale
+
+private fun formatEpisodeReleaseDate(value: String?): String {
+    val raw = value?.trim().orEmpty()
+    if (raw.isBlank()) return "Tanggal rilis belum tersedia"
+    return try {
+        val datePart = raw.take(10)
+        LocalDate.parse(datePart).format(DateTimeFormatter.ofPattern("MMM, dd yyyy", Locale.ENGLISH))
+    } catch (_: DateTimeParseException) {
+        raw
+    }
+}
 
 private data class ResolveHit(val provider: String, val item: Map<String, Any?>, val score: Int)
 private data class AniZipEpisode(val title: String?, val summary: String?, val image: String?, val releaseDate: String? = null)
@@ -513,7 +527,7 @@ internal fun CloudStreamWatchContent(
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    meta?.releaseDate ?: "Tanggal rilis belum tersedia",
+                                    formatEpisodeReleaseDate(meta?.releaseDate),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f)
                                 )
