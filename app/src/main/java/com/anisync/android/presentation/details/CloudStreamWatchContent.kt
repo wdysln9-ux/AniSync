@@ -204,8 +204,11 @@ internal fun CloudStreamWatchContent(
                         } }.awaitAll().filterNotNull()
                     }
                 }
+                val savedOrder = providerPriorityPrefs.getString("order", "").orEmpty()
+                    .split("\\u001F").filter(String::isNotBlank)
+                val providerRanks = savedOrder.withIndex().associate { it.value to it.index }
                 val ranked = found.distinctBy { it.provider + "|" + it.item["url"] }
-                    .sortedByDescending { it.score }
+                    .sortedWith(compareBy<ResolveHit> { providerRanks[it.provider] ?: Int.MAX_VALUE }.thenByDescending { it.score })
                 hits = ranked
                 if (ranked.isEmpty()) error = "Anime tidak ditemukan di provider yang terpasang."
                 else {
