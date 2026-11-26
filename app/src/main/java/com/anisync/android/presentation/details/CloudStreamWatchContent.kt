@@ -76,6 +76,7 @@ internal fun CloudStreamWatchContent(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val prefs = remember(context) { context.getSharedPreferences("anisync_auto_resolve", 0) }
+    val providerPriorityPrefs = remember(context) { context.getSharedPreferences("cloudstream_provider_priority", 0) }
     val aliases = remember(mediaTitle, romajiTitle, englishTitle, synonyms) {
         (listOfNotNull(romajiTitle, englishTitle, mediaTitle) + synonyms)
             .map(String::trim).filter(String::isNotBlank).distinctBy(::normalizeTitle).take(8)
