@@ -59,6 +59,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -116,6 +117,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import java.text.NumberFormat
+import java.util.Locale
 import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -2373,12 +2376,6 @@ private fun MetadataTags(details: MediaDetails, onFilterClick: (com.anisync.andr
  */
 @Composable
 private fun ScoreLine(details: MediaDetails, formattedScore: String, onClick: () -> Unit) {
-    val topRank = remember(details.rankings) {
-        details.rankings.firstOrNull {
-            it.allTime && it.type == com.anisync.android.domain.MediaRankingType.RATED
-        }
-    }
-
     Row(
         modifier = Modifier.clickable(
             onClickLabel = stringResource(R.string.a11y_score_info),
@@ -2400,11 +2397,21 @@ private fun ScoreLine(details: MediaDetails, formattedScore: String, onClick: ()
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
-        ScoreLabel(
-            ranked = topRank?.let { stringResource(R.string.details_score_average_ranked, it.rank) },
-            plain = stringResource(R.string.details_score_average),
-            modifier = Modifier.weight(1f, fill = false)
-        )
+        details.popularity?.let { popularity ->
+            Spacer(modifier = Modifier.width(6.dp))
+            Icon(
+                imageVector = Icons.Outlined.Visibility,
+                contentDescription = stringResource(R.string.statistics_popularity),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(15.dp)
+            )
+            Text(
+                text = NumberFormat.getIntegerInstance(Locale("id", "ID")).format(popularity),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
         Icon(
             imageVector = Icons.Outlined.Info,
             contentDescription = null,
@@ -2413,50 +2420,6 @@ private fun ScoreLine(details: MediaDetails, formattedScore: String, onClick: ()
         )
     }
 }
-
-/**
- * The words after the score. The rank goes when the line runs out of room, on a narrow phone or at a
- * large font size, so the line never ends in an ellipsis before the info mark.
- */
-@Composable
-private fun ScoreLabel(ranked: String?, plain: String, modifier: Modifier = Modifier) {
-    val style = MaterialTheme.typography.labelMedium
-    val color = MaterialTheme.colorScheme.onSurfaceVariant
-    Layout(
-        modifier = modifier,
-        content = {
-            Text(text = ranked ?: plain, style = style, color = color, maxLines = 1, softWrap = false)
-            Text(text = plain, style = style, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    ) { measurables, constraints ->
-        val (full, short) = measurables
-        val fits = full.maxIntrinsicWidth(constraints.maxHeight) <= constraints.maxWidth
-        val placeable = (if (fits) full else short).measure(constraints.copy(minWidth = 0))
-        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
-    }
-}
-
-@Composable
-private fun MetadataText(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-}
-
-@Composable
-private fun MetadataSeparator() {
-    Text(
-        text = stringResource(R.string.separator_bullet),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-    )
-}
-
-// ---------------------------------------------------------------------------
-// Discover-search preset for ranking cards
-// ---------------------------------------------------------------------------
 
 /**
  * Filters matching what AniList's site opens when a ranking card is clicked:
