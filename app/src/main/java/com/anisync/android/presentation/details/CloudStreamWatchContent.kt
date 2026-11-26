@@ -212,9 +212,7 @@ internal fun CloudStreamWatchContent(
                 hits = ranked
                 if (ranked.isEmpty()) error = "Anime tidak ditemukan di provider yang terpasang."
                 else {
-                    val saved = prefs.getString("match_$mediaId", null)
-                    val remembered = ranked.firstOrNull { it.provider + "|" + it.item["url"].toString() == saved }
-                    loadHit(remembered ?: ranked.first())
+                    loadHit(ranked.first())
                 }
             } catch (t: Throwable) {
                 error = t.message ?: "Auto Resolve gagal."
