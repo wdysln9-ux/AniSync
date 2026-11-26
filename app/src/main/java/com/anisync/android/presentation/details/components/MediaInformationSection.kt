@@ -737,7 +737,7 @@ private fun getSourceDisplayName(source: String): String =
 
 // --- Expandable "array" pills (Titles / Synonyms / Producers) ---------------------------------
 
-private enum class InfoSheetKind { TITLES, SYNONYMS, PRODUCERS }
+private enum class InfoSheetKind { TITLES, PRODUCERS }
 
 /**
  * Builds the tappable "expand" pills that trail the scalar info pills. Each opens a bottom
@@ -751,30 +751,21 @@ private fun buildExpandableInfoItems(
 ): List<InfoItem> {
     val items = mutableListOf<InfoItem>()
 
-    val hasTitles = listOfNotNull(
-        details.titleRomaji, details.titleEnglish, details.titleNative
-    ).isNotEmpty()
+    val titleCount = listOfNotNull(
+        details.titleRomaji?.takeIf { it.isNotBlank() },
+        details.titleEnglish?.takeIf { it.isNotBlank() },
+        details.titleNative?.takeIf { it.isNotBlank() }
+    ).size + details.synonyms.count { it.isNotBlank() }
+    val hasTitles = titleCount > 0
     if (hasTitles) {
         items.add(
             InfoItem(
                 icon = Icons.Default.Translate,
                 label = stringResource(R.string.details_label_titles),
-                value = "",
+                value = titleCount.toString(),
                 iconTint = MaterialTheme.colorScheme.primary,
                 showChevron = true,
                 onClick = { onOpen(InfoSheetKind.TITLES) }
-            )
-        )
-    }
-    if (details.synonyms.isNotEmpty()) {
-        items.add(
-            InfoItem(
-                icon = Icons.AutoMirrored.Filled.Label,
-                label = stringResource(R.string.details_label_synonyms),
-                value = details.synonyms.size.toString(),
-                iconTint = MaterialTheme.colorScheme.secondary,
-                showChevron = true,
-                onClick = { onOpen(InfoSheetKind.SYNONYMS) }
             )
         )
     }
@@ -825,7 +816,6 @@ private fun InfoExpandSheet(
         ) {
             val title = when (kind) {
                 InfoSheetKind.TITLES -> stringResource(R.string.details_label_titles)
-                InfoSheetKind.SYNONYMS -> stringResource(R.string.details_label_synonyms)
                 InfoSheetKind.PRODUCERS -> stringResource(R.string.details_label_producers)
             }
             Text(
@@ -843,14 +833,25 @@ private fun InfoExpandSheet(
                         R.string.details_label_english to details.titleEnglish,
                         R.string.details_label_native to details.titleNative
                     ).mapNotNull { (label, title) -> title?.takeIf { it.isNotBlank() }?.let { label to it } }
-                    CopyableNamesCard {
-                        titles.forEach { (label, title) ->
-                            CopyableNameRow(stringResource(label), title, copyTitle)
+                    Column(verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_medium))) {
+                        if (titles.isNotEmpty()) {
+                            CopyableNamesCard {
+                                titles.forEach { (label, title) ->
+                                    CopyableNameRow(stringResource(label), title, copyTitle)
+                                }
+                            }
+                        }
+                        val synonyms = details.synonyms.filter { it.isNotBlank() }
+                        if (synonyms.isNotEmpty()) {
+                            Text(
+                                text = stringResource(R.string.details_label_synonyms),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            CopyableNameChips(names = synonyms, onCopy = copyTitle)
                         }
                     }
-                }
-                InfoSheetKind.SYNONYMS -> {
-                    CopyableNameChips(names = details.synonyms, onCopy = copyTitle)
                 }
                 InfoSheetKind.PRODUCERS -> {
                     ProducerChips(details.producers, onStudioClick)
