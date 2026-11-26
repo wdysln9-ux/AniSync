@@ -686,17 +686,17 @@ internal fun CloudStreamWatchContent(
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SheetLabel("Ringkasan episode")
+                    SheetLabel("Deskripsi")
                     Text(
                         meta?.summary?.takeIf(String::isNotBlank)
-                            ?: "Ringkasan episode belum tersedia dari AniZip.",
+                            ?: "Deskripsi belum tersedia dari AniZip.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SheetLabel("Video")
+                    SheetLabel("Server")
                     androidx.compose.foundation.layout.FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -719,7 +719,7 @@ internal fun CloudStreamWatchContent(
                     }
                     if (streams.isEmpty() && !resolving) {
                         Text(
-                            "Belum ada sumber video yang tersedia.",
+                            "Belum ada server yang tersedia.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
