@@ -443,29 +443,42 @@ fun LazyListScope.richTextItems(
         return
     }
 
-    items(count = blocks.size, key = { "richtext-$it" }) { index ->
-        val current = blocks[index]
-        val previous = blocks.getOrNull(index - 1)
-        val isAdjacentAniListPreview = current is RichTextBlock.AnilistLink &&
-            previous is RichTextBlock.AnilistLink
-        val isTextImmediatelyBeforePreview = current is RichTextBlock.AnilistLink &&
-            previous is RichTextBlock.Text
+    // Keep a text block and its immediately following AniList preview in the same lazy item.
+    // LazyColumn's verticalArrangement adds spacing BETWEEN items, which item padding cannot
+    // cancel; rendering this pair together prevents that extra gap when the URL follows the text
+    // directly. An explicit trailing line break keeps the blocks separate.
+    val groupedBlocks = buildList {
+        var index = 0
+        while (index < blocks.size) {
+            val current = blocks[index]
+            val next = blocks.getOrNull(index + 1)
+            val hasExplicitBreak = current is RichTextBlock.Text &&
+                current.inlines.lastOrNull() is RichTextInline.LineBreak
+            if (current is RichTextBlock.Text && next is RichTextBlock.AnilistLink &&
+                !hasExplicitBreak
+            ) {
+                add(listOf(current, next))
+                index += 2
+            } else {
+                add(listOf(current))
+                index++
+            }
+        }
+    }
+
+    items(count = groupedBlocks.size, key = { "richtext-group-$it" }) { index ->
+        val group = groupedBlocks[index]
         SelectionContainer(
-            modifier = itemModifier.padding(
-                top = when {
-                    index == 0 -> 0.dp
-                    isAdjacentAniListPreview -> 0.5.dp
-                    isTextImmediatelyBeforePreview -> 0.dp
-                    else -> 8.dp
-                }
-            )
+            modifier = itemModifier.padding(top = if (index == 0) 0.dp else 8.dp)
         ) {
-            Column {
-                RenderSingleBlock(
-                    blocks[index], scope.style, scope.color, scope.linkColor, scope.codeBackground,
-                    scope.spoilerColor, scope.previews, scope.onImageClick, scope.onLinkClick,
-                    scope.linkListener
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                group.forEach { block ->
+                    RenderSingleBlock(
+                        block, scope.style, scope.color, scope.linkColor, scope.codeBackground,
+                        scope.spoilerColor, scope.previews, scope.onImageClick, scope.onLinkClick,
+                        scope.linkListener
+                    )
+                }
             }
         }
     }
