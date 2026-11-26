@@ -70,8 +70,8 @@ fun ThreadHeaderTop(
         Column(
             modifier = Modifier.padding(
                 top = 16.dp,
-                start = 20.dp,
-                end = 20.dp,
+                start = 10.dp,
+                end = 10.dp,
                 bottom = 8.dp
             )
         ) {
@@ -226,7 +226,7 @@ fun ThreadBodyItem(
     ) {
         ActivityPostBody(
             html = html,
-            modifier = Modifier.padding(horizontal = 20.dp)
+            modifier = Modifier.padding(horizontal = 10.dp)
         )
     }
 }
