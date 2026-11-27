@@ -463,7 +463,7 @@ fun VideoPlayer(
     val onToggleMute: () -> Unit = {
         isMuted = !isMuted
         PlayerPreferences.setMuted(context, isMuted)
-        exoPlayer.volume = if (isMuted) 0f else 1f
+        exoPlayer.volume = if (isMuted) 0f else FullscreenVideoBridge.volumeGain.floatValue
     }
     val onSeek: (Float) -> Unit = { fraction ->
         isScrubbing = true
@@ -554,6 +554,10 @@ fun VideoPlayer(
                 isFullscreen = false,
                 onPlayPause = onPlayPause,
                 onToggleMute = onToggleMute,
+                onSetVolumeGain = { gain ->
+                    FullscreenVideoBridge.volumeGain.floatValue = gain
+                    if (!isMuted) exoPlayer.volume = gain
+                },
                 onSeek = onSeek,
                 onSeekBy = { delta ->
                     val target = (exoPlayer.currentPosition + delta).coerceIn(0L, durationMs.coerceAtLeast(0L))
@@ -1034,6 +1038,7 @@ internal fun VideoControlsOverlay(
     isFullscreen: Boolean,
     onPlayPause: () -> Unit,
     onToggleMute: () -> Unit,
+    onSetVolumeGain: (Float) -> Unit = {},
     onSeek: (Float) -> Unit,
     onSeekBy: (Long) -> Unit,
     onSeekFinished: () -> Unit,
@@ -1067,8 +1072,9 @@ internal fun VideoControlsOverlay(
     }
     var volumeLevel by remember(audioManager) {
         mutableFloatStateOf(
-            audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() /
-                audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+            FullscreenVideoBridge.volumePercent.floatValue.takeIf { it >= 0f }
+                ?: audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() /
+                    audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
         )
     }
     var levelHud by remember { mutableStateOf<String?>(null) }
@@ -1241,7 +1247,8 @@ internal fun VideoControlsOverlay(
                             brightnessGesture = offset.x < size.width / 2f
                             if (!brightnessGesture) {
                                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
-                                volumeLevel = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / maxVolume
+                                volumeLevel = FullscreenVideoBridge.volumePercent.floatValue.takeIf { it >= 0f }
+                                    ?: audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / maxVolume
                             }
                             levelHud = if (brightnessGesture) "brightness" else "volume"
                             controlsVisible = false
@@ -1258,15 +1265,21 @@ internal fun VideoControlsOverlay(
                                 }
                             } else {
                                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
-                                // Keep fractional drag progress between pointer events. Android's
-                                // stream volume is integer-stepped, so rounding the per-event delta
-                                // would discard small movements and make the gesture feel snappy.
+                                // Keep the gesture's full 0–100% range. The system stream remains
+                                // on the lower hardware step while ExoPlayer supplies the tiny
+                                // software gain between this step and the next one.
                                 volumeLevel = (volumeLevel + delta).coerceIn(0f, 1f)
-                                val next = (volumeLevel * maxVolume).roundToInt().coerceIn(0, maxVolume)
+                                FullscreenVideoBridge.volumePercent.floatValue = volumeLevel
+                                val baseStep = (volumeLevel * maxVolume).toInt().coerceIn(0, maxVolume)
+                                val usableStep = if (volumeLevel > 0f && baseStep == 0) 1 else baseStep
                                 val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-                                if (next != current) {
-                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, next, 0)
+                                if (usableStep != current) {
+                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, usableStep, 0)
                                 }
+                                val baseLevel = usableStep.toFloat() / maxVolume
+                                val gain = if (usableStep == 0) 0f
+                                    else (volumeLevel / baseLevel).coerceIn(0f, 1f)
+                                onSetVolumeGain(gain)
                             }
                             levelHudRevision++
                         }
