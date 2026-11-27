@@ -285,8 +285,18 @@ fun VideoPlayer(
         if (handedOff && FullscreenVideoBridge.isFullscreen &&
             FullscreenVideoBridge.player !== exoPlayer
         ) {
+            val previousPlayer = FullscreenVideoBridge.player
             exoPlayer.playWhenReady = true
             FullscreenVideoBridge.player = exoPlayer
+            // Give the fullscreen Activity time to attach the replacement surface before
+            // disposing the previous decoder. Cached players remain owned by their cache.
+            delay(150L)
+            if (previousPlayer != null && previousPlayer !== exoPlayer &&
+                FullscreenVideoBridge.player === exoPlayer
+            ) {
+                if (playerCache == null || useWsolaAudio) previousPlayer.release()
+                else previousPlayer.pause()
+            }
         }
     }
 
