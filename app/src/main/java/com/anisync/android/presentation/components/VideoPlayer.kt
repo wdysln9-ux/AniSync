@@ -1265,20 +1265,20 @@ internal fun VideoControlsOverlay(
                                 }
                             } else {
                                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
-                                // Keep the gesture's full 0–100% range. The system stream remains
-                                // on the lower hardware step while ExoPlayer supplies the tiny
-                                // software gain between this step and the next one.
+                                // Keep the gesture's full 0–100% range. Select the next
+                                // higher system step, then attenuate it slightly in ExoPlayer.
+                                // This fills the gaps without requiring gain above 1.0.
                                 volumeLevel = (volumeLevel + delta).coerceIn(0f, 1f)
                                 FullscreenVideoBridge.volumePercent.floatValue = volumeLevel
-                                val baseStep = (volumeLevel * maxVolume).toInt().coerceIn(0, maxVolume)
-                                val usableStep = if (volumeLevel > 0f && baseStep == 0) 1 else baseStep
+                                val upperStep = kotlin.math.ceil(volumeLevel * maxVolume)
+                                    .toInt().coerceIn(0, maxVolume)
                                 val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-                                if (usableStep != current) {
-                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, usableStep, 0)
+                                if (upperStep != current) {
+                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, upperStep, 0)
                                 }
-                                val baseLevel = usableStep.toFloat() / maxVolume
-                                val gain = if (usableStep == 0) 0f
-                                    else (volumeLevel / baseLevel).coerceIn(0f, 1f)
+                                val upperLevel = upperStep.toFloat() / maxVolume
+                                val gain = if (upperStep == 0) 0f
+                                    else (volumeLevel / upperLevel).coerceIn(0f, 1f)
                                 onSetVolumeGain(gain)
                             }
                             levelHudRevision++
