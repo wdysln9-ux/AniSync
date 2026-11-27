@@ -63,7 +63,7 @@ fun CloudStreamSettingsScreen(onBackClick: () -> Unit) {
             // Read both the old literal "\\u001F" separator and the actual unit separator.
             val saved = when {
                 rawOrder.contains('\u001F') -> rawOrder.split('\u001F')
-                rawOrder.contains("\\\\u001F") -> rawOrder.split("\\\\u001F")
+                rawOrder.contains("\\u001F") -> rawOrder.split("\\u001F")
                 rawOrder.isBlank() -> emptyList()
                 else -> listOf(rawOrder)
             }.filter(String::isNotBlank)
@@ -73,7 +73,7 @@ fun CloudStreamSettingsScreen(onBackClick: () -> Unit) {
     fun moveProvider(name: String, direction: Int) {
         val rawOrder = priorityPrefs.getString("order", "").orEmpty()
         val current = (if (rawOrder.contains('\u001F')) rawOrder.split('\u001F')
-            else if (rawOrder.contains("\\\\u001F")) rawOrder.split("\\\\u001F")
+            else if (rawOrder.contains("\\u001F")) rawOrder.split("\\u001F")
             else emptyList()).filter(String::isNotBlank).toMutableList()
             .ifEmpty { priorityProviders.toMutableList() }
         val from = current.indexOf(name)
