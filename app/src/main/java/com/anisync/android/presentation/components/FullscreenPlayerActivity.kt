@@ -123,7 +123,7 @@ internal object PlayerPreferences {
     fun setCinematicIntensity(context: android.content.Context, value: Float) {
         prefs(context).edit().putFloat(CINEMATIC_INTENSITY, value.coerceIn(0.05f, 0.8f)).apply()
     }
-    fun cinematicBlur(context: android.content.Context) = prefs(context).getFloat(CINEMATIC_BLUR, 18f).coerceIn(0f, 48f)
+    fun cinematicBlur(context: android.content.Context) = prefs(context).getFloat(CINEMATIC_BLUR, 18f).coerceIn(0f, 60f)
     fun setCinematicBlur(context: android.content.Context, value: Float) { prefs(context).edit().putFloat(CINEMATIC_BLUR, value.coerceIn(0f, 48f)).apply() }
     fun cinematicBrightness(context: android.content.Context) = prefs(context).getFloat(CINEMATIC_BRIGHTNESS, 0f).coerceIn(-1f, 1f)
     fun setCinematicBrightness(context: android.content.Context, value: Float) { prefs(context).edit().putFloat(CINEMATIC_BRIGHTNESS, value.coerceIn(-1f, 1f)).apply() }
