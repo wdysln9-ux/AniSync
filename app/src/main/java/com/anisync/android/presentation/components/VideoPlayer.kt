@@ -240,7 +240,7 @@ fun VideoPlayer(
 
     // Recreate only episode players when the selected audio path changes; retain the playhead.
     val exoPlayer = if (playerCache != null && !useWsolaAudio) {
-        remember(headers) { playerCache.getOrCreate(url, headers) }
+        remember(url, headers) { playerCache.getOrCreate(url, headers) }
     } else {
         remember(headers, useWsolaAudio, selectedAudioRenderer) {
             buildVideoExoPlayer(
@@ -281,6 +281,15 @@ fun VideoPlayer(
         }
     }
 
+    LaunchedEffect(exoPlayer, handedOff) {
+        if (handedOff && FullscreenVideoBridge.isFullscreen &&
+            FullscreenVideoBridge.player !== exoPlayer
+        ) {
+            exoPlayer.playWhenReady = true
+            FullscreenVideoBridge.player = exoPlayer
+        }
+    }
+
     DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
             override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -294,6 +303,11 @@ fun VideoPlayer(
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_READY &&
+                    exoPlayer.playWhenReady && !exoPlayer.isPlaying
+                ) {
+                    exoPlayer.play()
+                }
                 if (playbackState == Player.STATE_ENDED && !isHandedOff && !playbackEndHandled) {
                     playbackEndHandled = true
                     currentOnPlaybackEnded()
@@ -743,8 +757,13 @@ internal fun PlayerSurface(
     LaunchedEffect(exoPlayer, active, textureView) {
         val view = textureView ?: return@LaunchedEffect
         if (active) {
-            PlayerSurfaceRegistry.attach(exoPlayer, view)
             if (exoPlayer.playbackState == Player.STATE_IDLE) exoPlayer.prepare()
+            // SurfaceTexture can be recreated without a Compose layout-size change. Poll its
+            // identity while active; attach() is a no-op until the underlying surface changes.
+            while (true) {
+                if (view.isAvailable) PlayerSurfaceRegistry.attach(exoPlayer, view)
+                delay(100L)
+            }
         } else {
             PlayerSurfaceRegistry.detach(exoPlayer, view)
         }
