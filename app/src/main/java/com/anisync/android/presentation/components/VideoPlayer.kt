@@ -1582,7 +1582,7 @@ internal fun VideoControlsOverlay(
                                 Text("Intensitas cahaya")
                                 Slider(value = cinematicIntensity, onValueChange = { cinematicIntensity = it; if (cinematicEnabled) onCinematicLightingChange(it) }, onValueChangeFinished = { PlayerPreferences.setCinematicIntensity(context, cinematicIntensity) }, valueRange = 0.05f..0.8f, enabled = cinematicEnabled)
                                 Text("Blur · " + cinematicBlur.toInt())
-                                Slider(value = cinematicBlur, onValueChange = { cinematicBlur = it; FullscreenVideoBridge.cinematicBlur.floatValue = it }, onValueChangeFinished = { PlayerPreferences.setCinematicBlur(context, cinematicBlur) }, valueRange = 0f..48f, enabled = cinematicEnabled)
+                                Slider(value = cinematicBlur, onValueChange = { cinematicBlur = it; FullscreenVideoBridge.cinematicBlur.floatValue = it }, onValueChangeFinished = { PlayerPreferences.setCinematicBlur(context, cinematicBlur) }, valueRange = 0f..60f, enabled = cinematicEnabled)
                                 Text("Kecerahan · " + (cinematicBrightness * 100).toInt() + "%")
                                 Slider(value = cinematicBrightness, onValueChange = { cinematicBrightness = it; FullscreenVideoBridge.cinematicBrightness.floatValue = it }, onValueChangeFinished = { PlayerPreferences.setCinematicBrightness(context, cinematicBrightness) }, valueRange = -1f..1f, enabled = cinematicEnabled)
                                 Text("Vignette · " + (cinematicVignette * 100).toInt() + "%")
