@@ -35,5 +35,6 @@ fragment MediaCardFields on Media {
     medium
     large
     extraLarge
+    color
   }
 }
