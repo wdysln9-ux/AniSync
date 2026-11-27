@@ -177,7 +177,8 @@ class LinkPreviewProviderImpl @Inject constructor(
                         score = item.averageScore,
                         genres = item.genres?.filterNotNull().orEmpty()
                     )
-                    resolved[LinkPreviewKey(type, id)] = preview
+                    val requestedKey = media.firstOrNull { it.id == id }?.previewKey ?: LinkPreviewKey(type, id)
+                    resolved[requestedKey] = preview
                 }
 
                 response.data?.characterPage?.characters?.filterNotNull()?.forEach { item ->
@@ -293,6 +294,6 @@ class LinkPreviewProviderImpl @Inject constructor(
     private companion object {
         const val MAX_IDS_PER_QUERY = 25
         const val BATCH_WINDOW_MS = 150L
-        const val MIN_REQUEST_INTERVAL_MS = 3_000L
+        const val MIN_REQUEST_INTERVAL_MS = 3_500L
     }
 }
