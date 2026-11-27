@@ -452,11 +452,10 @@ fun LazyListScope.richTextItems(
         while (index < blocks.size) {
             val current = blocks[index]
             val next = blocks.getOrNull(index + 1)
-            val hasExplicitBreak = current is RichTextBlock.Text &&
-                current.inlines.lastOrNull() is RichTextInline.LineBreak
-            if (current is RichTextBlock.Text && next is RichTextBlock.AnilistLink &&
-                !hasExplicitBreak
-            ) {
+            // Keep the explicit line break inside the text block, but still group
+            // the following preview in the same lazy item. A line break must not add
+            // the LazyColumn's separate 8dp inter-item gap on top of the newline.
+            if (current is RichTextBlock.Text && next is RichTextBlock.AnilistLink) {
                 add(listOf(current, next))
                 index += 2
             } else {
