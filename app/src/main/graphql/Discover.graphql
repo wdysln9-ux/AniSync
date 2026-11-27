@@ -48,6 +48,7 @@ query GetUpcomingMedia(
         medium
         large
         extraLarge
+        color
       }
       episodes
       chapters
@@ -92,6 +93,7 @@ query GetPaginatedMedia(
         medium
         large
         extraLarge
+        color
       }
       episodes
       chapters
