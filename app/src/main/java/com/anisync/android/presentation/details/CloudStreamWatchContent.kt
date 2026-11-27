@@ -376,6 +376,9 @@ internal fun CloudStreamWatchContent(
                     val detail = if (hit == selected) anime else withContext(Dispatchers.IO) {
                         CloudStreamRuntime.loadAnime(hit.provider, hit.item["url"]?.toString().orEmpty())
                     }
+                    // A slow detail lookup from an earlier episode must not continue resolving
+                    // links after the user has selected another episode or provider.
+                    if (resolveRequestId != episodeResolveRequestId) return@launch
                     val eps = (detail?.get("episodes") as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
                     val match = eps.firstOrNull { e ->
                         val n = (e["episode"] as? Number)?.toInt()
