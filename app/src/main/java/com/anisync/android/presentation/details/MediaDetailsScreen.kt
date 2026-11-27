@@ -2356,7 +2356,16 @@ private fun MetadataTags(details: MediaDetails, onFilterClick: (com.anisync.andr
                 )))
             }
         } else {
-            details.duration?.let { add(MetadataPart(stringResource(R.string.details_duration_minutes, it), null)) }
+            details.duration?.let { duration ->
+                val durationLabel = when {
+                    duration >= 60 && duration % 60 == 0 ->
+                        stringResource(R.string.details_duration_hours, duration / 60)
+                    duration >= 60 ->
+                        stringResource(R.string.details_duration_hours_minutes, duration / 60, duration % 60)
+                    else -> stringResource(R.string.details_duration_minutes, duration)
+                }
+                add(MetadataPart(durationLabel, null))
+            }
         }
     }
     if (parts.isEmpty()) return
