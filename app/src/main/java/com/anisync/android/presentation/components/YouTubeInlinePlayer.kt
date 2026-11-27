@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -61,10 +62,7 @@ fun YouTubeInlinePlayer(
                 imageVector = Icons.Filled.PlayArrow,
                 contentDescription = "Putar video",
                 tint = Color.White,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(Modifier)
-                    .padding(10.dp)
+                modifier = Modifier.size(56.dp).padding(10.dp)
             )
         }
     }
