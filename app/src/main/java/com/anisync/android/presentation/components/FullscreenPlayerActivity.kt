@@ -149,6 +149,9 @@ internal object FullscreenVideoBridge {
     val cinematicBrightness = mutableFloatStateOf(0f)
     val cinematicVignette = mutableFloatStateOf(0f)
     val cinematicZoom = mutableFloatStateOf(1.22f)
+    // Fractional volume position and the software gain used between Android stream steps.
+    val volumePercent = mutableFloatStateOf(-1f)
+    val volumeGain = mutableFloatStateOf(1f)
     val aniSkipSegments = mutableStateOf<List<AniSkipSegment>>(emptyList())
     val episodeLabel = mutableStateOf<String?>(null)
 }
@@ -531,7 +534,11 @@ private fun FullscreenVideoContent(
                 onToggleMute = {
                     isMuted = !isMuted
                     PlayerPreferences.setMuted(context, isMuted)
-                    player.volume = if (isMuted) 0f else 1f
+                    player.volume = if (isMuted) 0f else FullscreenVideoBridge.volumeGain.floatValue
+                },
+                onSetVolumeGain = { gain ->
+                    FullscreenVideoBridge.volumeGain.floatValue = gain
+                    if (!isMuted) player.volume = gain
                 },
                 onSeek = { fraction ->
                     isScrubbing = true
