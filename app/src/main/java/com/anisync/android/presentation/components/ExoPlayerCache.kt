@@ -139,8 +139,8 @@ internal fun buildVideoExoPlayer(
         .setBufferDurationsMs(
             30_000,       // Start/continue with a meaningful 30-second forward buffer.
             15 * 60_000,  // Allow up to 15 minutes ahead for long-form episodes on slow networks.
-            5_000,        // Avoid declaring playback ready with only a couple of seconds.
-            10_000        // Rebuffer with a larger safety margin than the old 5-second setting.
+            2_500,        // Start as soon as a short initial buffer is available.
+            1_500         // Resume quickly after rebuffering instead of waiting 10 seconds.
         )
         // Keep several minutes behind the playhead available for backward seeking.
         .setBackBuffer(4 * 60_000, true)
