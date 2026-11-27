@@ -2,6 +2,7 @@ package com.anisync.android.presentation.components
 
 import android.annotation.SuppressLint
 import android.graphics.Color as AndroidColor
+import android.util.Log
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
@@ -17,12 +18,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.unit.dp
 
 /**
- * Inline YouTube embed matching AnimeW's working WebView implementation:
- * direct youtube-nocookie embed URL, Android mobile browser UA, and the same
- * Referer/Origin request headers used by AnimeW's WebViewController.loadRequest.
+ * Inline YouTube player using the same official iframe setup as the trailer dialog.
+ * Do not spoof YouTube as the embedding page's Referer or Origin.
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -35,18 +34,43 @@ fun YouTubeInlinePlayer(
     } ?: return
 
     val webViewState = remember { mutableStateOf<WebView?>(null) }
-    val embedUrl = remember(safeId) {
-        "https://www.youtube-nocookie.com/embed/$safeId?playsinline=1"
-    }
-    val requestHeaders = remember {
-        mapOf(
-            "Referer" to "https://www.youtube.com/",
-            "Origin" to "https://www.youtube.com"
-        )
-    }
-    val mobileUserAgent = remember {
-        "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 " +
-            "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+    val webOrigin = "https://appassets.androidplatform.net"
+    val encodedOrigin = remember { android.net.Uri.encode(webOrigin) }
+    val html = remember(safeId, encodedOrigin) {
+        """
+        <!doctype html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+          <style>
+            html, body {
+              margin: 0;
+              padding: 0;
+              width: 100%;
+              height: 100%;
+              background: #000;
+              overflow: hidden;
+            }
+            iframe {
+              position: absolute;
+              inset: 0;
+              width: 100%;
+              height: 100%;
+              border: 0;
+            }
+          </style>
+        </head>
+        <body>
+          <iframe
+            src="https://www.youtube.com/embed/$safeId?playsinline=1&controls=1&rel=0&enablejsapi=1&origin=$encodedOrigin"
+            title="YouTube video player"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen>
+          </iframe>
+        </body>
+        </html>
+        """.trimIndent()
     }
 
     AndroidView(
@@ -58,9 +82,6 @@ fun YouTubeInlinePlayer(
             WebView(context).apply {
                 webViewState.value = this
                 setBackgroundColor(AndroidColor.BLACK)
-                // Keep the inline WebView on its own hardware layer. The dialog player uses
-                // the same setting; without it, Chromium's video surface can composite as a
-                // permanently black rectangle inside Compose's AndroidView on some devices.
                 setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
                 settings.javaScriptEnabled = true
@@ -71,43 +92,55 @@ fun YouTubeInlinePlayer(
                 settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                 settings.javaScriptCanOpenWindowsAutomatically = false
                 settings.setSupportMultipleWindows(false)
-                settings.userAgentString = mobileUserAgent
+                settings.allowContentAccess = false
+                settings.allowFileAccess = false
 
                 CookieManager.getInstance().setAcceptCookie(true)
                 CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String) {
-                        android.util.Log.d("AniSyncYouTube", "Embed loaded: $url")
+                        Log.d("AniSyncYouTube", "Inline player document loaded: $url")
                     }
-                    override fun onReceivedError(view: WebView, request: android.webkit.WebResourceRequest, error: android.webkit.WebResourceError) {
+
+                    override fun onReceivedError(
+                        view: WebView,
+                        request: android.webkit.WebResourceRequest,
+                        error: android.webkit.WebResourceError
+                    ) {
                         super.onReceivedError(view, request, error)
-                        android.util.Log.e("AniSyncYouTube", "Load failed: " + request.url + ", code=" + error.errorCode + ", " + error.description)
+                        Log.e(
+                            "AniSyncYouTube",
+                            "Inline load failed: \${request.url}, code=\${error.errorCode}, \${error.description}"
+                        )
                     }
-                    override fun onReceivedHttpError(view: WebView, request: android.webkit.WebResourceRequest, response: android.webkit.WebResourceResponse) {
+
+                    override fun onReceivedHttpError(
+                        view: WebView,
+                        request: android.webkit.WebResourceRequest,
+                        response: android.webkit.WebResourceResponse
+                    ) {
                         super.onReceivedHttpError(view, request, response)
-                        android.util.Log.e("AniSyncYouTube", "HTTP " + response.statusCode + ": " + request.url)
+                        Log.e("AniSyncYouTube", "Inline HTTP \${response.statusCode}: \${request.url}")
                     }
                 }
                 webChromeClient = object : WebChromeClient() {
                     override fun onConsoleMessage(message: android.webkit.ConsoleMessage): Boolean {
-                        android.util.Log.e("AniSyncYouTube", "JS " + message.message() + " at " + message.sourceId() + ":" + message.lineNumber())
+                        Log.e(
+                            "AniSyncYouTube",
+                            "Inline JS \${message.message()} at \${message.sourceId()}:\${message.lineNumber()}"
+                        )
                         return true
                     }
                 }
 
                 isFocusable = true
                 isFocusableInTouchMode = true
-                loadUrl(embedUrl, requestHeaders)
+                loadDataWithBaseURL("$webOrigin/", html, "text/html", "UTF-8", null)
             }
         },
-        update = { webView ->
-            // Keep the same WebView alive through recompositions. Only navigate if
-            // its current document is not already the requested video.
-            val current = webView.url
-            if (current == null || current == "about:blank" || !current.contains(safeId)) {
-                webView.loadUrl(embedUrl, requestHeaders)
-            }
+        update = {
+            // Keep the iframe alive across Compose recompositions.
         }
     )
 
