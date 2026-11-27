@@ -75,6 +75,7 @@ query SearchMedia(
         medium
         large
         extraLarge
+        color
       }
       status
       averageScore: weightedScore
