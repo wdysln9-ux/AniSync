@@ -137,10 +137,10 @@ internal fun buildVideoExoPlayer(
 ): ExoPlayer {
     val loadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
-            30_000,       // Start/continue with a meaningful 30-second forward buffer.
-            15 * 60_000,  // Allow up to 15 minutes ahead for long-form episodes on slow networks.
-            2_500,        // Start as soon as a short initial buffer is available.
-            1_500         // Resume quickly after rebuffering instead of waiting 10 seconds.
+            10_000,       // Keep enough forward data without delaying recovery on slow connections.
+            2 * 60_000,   // Bound the target buffer so a long episode does not overfill memory.
+            1_000,        // Start promptly after the first playable data arrives.
+            1_000         // Resume promptly after rebuffering.
         )
         // Keep several minutes behind the playhead available for backward seeking.
         .setBackBuffer(4 * 60_000, true)
