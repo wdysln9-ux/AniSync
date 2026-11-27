@@ -169,7 +169,8 @@ private fun YouTubeWebView(
                     settings.domStorageEnabled = true
                     settings.loadsImagesAutomatically = true
                     settings.databaseEnabled = true
-                    settings.mediaPlaybackRequiresUserGesture = true
+                    settings.mediaPlaybackRequiresUserGesture = false
+                    settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                     settings.javaScriptCanOpenWindowsAutomatically = false
                     settings.setSupportMultipleWindows(false)
                     settings.allowContentAccess = false
