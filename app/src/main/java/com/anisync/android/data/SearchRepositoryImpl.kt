@@ -383,6 +383,7 @@ class SearchRepositoryImpl @Inject constructor(
         cover = com.anisync.android.domain.CoverImage.of(
             coverImage?.medium, coverImage?.large, coverImage?.extraLarge
         ),
+        coverColor = coverImage?.color,
         progress = 0,
         totalEpisodes = episodes,
         totalChapters = chapters,
@@ -411,6 +412,7 @@ class SearchRepositoryImpl @Inject constructor(
             coverImage?.large,
             coverImage?.extraLarge
         ),
+        coverColor = coverImage?.color,
         progress = 0,
         totalEpisodes = episodes,
         totalChapters = chapters,
