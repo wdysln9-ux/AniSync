@@ -1239,6 +1239,10 @@ internal fun VideoControlsOverlay(
                     detectVerticalDragGestures(
                         onDragStart = { offset ->
                             brightnessGesture = offset.x < size.width / 2f
+                            if (!brightnessGesture) {
+                                val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+                                volumeLevel = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / maxVolume
+                            }
                             levelHud = if (brightnessGesture) "brightness" else "volume"
                             controlsVisible = false
                         },
@@ -1254,11 +1258,14 @@ internal fun VideoControlsOverlay(
                                 }
                             } else {
                                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+                                // Keep fractional drag progress between pointer events. Android's
+                                // stream volume is integer-stepped, so rounding the per-event delta
+                                // would discard small movements and make the gesture feel snappy.
+                                volumeLevel = (volumeLevel + delta).coerceIn(0f, 1f)
+                                val next = (volumeLevel * maxVolume).roundToInt().coerceIn(0, maxVolume)
                                 val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-                                val next = (current + delta * maxVolume).roundToInt().coerceIn(0, maxVolume)
                                 if (next != current) {
                                     audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, next, 0)
-                                    volumeLevel = next.toFloat() / maxVolume
                                 }
                             }
                             levelHudRevision++
