@@ -27,6 +27,7 @@ query GetUserLibrary($userId: Int, $username: String, $type: MediaType!) {
             medium
             large
             extraLarge
+            color
           }
           episodes
           chapters
