@@ -111,7 +111,7 @@ fun YouTubeInlinePlayer(
                         super.onReceivedError(view, request, error)
                         Log.e(
                             "AniSyncYouTube",
-                            "Inline load failed: \${request.url}, code=\${error.errorCode}, \${error.description}"
+                            "Inline load failed: ${request.url}, code=${error.errorCode}, ${error.description}"
                         )
                     }
 
@@ -121,14 +121,14 @@ fun YouTubeInlinePlayer(
                         response: android.webkit.WebResourceResponse
                     ) {
                         super.onReceivedHttpError(view, request, response)
-                        Log.e("AniSyncYouTube", "Inline HTTP \${response.statusCode}: \${request.url}")
+                        Log.e("AniSyncYouTube", "Inline HTTP ${response.statusCode}: ${request.url}")
                     }
                 }
                 webChromeClient = object : WebChromeClient() {
                     override fun onConsoleMessage(message: android.webkit.ConsoleMessage): Boolean {
                         Log.e(
                             "AniSyncYouTube",
-                            "Inline JS \${message.message()} at \${message.sourceId()}:\${message.lineNumber()}"
+                            "Inline JS ${message.message()} at ${message.sourceId()}:${message.lineNumber()}"
                         )
                         return true
                     }
