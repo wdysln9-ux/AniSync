@@ -329,7 +329,7 @@ fun VideoPlayer(
         }
         isPlaying = exoPlayer.isPlaying
         exoPlayer.setPlaybackParameters(PlaybackParameters(PlayerPreferences.playbackSpeed(context), 1f))
-        exoPlayer.volume = if (PlayerPreferences.isMuted(context, startMuted)) 0f else 1f
+        exoPlayer.volume = if (PlayerPreferences.isMuted(context, startMuted)) 0f else FullscreenVideoBridge.volumeGain.floatValue
         isMuted = exoPlayer.volume == 0f
         exoPlayer.addListener(listener)
 
