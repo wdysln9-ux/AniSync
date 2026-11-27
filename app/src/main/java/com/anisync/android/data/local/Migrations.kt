@@ -127,6 +127,13 @@ object Migrations {
      * Declared after the migrations it holds, because an `object` initialises top to bottom and a
      * forward reference would land a null in the array.
      */
+    /** v30 to v31: add the nullable MyAnimeList ID used by AniZip matching. */
+    val MIGRATION_30_31 = object : Migration(30, 31) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `media_details` ADD COLUMN `idMal` INTEGER DEFAULT NULL")
+        }
+    }
+
     /** v31 to v32: preserve library cache while adding AniList's cover placeholder color. */
     val MIGRATION_31_32 = object : Migration(31, 32) {
         override fun migrate(db: SupportSQLiteDatabase) {
@@ -136,6 +143,7 @@ object Migrations {
 
     val ALL_MIGRATIONS: Array<Migration> = arrayOf(
         MIGRATION_22_23,
+        MIGRATION_30_31,
         MIGRATION_31_32,
     )
 
