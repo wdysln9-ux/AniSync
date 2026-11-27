@@ -259,7 +259,7 @@ fun LibraryMediaCard(
                         .build(),
                     contentDescription = stringResource(R.string.a11y_media_poster, title),
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize().background(entry.coverColor.toAniListCoverColor() ?: Color.Transparent)
                 )
                 Box(
                     modifier = Modifier

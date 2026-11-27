@@ -55,6 +55,7 @@ import com.anisync.android.domain.LibraryStatus
 import com.anisync.android.domain.ScoreFormat
 import com.anisync.android.domain.formatScore
 import com.anisync.android.domain.url
+import com.anisync.android.presentation.components.toAniListCoverColor
 import com.anisync.android.presentation.components.CoverBadgeRibbon
 import com.anisync.android.presentation.components.ListIndicator
 import com.anisync.android.presentation.components.ListIndicatorCorner
@@ -259,7 +260,7 @@ private fun PosterArt(
                 .build(),
             contentDescription = stringResource(R.string.a11y_media_poster, title),
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().background(entry.coverColor.toAniListCoverColor() ?: Color.Transparent)
         )
 
         // Keep list membership in the top-start corner; the bottom corners stay clear for the

@@ -1,5 +1,6 @@
 package com.anisync.android.presentation.components.result
 
+import com.anisync.android.presentation.components.toAniListCoverColor
 import com.anisync.android.presentation.components.communityScoreTint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -100,7 +101,7 @@ fun DiscoverResultPoster(
                     .build(),
                 contentDescription = stringResource(R.string.a11y_media_poster, title),
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize().background(entry.coverColor.toAniListCoverColor() ?: Color.Transparent)
             )
             // Score badge: no filled container, with both the star and value using the
             // same score-tier color as AnimeW.

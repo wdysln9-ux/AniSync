@@ -137,6 +137,7 @@ fun PosterCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(aspectRatio)
+                        .background(item.coverColor.toAniListCoverColor() ?: Color.Transparent)
                 )
 
                 // Gradient overlay at bottom for text readability

@@ -3,6 +3,7 @@ package com.anisync.android.presentation.components
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -184,6 +185,7 @@ fun MediaPosterCard(
                 .fillMaxWidth()
                 .aspectRatio(PosterAspect)
                 .clip(CoverShape)
+                .background(item.coverColor.toAniListCoverColor() ?: Color.Transparent)
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
