@@ -58,6 +58,8 @@ data class LibraryEntry(
     val titleUserPreferred: String,
     val coverUrl: String?,
     val cover: CoverImage? = null,
+    /** AniList average cover color, used as the artwork loading background. */
+    val coverColor: String? = null,
     val progress: Int,
     val totalEpisodes: Int?,
     val totalChapters: Int?,
