@@ -545,10 +545,14 @@ fun RichTextRenderer(
                 Column {
                     compactBlocks.forEachIndexed { index, block ->
                         if (index > 0) {
-                            // Use the same gap for text, media previews, and other blocks.
-                            androidx.compose.foundation.layout.Spacer(
-                                Modifier.height(8.dp)
-                            )
+                            val previous = compactBlocks[index - 1]
+                            val textBeforePreview = block is RichTextBlock.AnilistLink &&
+                                previous is RichTextBlock.Text
+                            if (!textBeforePreview) {
+                                androidx.compose.foundation.layout.Spacer(
+                                    Modifier.height(8.dp)
+                                )
+                            }
                         }
                         RenderSingleBlock(
                             block, scope.style, scope.color, scope.linkColor,
