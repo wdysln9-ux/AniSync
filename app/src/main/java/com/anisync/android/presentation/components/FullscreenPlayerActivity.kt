@@ -139,7 +139,12 @@ internal object PlayerPreferences {
 
 @OptIn(UnstableApi::class)
 internal object FullscreenVideoBridge {
-    var player: ExoPlayer? = null
+    // Compose-observable handoff: Auto Next can replace the player when a provider changes
+    // request headers. The fullscreen Activity must switch to that exact new instance.
+    private val activePlayer = mutableStateOf<ExoPlayer?>(null)
+    var player: ExoPlayer?
+        get() = activePlayer.value
+        set(value) { activePlayer.value = value }
     @Volatile var isFullscreen: Boolean = false
     var closeFullscreen: (() -> Unit)? = null
     var onPlaybackEnded: (() -> Unit)? = null
@@ -203,22 +208,27 @@ class FullscreenPlayerActivity : ComponentActivity() {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
 
-        val player = FullscreenVideoBridge.player
-        if (player == null) {
+        if (FullscreenVideoBridge.player == null) {
             // Nothing to show (e.g. process death restored this activity) — bail back to the app.
             finish()
             return
         }
 
-        attachedPlayer = player
         FullscreenVideoBridge.isFullscreen = true
         setContent {
-            AppTheme(darkTheme = true) {
-                FullscreenVideoContent(
-                    player = player,
-                    aspectRatio = aspect,
-                    onClose = { finish() }
-                )
+            // Read the observable bridge inside composition. When Auto Next changes provider
+            // headers and creates a replacement ExoPlayer, this Activity follows the new player
+            // instead of continuing to render a released/stale instance.
+            val activePlayer = FullscreenVideoBridge.player
+            if (activePlayer != null) {
+                attachedPlayer = activePlayer
+                AppTheme(darkTheme = true) {
+                    FullscreenVideoContent(
+                        player = activePlayer,
+                        aspectRatio = aspect,
+                        onClose = { finish() }
+                    )
+                }
             }
         }
     }
