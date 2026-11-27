@@ -659,19 +659,26 @@ private const val HTTP_GONE = 410
  */
 @OptIn(UnstableApi::class)
 private object PlayerSurfaceRegistry {
-    private val attachedViews = java.util.WeakHashMap<ExoPlayer, TextureView>()
+    private data class AttachedSurface(
+        val view: TextureView,
+        val surfaceTexture: android.graphics.SurfaceTexture?
+    )
+    private val attachedViews = java.util.WeakHashMap<ExoPlayer, AttachedSurface>()
 
     @Synchronized
     fun attach(player: ExoPlayer, view: TextureView) {
-        if (attachedViews[player] === view) return
-        // Media3 replaces the previous video output when a new TextureView is attached.
+        val currentSurface = view.surfaceTexture
+        val attached = attachedViews[player]
+        // A TextureView can survive rotation while Android replaces its SurfaceTexture.
+        // Compare the actual surface too; view identity alone leaves the decoder detached.
+        if (attached?.view === view && attached.surfaceTexture === currentSurface) return
         player.setVideoTextureView(view)
-        attachedViews[player] = view
+        attachedViews[player] = AttachedSurface(view, currentSurface)
     }
 
     @Synchronized
     fun detach(player: ExoPlayer, view: TextureView) {
-        if (attachedViews[player] !== view) return
+        if (attachedViews[player]?.view !== view) return
         player.clearVideoTextureView(view)
         attachedViews.remove(player)
     }
@@ -699,6 +706,7 @@ internal fun PlayerSurface(
     val cinematicEnabled = PlayerPreferences.cinematicEnabled(context)
     val latestContentScale by rememberUpdatedState(contentScale)
     val latestStretchScaleX by rememberUpdatedState(stretchScaleX)
+    val latestActive by rememberUpdatedState(active)
     fun updateTextureTransform(view: TextureView) {
         val width = view.width.toFloat()
         val height = view.height.toFloat()
@@ -832,7 +840,13 @@ internal fun PlayerSurface(
                 TextureView(ctx).also { view ->
                     textureView = view
                     view.addOnLayoutChangeListener { changed, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
-                        updateTextureTransform(changed as TextureView)
+                        val texture = changed as TextureView
+                        updateTextureTransform(texture)
+                        // Reattach when rotation recreates the underlying SurfaceTexture
+                        // without replacing the Compose TextureView instance.
+                        if (latestActive && texture.isAvailable) {
+                            PlayerSurfaceRegistry.attach(exoPlayer, texture)
+                        }
                     }
                 }
             },
@@ -989,29 +1003,29 @@ internal fun PlayerStatusVisuals(
 @Composable
 private fun LevelGestureHud(
     percent: Int,
+    accentColor: Color,
+    contentColor: Color,
     icon: @Composable () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(50),
-        color = Color.Black.copy(alpha = 0.58f),
-        contentColor = Color.White
+        color = accentColor,
+        contentColor = contentColor
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            androidx.compose.runtime.CompositionLocalProvider(
-                androidx.compose.material3.LocalContentColor provides Color.White
-            ) { icon() }
+            icon()
             Box(
                 Modifier.width(104.dp).height(5.dp).clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.24f))
+                    .background(contentColor.copy(alpha = 0.24f))
             ) {
                 Box(
                     Modifier.fillMaxWidth(percent.coerceIn(0, 100) / 100f)
                         .height(5.dp).clip(CircleShape)
-                        .background(Color.White)
+                        .background(contentColor)
                 )
             }
             Text("$percent%", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
@@ -1242,8 +1256,19 @@ internal fun VideoControlsOverlay(
                 }
                 .pointerInput(hostWindow, audioManager) {
                     var brightnessGesture = false
+                    var gestureEnabled = false
                     detectVerticalDragGestures(
                         onDragStart = { offset ->
+                            val horizontalDeadZone = 36.dp.toPx()
+                            val verticalDeadZone = 36.dp.toPx()
+                            gestureEnabled = offset.x >= horizontalDeadZone &&
+                                offset.x <= size.width - horizontalDeadZone &&
+                                offset.y >= verticalDeadZone &&
+                                offset.y <= size.height - verticalDeadZone
+                            if (!gestureEnabled) {
+                                levelHud = null
+                                return@detectVerticalDragGestures
+                            }
                             brightnessGesture = offset.x < size.width / 2f
                             if (!brightnessGesture) {
                                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
@@ -1254,6 +1279,7 @@ internal fun VideoControlsOverlay(
                             controlsVisible = false
                         },
                         onVerticalDrag = { change, dragAmount ->
+                            if (!gestureEnabled) return@detectVerticalDragGestures
                             change.consume()
                             val delta = -dragAmount / size.height.coerceAtLeast(1).toFloat() * 1.6f
                             if (brightnessGesture) {
@@ -1282,7 +1308,9 @@ internal fun VideoControlsOverlay(
                                 onSetVolumeGain(gain)
                             }
                             levelHudRevision++
-                        }
+                        },
+                        onDragEnd = { gestureEnabled = false },
+                        onDragCancel = { gestureEnabled = false }
                     )
                 }
         )
@@ -1295,6 +1323,8 @@ internal fun VideoControlsOverlay(
         ) {
             LevelGestureHud(
                 percent = (brightnessLevel * 100).roundToInt(),
+                accentColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 icon = { Icon(Icons.Filled.Brightness6, contentDescription = null) }
             )
         }
@@ -1306,6 +1336,8 @@ internal fun VideoControlsOverlay(
         ) {
             LevelGestureHud(
                 percent = (volumeLevel * 100).roundToInt(),
+                accentColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 icon = { Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null) }
             )
         }
