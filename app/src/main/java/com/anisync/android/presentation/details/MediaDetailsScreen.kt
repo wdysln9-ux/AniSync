@@ -2362,9 +2362,19 @@ private fun MetadataTags(details: MediaDetails, onFilterClick: (com.anisync.andr
     if (parts.isEmpty()) return
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         parts.forEachIndexed { index, part ->
-            if (index > 0) MetadataSeparator()
+            if (index > 0) {
+                Text(
+                    text = "·",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Box(modifier = if (part.filters != null) Modifier.clickable { onFilterClick(part.filters) } else Modifier) {
-                MetadataText(part.text)
+                Text(
+                    text = part.text,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
