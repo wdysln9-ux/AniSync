@@ -6,9 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -62,19 +59,30 @@ fun CloudStreamSettingsScreen(onBackClick: () -> Unit) {
                     (p["types"] as? List<*>)?.any { it?.toString() in setOf("Anime", "AnimeMovie", "OVA") } == true
                 }.mapNotNull { it["name"]?.toString()?.takeIf(String::isNotBlank) }.distinct()
             }
-            val saved = priorityPrefs.getString("order", "").orEmpty().split("\\u001F").filter(String::isNotBlank)
+            val rawOrder = priorityPrefs.getString("order", "").orEmpty()
+            // Read both the old literal "\\u001F" separator and the actual unit separator.
+            val saved = when {
+                rawOrder.contains('\u001F') -> rawOrder.split('\u001F')
+                rawOrder.contains("\\\\u001F") -> rawOrder.split("\\\\u001F")
+                rawOrder.isBlank() -> emptyList()
+                else -> listOf(rawOrder)
+            }.filter(String::isNotBlank)
             priorityProviders = saved.filter { it in available } + available.filterNot { it in saved }
         }
     }
     fun moveProvider(name: String, direction: Int) {
-        val current = priorityPrefs.getString("order", "").orEmpty().split("\\u001F").filter(String::isNotBlank).toMutableList().ifEmpty { priorityProviders.toMutableList() }
+        val rawOrder = priorityPrefs.getString("order", "").orEmpty()
+        val current = (if (rawOrder.contains('\u001F')) rawOrder.split('\u001F')
+            else if (rawOrder.contains("\\\\u001F")) rawOrder.split("\\\\u001F")
+            else emptyList()).filter(String::isNotBlank).toMutableList()
+            .ifEmpty { priorityProviders.toMutableList() }
         val from = current.indexOf(name)
         val to = (from + direction).coerceIn(0, current.lastIndex)
         if (from < 0 || from == to) return
         val item = current.removeAt(from)
         current.add(to, item)
         priorityProviders = current
-        priorityPrefs.edit().putString("order", current.joinToString("\\u001F")).apply()
+        priorityPrefs.edit().putString("order", current.joinToString("\u001F")).apply()
     }
 
     fun refresh() {
@@ -124,24 +132,16 @@ fun CloudStreamSettingsScreen(onBackClick: () -> Unit) {
                     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Prioritas Auto Resolve", style = MaterialTheme.typography.titleMedium)
-                            Text("Tekan dan tahan provider, lalu geser untuk mengatur urutan. Provider paling atas akan dicoba lebih dulu.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Provider paling atas akan dicoba lebih dulu. Gunakan tombol untuk mengubah urutannya.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             priorityProviders.forEachIndexed { index, name ->
                                 Row(
-                                    Modifier.fillMaxWidth().pointerInput(name) {
-                                        var accumulated = 0f
-                                        detectDragGesturesAfterLongPress(
-                                            onDrag = { change, dragAmount ->
-                                                change.consume()
-                                                accumulated += dragAmount.y
-                                                while (accumulated <= -48f) { moveProvider(name, -1); accumulated += 48f }
-                                                while (accumulated >= 48f) { moveProvider(name, 1); accumulated -= 48f }
-                                            }
-                                        )
-                                    }.padding(vertical = 7.dp),
+                                    Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text("${index + 1}. $name", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                    Icon(Icons.Default.DragHandle, contentDescription = "Geser untuk mengubah prioritas", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    TextButton(enabled = index > 0, onClick = { moveProvider(name, -1) }) { Text("Naik") }
+                                    TextButton(enabled = index < priorityProviders.lastIndex, onClick = { moveProvider(name, 1) }) { Text("Turun") }
                                 }
                             }
                         }
