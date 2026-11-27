@@ -492,6 +492,8 @@
     <string name="details_next_episode_in">Episode %1$d tayang dalam %2$s</string>
     <string name="details_trailer">Trailer</string>
     <string name="details_duration_minutes">%1$d menit</string>
+    <string name="details_duration_hours">%1$d jam</string>
+    <string name="details_duration_hours_minutes">%1$d j %2$d m</string>
     <string name="details_score_average">rata-rata</string>
     <string name="details_score_average_ranked">rata-rata · #%1$d sepanjang masa</string>
     <string name="cd_change_list_status">Ubah status daftar</string>
