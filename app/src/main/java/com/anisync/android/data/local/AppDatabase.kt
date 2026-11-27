@@ -175,8 +175,7 @@ import com.anisync.android.data.local.entity.UserProfileEntity
         androidx.room.AutoMigration(from = 26, to = 27),
         androidx.room.AutoMigration(from = 27, to = 28),
         androidx.room.AutoMigration(from = 28, to = 29),
-        androidx.room.AutoMigration(from = 29, to = 30),
-        androidx.room.AutoMigration(from = 30, to = 31)
+        androidx.room.AutoMigration(from = 29, to = 30)
     ]
 )
 @TypeConverters(Converters::class)
