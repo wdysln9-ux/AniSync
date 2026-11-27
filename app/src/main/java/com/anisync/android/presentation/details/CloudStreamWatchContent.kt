@@ -93,6 +93,7 @@ internal fun CloudStreamWatchContent(
     var selectedStream by remember { mutableStateOf<Map<String, Any?>?>(null) }
     var preloadStream by remember { mutableStateOf<Map<String, Any?>?>(null) }
     var preloadRequestId by remember { mutableIntStateOf(0) }
+    var episodeResolveRequestId by remember { mutableIntStateOf(0) }
     var resolving by remember { mutableStateOf(false) }
     var sourceLoadRequestId by remember { mutableIntStateOf(0) }
     var status by remember { mutableStateOf("Menyiapkan Auto Resolve…") }
@@ -106,6 +107,7 @@ internal fun CloudStreamWatchContent(
 
     fun loadHit(hit: ResolveHit, allowFallback: Boolean = true) {
         val requestId = ++sourceLoadRequestId
+        episodeResolveRequestId++
         selected = hit
 
         // Switching provider must detach every piece of episode/player state from the old source.
@@ -204,8 +206,13 @@ internal fun CloudStreamWatchContent(
                         } }.awaitAll().filterNotNull()
                     }
                 }
-                val savedOrder = providerPriorityPrefs.getString("order", "").orEmpty()
-                    .split("\\u001F").filter(String::isNotBlank)
+                val rawOrder = providerPriorityPrefs.getString("order", "").orEmpty()
+                val savedOrder = when {
+                    rawOrder.contains('\u001F') -> rawOrder.split('\u001F')
+                    rawOrder.contains("\\u001F") -> rawOrder.split("\\u001F")
+                    rawOrder.isBlank() -> emptyList()
+                    else -> listOf(rawOrder)
+                }.filter(String::isNotBlank)
                 val providerRanks = savedOrder.withIndex().associate { it.value to it.index }
                 val ranked = found.distinctBy { it.provider + "|" + it.item["url"] }
                     .sortedWith(compareBy<ResolveHit> { providerRanks[it.provider] ?: Int.MAX_VALUE }.thenByDescending { it.score })
@@ -316,9 +323,11 @@ internal fun CloudStreamWatchContent(
     fun playEpisode(
         chosen: Map<String, Any?>,
         preferredServerName: String? = null,
-        preloadedSource: Map<String, Any?>? = null
+        preloadedSource: Map<String, Any?>? = null,
+        keepCurrentPlayer: Boolean = false
     ) {
         preloadRequestId++
+        val resolveRequestId = ++episodeResolveRequestId
         preloadStream = null
         episode = chosen
         sheet = true
@@ -340,7 +349,7 @@ internal fun CloudStreamWatchContent(
 
         streams = emptyList()
         subtitles = emptyList()
-        selectedStream = null
+        if (!keepCurrentPlayer) selectedStream = null
         preloadStream = null
         resolving = true
         status = "Mencari sumber video…"
@@ -349,6 +358,7 @@ internal fun CloudStreamWatchContent(
             val activeHit = selected
             val cacheKey = "${activeHit?.provider}:${activeHit?.item?.get("url")}:$mediaId:${number ?: chosen["data"] ?: chosen["name"]}"
             val cachedStreams = CloudStreamWatchCache.streams[cacheKey]
+            if (resolveRequestId != episodeResolveRequestId) return@launch
             if (cachedStreams != null) {
                 streams = cachedStreams.first
                 subtitles = cachedStreams.second
@@ -374,6 +384,7 @@ internal fun CloudStreamWatchContent(
                     val data = match["data"]?.toString().orEmpty()
                     if (data.isBlank()) continue
                     val first = withContext(Dispatchers.IO) { CloudStreamRuntime.resolve(hit.provider, data, true) }
+                    if (resolveRequestId != episodeResolveRequestId) return@launch
                     var links = (first["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
                     var subs = (first["subtitles"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
                     var done = first["done"] == true
@@ -381,6 +392,7 @@ internal fun CloudStreamWatchContent(
                     while (!done && System.currentTimeMillis() - started < 28000L) {
                         delay(650)
                         val next = withContext(Dispatchers.IO) { CloudStreamRuntime.pollLinks(hit.provider, data) }
+                        if (resolveRequestId != episodeResolveRequestId) return@launch
                         links = (next["sources"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
                         subs = (next["subtitles"] as? List<*>)?.filterIsInstance<Map<String, Any?>>().orEmpty()
                         done = next["done"] == true
@@ -404,6 +416,7 @@ internal fun CloudStreamWatchContent(
                     }
                 } catch (_: Throwable) { /* Try the next matching provider. */ }
             }
+            if (resolveRequestId != episodeResolveRequestId) return@launch
             if (!success) error = "Tidak ada provider yang berhasil menyediakan video untuk episode ini."
             resolving = false
             // Do not resolve the next episode here; wait for the current video buffer to reach its end.
@@ -648,25 +661,24 @@ internal fun CloudStreamWatchContent(
                             aniskipEpisodeNumber = number,
                             onPlaybackEnded = {
                                 if (autoNextEnabled) {
-                                    val wasFullscreen = FullscreenVideoBridge.isFullscreen
                                     val preferredServerName = selectedStream?.get("name")?.toString()
                                     val readyNextSource = preloadStream?.takeIf {
                                         !preferredServerName.isNullOrBlank() &&
                                             it["name"]?.toString().equals(preferredServerName, ignoreCase = true)
                                     }
-                                    // Reuse the fullscreen Activity when the preloaded source is ready.
-                                    // Otherwise close/re-enter only as a fallback while resolving.
-                                    autoNextFullscreen = wasFullscreen && readyNextSource == null
                                     val next = nextEpisodeAfter(current)
                                     if (next != null) {
+                                        // Keep the current player and fullscreen Activity mounted
+                                        // while resolving a fallback source. Once ready, changing
+                                        // its URL replaces the media item in-place, avoiding a
+                                        // close/relaunch race that could dismiss the player screen.
+                                        autoNextFullscreen = false
                                         playEpisode(
                                             next,
-                                            selectedStream?.get("name")?.toString(),
-                                            readyNextSource
+                                            preferredServerName,
+                                            readyNextSource,
+                                            keepCurrentPlayer = readyNextSource == null
                                         )
-                                        if (wasFullscreen && readyNextSource == null) {
-                                            FullscreenVideoBridge.closeFullscreen?.invoke()
-                                        }
                                     }
                                 }
                             }
