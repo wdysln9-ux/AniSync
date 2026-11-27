@@ -22,6 +22,9 @@ import com.anisync.android.data.local.entity.UserProfileEntity
  *
  * Version History:
  * ─────────────────────────────────────────────────────────────────────────────
+ * v32 (Nov 2026):
+ *   - Added nullable `coverColor` to library_entries for AniList artwork placeholders.
+ *
  * v31 (Nov 2026):
  *   - Added idMal to media_details for AniZip episode metadata.
  *
@@ -144,7 +147,7 @@ import com.anisync.android.data.local.entity.UserProfileEntity
         MediaTagsEntity::class,
         RecapEntity::class
     ],
-    version = 31,
+    version = 32,
     exportSchema = true,
     autoMigrations = [
         androidx.room.AutoMigration(from = 2, to = 3),
@@ -173,7 +176,8 @@ import com.anisync.android.data.local.entity.UserProfileEntity
         androidx.room.AutoMigration(from = 27, to = 28),
         androidx.room.AutoMigration(from = 28, to = 29),
         androidx.room.AutoMigration(from = 29, to = 30),
-        androidx.room.AutoMigration(from = 30, to = 31)
+        androidx.room.AutoMigration(from = 30, to = 31),
+        androidx.room.AutoMigration(from = 31, to = 32)
     ]
 )
 @TypeConverters(Converters::class)
