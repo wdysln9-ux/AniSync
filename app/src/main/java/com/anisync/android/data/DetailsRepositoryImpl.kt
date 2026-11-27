@@ -312,7 +312,6 @@ class DetailsRepositoryImpl @Inject constructor(
                 titleUserPreferred = titleUserPreferred,
                 coverUrl = media.coverImage?.extraLarge,
                 cover = com.anisync.android.domain.CoverImage.of(media.coverImage?.medium, media.coverImage?.large, media.coverImage?.extraLarge),
-            coverColor = media.coverImage?.color,
                 coverColor = media.coverImage?.color,
                 bannerUrl = media.bannerImage,
                 description = media.description?.stripHtml() ?: "",
