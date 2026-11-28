@@ -51,7 +51,7 @@ private fun formatEpisodeReleaseDate(value: String?): String {
     if (raw.isBlank()) return "Tanggal rilis belum tersedia"
     return try {
         val datePart = raw.take(10)
-        LocalDate.parse(datePart).format(DateTimeFormatter.ofPattern("MMM, dd yyyy", Locale.ENGLISH))
+        LocalDate.parse(datePart).format(DateTimeFormatter.ofPattern("MMM, dd yyyy", Locale("id", "ID")))
     } catch (_: DateTimeParseException) {
         raw
     }
