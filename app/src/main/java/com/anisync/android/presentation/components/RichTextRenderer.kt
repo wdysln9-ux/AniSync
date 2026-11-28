@@ -390,6 +390,80 @@ fun RichTextHost(
  * Remove only interior whitespace-only blocks so the normal block spacing is the sole gap between
  * text and link previews in every renderer path.
  */
+private fun trimTrailingInlineWhitespace(inlines: List<RichTextInline>): List<RichTextInline> {
+    val result = inlines.toMutableList()
+    while (result.isNotEmpty()) {
+        when (val last = result.last()) {
+            RichTextInline.LineBreak -> result.removeAt(result.lastIndex)
+            is RichTextInline.Text -> {
+                val trimmed = last.value.trimEnd()
+                if (trimmed.isEmpty()) {
+                    result.removeAt(result.lastIndex)
+                } else {
+                    result[result.lastIndex] = last.copy(value = trimmed)
+                    break
+                }
+            }
+            is RichTextInline.Bold -> {
+                val children = trimTrailingInlineWhitespace(last.children)
+                if (children.isEmpty()) result.removeAt(result.lastIndex)
+                else {
+                    result[result.lastIndex] = last.copy(children = children)
+                    break
+                }
+            }
+            is RichTextInline.Italic -> {
+                val children = trimTrailingInlineWhitespace(last.children)
+                if (children.isEmpty()) result.removeAt(result.lastIndex)
+                else {
+                    result[result.lastIndex] = last.copy(children = children)
+                    break
+                }
+            }
+            is RichTextInline.BoldItalic -> {
+                val children = trimTrailingInlineWhitespace(last.children)
+                if (children.isEmpty()) result.removeAt(result.lastIndex)
+                else {
+                    result[result.lastIndex] = last.copy(children = children)
+                    break
+                }
+            }
+            is RichTextInline.Strikethrough -> {
+                val children = trimTrailingInlineWhitespace(last.children)
+                if (children.isEmpty()) result.removeAt(result.lastIndex)
+                else {
+                    result[result.lastIndex] = last.copy(children = children)
+                    break
+                }
+            }
+            is RichTextInline.Link -> {
+                val children = trimTrailingInlineWhitespace(last.children)
+                if (children.isEmpty()) result.removeAt(result.lastIndex)
+                else {
+                    result[result.lastIndex] = last.copy(children = children)
+                    break
+                }
+            }
+            is RichTextInline.Spoiler -> {
+                val children = trimTrailingInlineWhitespace(last.children)
+                if (children.isEmpty()) result.removeAt(result.lastIndex)
+                else {
+                    result[result.lastIndex] = last.copy(children = children)
+                    break
+                }
+            }
+            else -> break
+        }
+    }
+    return result
+}
+
+/**
+ * Removes parser-generated empty separators and trailing line breaks immediately before an
+ * AniList media preview. The latter matters when the URL is on the next source line: the newline
+ * belongs to the preceding text block, not to the gap between the text and its preview. This
+ * normalization is shared by eager, async, and LazyColumn rich-text renderers.
+ */
 private fun withoutInteriorWhitespaceSeparators(blocks: List<RichTextBlock>): List<RichTextBlock> {
     fun isWhitespaceSeparator(candidate: RichTextBlock): Boolean =
         candidate is RichTextBlock.Text && candidate.inlines.all { inline ->
@@ -397,7 +471,7 @@ private fun withoutInteriorWhitespaceSeparators(blocks: List<RichTextBlock>): Li
                 inline is RichTextInline.LineBreak
         }
 
-    return blocks.filterIndexed { index, block ->
+    val filtered = blocks.filterIndexed { index, block ->
         if (!isWhitespaceSeparator(block)) {
             true
         } else {
@@ -406,6 +480,16 @@ private fun withoutInteriorWhitespaceSeparators(blocks: List<RichTextBlock>): Li
             val hasNextContent = blocks.drop(index + 1)
                 .any { candidate -> !isWhitespaceSeparator(candidate) }
             !(hasPreviousContent && hasNextContent)
+        }
+    }
+
+    return filtered.mapIndexed { index, block ->
+        if (block is RichTextBlock.Text &&
+            filtered.getOrNull(index + 1) is RichTextBlock.AnilistLink
+        ) {
+            block.copy(inlines = trimTrailingInlineWhitespace(block.inlines))
+        } else {
+            block
         }
     }
 }
