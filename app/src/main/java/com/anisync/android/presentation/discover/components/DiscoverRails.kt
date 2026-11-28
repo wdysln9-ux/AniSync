@@ -1,5 +1,7 @@
 package com.anisync.android.presentation.discover.components
 
+import com.anisync.android.presentation.components.toAniListCoverColor
+
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
