@@ -9,6 +9,7 @@ import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.downloader.Downloader
 import org.schabi.newpipe.extractor.downloader.Request as ExtractorRequest
 import org.schabi.newpipe.extractor.downloader.Response as ExtractorResponse
+import org.schabi.newpipe.extractor.stream.DeliveryMethod
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -31,6 +32,28 @@ internal object YouTubeStreamResolver {
 
     @Volatile
     private var initialized = false
+
+    /**
+     * YouTube media and thumbnail requests deliberately bypass MediaHttp's shared CDN client.
+     * That client pins HTTP/1.1 and enables ECH for unrelated hosts; AnimeW's media_kit path
+     * uses its own native transport. Keep YouTube on a plain OkHttp transport instead.
+     */
+    val playbackHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(45, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header("User-Agent", USER_AGENT)
+                    .header("Referer", "https://www.youtube.com/")
+                    .build()
+                chain.proceed(request)
+            }
+            .build()
+    }
 
     private val initLock = Any()
     private val http = OkHttpClient.Builder()
@@ -82,10 +105,18 @@ internal object YouTubeStreamResolver {
     suspend fun resolve(pageUrl: String): Resolved = withContext(Dispatchers.IO) {
         initialize()
         val info = StreamInfo.getInfo(pageUrl)
+        // AnimeW resolves manifest.muxed: a progressive stream containing BOTH video
+        // and audio. NewPipe exposes the equivalent entries in videoStreams; explicitly
+        // reject adaptive/video-only entries and prefer the highest muxed bitrate.
         val stream = info.videoStreams
             .asSequence()
-            .filter { it.isUrl && !it.isVideoOnly }
-            .maxByOrNull { it.height }
+            .filter {
+                it.isUrl &&
+                    !it.isVideoOnly &&
+                    it.deliveryMethod == DeliveryMethod.PROGRESSIVE_HTTP
+            }
+            .maxWithOrNull(compareBy<org.schabi.newpipe.extractor.stream.VideoStream> { it.bitrate }
+                .thenBy { it.height })
             ?: throw IOException(
                 "YouTube tidak menyediakan stream video+audio yang bisa diputar langsung."
             )

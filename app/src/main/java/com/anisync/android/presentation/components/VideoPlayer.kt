@@ -111,6 +111,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import okhttp3.OkHttpClient
 import androidx.media3.ui.compose.ContentFrame
 import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import com.anisync.android.R
@@ -177,6 +178,7 @@ fun VideoPlayer(
     url: String,
     modifier: Modifier = Modifier,
     headers: Map<String, String> = emptyMap(),
+    httpClient: OkHttpClient? = null,
     playerCache: ExoPlayerCache? = LocalExoPlayerCache.current,
     startMuted: Boolean = true,
     loop: Boolean = true,
@@ -239,10 +241,10 @@ fun VideoPlayer(
     var pendingRendererResumeMs by remember(url) { mutableLongStateOf(0L) }
 
     // Recreate only episode players when the selected audio path changes; retain the playhead.
-    val exoPlayer = if (playerCache != null && !useWsolaAudio) {
+    val exoPlayer = if (playerCache != null && !useWsolaAudio && httpClient == null) {
         remember(url, headers) { playerCache.getOrCreate(url, headers) }
     } else {
-        remember(headers, useWsolaAudio, selectedAudioRenderer) {
+        remember(url, headers, httpClient, useWsolaAudio, selectedAudioRenderer) {
             buildVideoExoPlayer(
                 context.applicationContext,
                 url,
@@ -250,6 +252,7 @@ fun VideoPlayer(
                 loop,
                 autoPlay,
                 headers = headers,
+                httpClient = httpClient,
                 useWsolaAudio = useWsolaAudio,
                 audioRenderer = selectedAudioRenderer
             )

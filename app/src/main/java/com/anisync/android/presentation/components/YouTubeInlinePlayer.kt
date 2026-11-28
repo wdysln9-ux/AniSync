@@ -24,7 +24,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import coil3.ImageLoader
 import coil3.compose.AsyncImage
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 
 /**
  * Inline YouTube embeds remain lightweight thumbnail previews, as in the original AniSync
@@ -38,6 +41,16 @@ fun YouTubeInlinePlayer(
     val safeId = remember(videoId) {
         videoId.takeIf { it.matches(Regex("[A-Za-z0-9_-]{6,20}")) }
     } ?: return
+    val context = LocalContext.current
+    // YouTube thumbnails use the same isolated transport as direct YouTube playback,
+    // not the app-wide image client configured for unrelated CDNs.
+    val thumbnailLoader = remember(context) {
+        ImageLoader.Builder(context)
+            .components {
+                add(OkHttpNetworkFetcherFactory(callFactory = { YouTubeStreamResolver.playbackHttpClient }))
+            }
+            .build()
+    }
     var showPlayer by remember(safeId) { mutableStateOf(false) }
 
     Box(
@@ -51,6 +64,7 @@ fun YouTubeInlinePlayer(
     ) {
         AsyncImage(
             model = "https://i.ytimg.com/vi/$safeId/hqdefault.jpg",
+            imageLoader = thumbnailLoader,
             contentDescription = "Pratinjau video YouTube",
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
