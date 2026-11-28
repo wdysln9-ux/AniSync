@@ -18,6 +18,8 @@ data class AiringEpisode(
     val titleNative: String?,
     val titleUserPreferred: String,
     val coverImageUrl: String?,
+    /** AniList's dominant cover color, shown while the calendar poster loads. */
+    val coverColor: String? = null,
     val format: String?,
     val averageScore: Int?,
     /** True when the media is on the viewer's list (any status). */

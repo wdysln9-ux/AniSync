@@ -61,6 +61,7 @@ class CalendarRepositoryImpl @Inject constructor(
                     coverImageUrl = media.coverImage?.extraLarge
                         ?: media.coverImage?.large
                         ?: media.coverImage?.medium,
+                    coverColor = media.coverImage?.color,
                     format = media.format?.rawValue,
                     averageScore = media.averageScore,
                     isOnList = media.mediaListEntry != null,

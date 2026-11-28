@@ -1,6 +1,7 @@
 package com.anisync.android.presentation.calendar.components
 
 import android.text.format.DateFormat
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +37,7 @@ import com.anisync.android.R
 import com.anisync.android.data.TitleLanguage
 import com.anisync.android.domain.AiringEpisode
 import com.anisync.android.domain.LibraryStatus
+import com.anisync.android.presentation.components.toAniListCoverColor
 import com.anisync.android.presentation.components.ScoreBadge
 import com.anisync.android.presentation.components.StatusBadge
 import com.anisync.android.presentation.util.bouncyClickable
@@ -106,6 +108,7 @@ fun AiringEpisodeCard(
                     .width(58.dp)
                     .aspectRatio(0.7f)
                     .clip(ExpressiveShapes.mediaCover)
+                    .background(episode.coverColor.toAniListCoverColor() ?: Color.Transparent)
             )
 
             Spacer(Modifier.width(12.dp))
