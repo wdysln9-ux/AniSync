@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import com.anisync.android.presentation.components.rememberParsedRichText
+import com.anisync.android.presentation.components.RichTextRenderer
 import com.anisync.android.presentation.forum.components.ThreadBodyItem
 import com.anisync.android.presentation.util.LocalMainNavBarInset
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -565,29 +566,29 @@ private fun LocalNoteDetailScreen(
         }
         androidx.compose.foundation.lazy.LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 32.dp),
+            contentPadding = PaddingValues(start = 0.dp, end = 0.dp, top = 12.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             item {
-                Text(note.title.ifBlank { "Catatan" }, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(note.title.ifBlank { "Catatan" }, modifier = Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 if (note.pinned) {
-                    Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.padding(start = 16.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.PushPin, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                         Text(" Disematkan", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
                 Text(
                     "${dateFormat.format(java.util.Date(note.createdAt))}  |  ${dateFormat.format(java.util.Date(note.updatedAt))}",
-                    modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             parsedBody?.let { body ->
                 item {
-                    ThreadBodyItem(
-                        body = body,
-                        modifier = Modifier.fillMaxWidth(),
+                    RichTextRenderer(
+                        parsedData = body,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f
                         ),
