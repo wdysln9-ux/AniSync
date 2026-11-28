@@ -58,7 +58,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -2418,7 +2418,7 @@ private fun ScoreLine(details: MediaDetails, formattedScore: String, onClick: ()
         details.popularity?.let { popularity ->
             Spacer(modifier = Modifier.width(6.dp))
             Icon(
-                imageVector = Icons.Outlined.Visibility,
+                imageVector = Icons.Rounded.Visibility,
                 contentDescription = stringResource(R.string.sort_popularity),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(15.dp)
