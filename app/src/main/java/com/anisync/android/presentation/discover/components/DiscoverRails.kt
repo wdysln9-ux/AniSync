@@ -271,7 +271,7 @@ private fun MarkerCard(
                 .fillMaxWidth()
                 .aspectRatio(PosterAspect)
                 .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .background(item.coverColor.toAniListCoverColor() ?: MaterialTheme.colorScheme.surfaceContainerHigh)
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
